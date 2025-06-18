@@ -1,93 +1,96 @@
 package protocol.dsc.transport.command_handlers;
 
 import io.netty.channel.Channel;
+
 import protocol.dsc.commands.RequestAccess;
 import protocol.dsc.session.SessionInfo;
 import protocol.dsc.transport.AESDecoder;
 import protocol.dsc.transport.AESEncoder;
 import protocol.dsc.util.DscUtils;
 
+import java.util.logging.Logger;
+
 public class RequestAccessHandler extends HandshakeHandler<RequestAccess> {
-   public static final String DEFAULT_ACCESS_CODE = "12345678";
-   private byte[] ownSessionKey;
-   private static final boolean VERBOSE_DEBUG = false;
+   private static final Logger logger = Logger.getLogger(RequestAccessHandler.class.getName());
+   private byte[] sessionKey; // chiave di sessione generata per AES
 
    public RequestAccessHandler() {
       super(RequestAccess.class);
    }
 
-   public boolean validateOwnInfo(SessionInfo var1) {
-      String var2 = var1.getIdentifierOrInitKey();
-      switch(var1.getEncryptionType()) {
-      case 0:
-         return var2 != null;
-      case 1:
-         return var2 != null && var2.length() >= 8;
-      default:
-         return false;
+   // Verifica la validità delle informazioni locali in base al tipo di cifratura
+   public boolean validateOwnInfo(SessionInfo sessionInfo) {
+      String identifierOrInitKey = sessionInfo.getIdentifierOrInitKey();
+      switch(sessionInfo.getEncryptionType()) {
+         case 0: // Nessuna cifratura
+            return identifierOrInitKey != null;
+         case 1: // Cifratura AES
+            return identifierOrInitKey != null && identifierOrInitKey.length() >= 8;
+         default:
+            return false;
       }
    }
 
-   protected RequestAccess getCommand(Channel var1) {
-      SessionInfo var2 = SessionInfo.getOwnInfo(var1);
-      String var3 = var2.getIdentifierOrInitKey();
-      RequestAccess var4 = new RequestAccess();
-      switch(var2.getEncryptionType()) {
-      case 0:
-         this.ownSessionKey = null;
-         var4.setIdentifier(var3);
-         break;
-      case 1:
-         this.ownSessionKey = RequestAccessAESHelper.getRandomBytes();
-         (new RequestAccessAESHelper(var4)).encryptKey(var3, this.ownSessionKey);
-         break;
-      default:
-         throw new IllegalStateException("unexpected encryption type");
+   // Costruisce il comando RequestAccess da inviare, gestendo la cifratura se necessario
+   protected RequestAccess getCommand(Channel channel) {
+      SessionInfo ownInfo = SessionInfo.getOwnInfo(channel);
+      String identifierOrInitKey = ownInfo.getIdentifierOrInitKey();
+      RequestAccess requestAccess = new RequestAccess();
+      switch(ownInfo.getEncryptionType()) {
+         case 0:
+            this.sessionKey = null;
+            requestAccess.setIdentifier(identifierOrInitKey);
+            break;
+         case 1:
+            this.sessionKey = RequestAccessAESHelper.getRandomBytes();
+            // Cifra la chiave di sessione con la chiave di inizializzazione
+            (new RequestAccessAESHelper(requestAccess)).encryptKey(identifierOrInitKey, this.sessionKey);
+            break;
+         default:
+            throw new IllegalStateException("Tipo di cifratura non previsto");
       }
 
-      return var4;
+      return requestAccess;
    }
 
-   protected void commandSent(Channel var1) {
-      if (this.ownSessionKey != null) {
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: decoding key: " + DscUtils.hexDump(this.ownSessionKey));
-         }
-         AESDecoder.setKey(var1, this.ownSessionKey);
+   // Imposta la chiave di decodifica AES dopo l'invio del comando
+   protected void commandSent(Channel channel) {
+      if (this.sessionKey != null) {
+         logger.fine("Decoding key: " + DscUtils.hexDump(this.sessionKey));
+         AESDecoder.setKey(channel, this.sessionKey);
       }
    }
 
-   protected int commandReceived(Channel var1, RequestAccess var2) {
-      SessionInfo var3 = SessionInfo.getPeerInfo(var1);
-      switch(var3.getEncryptionType()) {
-      case 0:
-         String var4 = var2.getIdentifier();
-         var3.setIdentifierOrInitKey(var4);
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: peer identifier: " + var4);
-         }
-         return 0;
-      case 1:
-         String var5 = var3.getIdentifierOrInitKey();
-         if (var5 == null) {
-            var5 = var3.getMultiPointCommId();
-            var3.setIdentifierOrInitKey(var5);
-         }
-
-         byte[] var6 = (new RequestAccessAESHelper(var2)).decryptKey(var5);
-         if (var6 != null) {
-            if(VERBOSE_DEBUG) {
-               System.out.println("DEBUG: encoding key: " + DscUtils.hexDump(var6));
-            }
-            AESEncoder.setKey(var1, var6);
+   // Gestisce la ricezione del comando RequestAccess, impostando la chiave di cifratura se necessario
+   protected int commandReceived(Channel channel, RequestAccess requestAccess) {
+      SessionInfo peerInfo = SessionInfo.getPeerInfo(channel);
+      switch(peerInfo.getEncryptionType()) {
+         case 0:
+            String peerIdentifier = requestAccess.getIdentifier();
+            peerInfo.setIdentifierOrInitKey(peerIdentifier);
+            logger.fine("Peer identifier: " + peerIdentifier);
             return 0;
-         }
+         case 1:
+            String initKey = peerInfo.getIdentifierOrInitKey();
+            if (initKey == null) {
+               // Recupera l'ID multipunto se la chiave non è ancora impostata
+               initKey = peerInfo.getMultiPointCommId();
+               peerInfo.setIdentifierOrInitKey(initKey);
+            }
 
-         System.out.println("WARN: invalid access request received");
-         return 1;
-      default:
-         System.out.println("WARN: unexpected encryption type");
-         return 1;
+            // Decifra la chiave di sessione ricevuta
+            byte[] decodedSessionKey = (new RequestAccessAESHelper(requestAccess)).decryptKey(initKey);
+            if (decodedSessionKey != null) {
+               logger.fine("Encoding key: " + DscUtils.hexDump(decodedSessionKey));
+               AESEncoder.setKey(channel, decodedSessionKey);
+               return 0;
+            }
+
+            logger.warning("Richiesta di accesso non valida ricevuta");
+            return 1;
+         default:
+            logger.warning("Tipo di cifratura non previsto");
+            return 1;
       }
    }
 }

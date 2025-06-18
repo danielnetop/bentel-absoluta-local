@@ -4,6 +4,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.base.DscCharsets;
@@ -11,8 +12,11 @@ import protocol.dsc.commands.Configuration;
 
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class SingleLabelReading extends RequestableCommandReading<Void, String, Configuration> {
+   private static final Logger logger = Logger.getLogger(SingleLabelReading.class.getName());
+
    private final int optionId;
    private final Integer number;
    private final Charset charset;
@@ -46,7 +50,7 @@ public class SingleLabelReading extends RequestableCommandReading<Void, String, 
          Integer var4 = var2.getOptionIdOffsetFrom();
          List<String> var5 = var2.getStrings(this.charset);
          if (this.number != null && var4 == null) {
-            System.out.println("WARN: unexpected null from for option id: " + this.optionId);
+            logger.warning("Unexpected null from for option id: " + this.optionId);
             return;
          }
 

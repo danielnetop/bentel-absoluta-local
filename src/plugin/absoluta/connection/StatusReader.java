@@ -1,6 +1,7 @@
 package plugin.absoluta.connection;
 
 import com.google.common.base.Joiner;
+
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.MessageListener;
@@ -12,9 +13,12 @@ import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import org.javatuples.Pair;
 
 class StatusReader implements MessageListener {
+   private static final Logger logger = Logger.getLogger(StatusReader.class.getName());
    private static final Joiner JOINER = Joiner.on(", ");
    private static final long POLL_INTERVAL_MS = TimeUnit.SECONDS.toMillis(5);
    private static final long MESSAGE_NOTIFICATION_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(5);
@@ -27,7 +31,6 @@ class StatusReader implements MessageListener {
    private Long notificationWaitStartTime;
    private boolean partitionStatusesReceived;
    private ScheduledFuture<?> notificationTimeoutFuture;
-   private static final boolean VERBOSE_DEBUG = false;
 
    StatusReader(MessageHandler messageHandler, ScheduledExecutorService executor) {
       this.messageHandler = Objects.requireNonNull(messageHandler);
@@ -36,9 +39,7 @@ class StatusReader implements MessageListener {
 
    void startWaitingForNotificationsAfterLogin() {
       executor.execute(() -> {
-         if (VERBOSE_DEBUG) {
-            System.out.println("DEBUG: Waiting for notifications after login");
-         }
+         logger.fine("Waiting for notifications after login");
          notificationWaitStartTime = System.currentTimeMillis();
          waitForNotifications();
       });
@@ -54,13 +55,11 @@ class StatusReader implements MessageListener {
       long elapsed = System.currentTimeMillis() - notificationWaitStartTime;
       if (elapsed < TOTAL_NOTIFICATION_TIMEOUT_MS) {
          notificationTimeoutFuture = executor.schedule(() -> {
-            if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: Notification wait timeout");
-            }
+            logger.fine("Notification wait timeout");
             stopWaitingForNotificationsAfterLogin();
          }, MESSAGE_NOTIFICATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
       } else {
-         System.out.println("WARN: Notification wait timeout (max wait time reached)");
+         logger.warning("Notification wait timeout (max wait time reached)");
          stopWaitingForNotificationsAfterLogin();
       }
    }
@@ -89,15 +88,11 @@ class StatusReader implements MessageListener {
 
       messageHandler.sendHighPriorityReading(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS, null);
 
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: Start reading and polling");
-      }
+      logger.fine("Start reading and polling");
       messageHandler.start();
 
       executor.scheduleAtFixedRate(() -> {
-         if (VERBOSE_DEBUG) {
-            System.out.println("DEBUG: Status poll");
-         }
+         logger.fine("Status poll");
          if (userPartitions != null) {
             messageHandler.sendMidPriorityReading(Message.PARTITION_STATUSES, userPartitions);
          }
@@ -116,9 +111,7 @@ class StatusReader implements MessageListener {
 
       if (newValue.isFor(Message.PARTITION_ASSIGNMENT_CONFIGURATION)) {
          userPartitions = (List<Integer>) newValue.getValue(Message.PARTITION_ASSIGNMENT_CONFIGURATION);
-         if (VERBOSE_DEBUG) {
-            System.out.println("DEBUG: User partitions: " + JOINER.join(userPartitions));
-         }
+         logger.fine("User partitions: " + JOINER.join(userPartitions));
          messageHandler.sendMidPriorityReading(Message.ABSOLUTA_SYSTEM_LABEL, null);
          for (Integer partition : userPartitions) {
             messageHandler.sendMidPriorityReading(Message.ABSOLUTA_PARTITION_LABEL, partition);
@@ -128,9 +121,7 @@ class StatusReader implements MessageListener {
          }
       } else if (newValue.isFor(Message.PARTITION_ZONES) && newValue.getParam(Message.PARTITION_ZONES) == null) {
          List<Integer> userZones = (List<Integer>) newValue.getValue(Message.PARTITION_ZONES);
-         if (VERBOSE_DEBUG) {
-            System.out.println("DEBUG: User zones: " + JOINER.join(userZones));
-         }
+         logger.fine("User zones: " + JOINER.join(userZones));
          if (!userZones.isEmpty()) {
             int minZone = Collections.min(userZones);
             int maxZone = Collections.max(userZones);
@@ -151,14 +142,12 @@ class StatusReader implements MessageListener {
       } else if (newValue.isFor(Message.PARTITION_STATUSES)) {
          partitionStatusesReceived = true;
          if (notificationWaitStartTime != null) {
-            if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: Partition statuses received");
-            }
+            logger.fine("Partition statuses received");
             partitionStatusesReceived = true;
             stopWaitingForNotificationsAfterLogin();
          }
       } else if (newValue.isFor(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)) {
-         System.out.println("INFO: >>> >>> >>> " + newValue.getValue(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS));
+         logger.finer(">>> >>> >>> " + newValue.getValue(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS));
       }
    }
 

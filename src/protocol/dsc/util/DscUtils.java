@@ -9,56 +9,56 @@ import javax.crypto.spec.SecretKeySpec;
 public final class DscUtils {
    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
-   public static int validateUByte(int var0) throws IllegalArgumentException {
-      if (var0 >= 0 && var0 <= 255) {
-         return var0;
+   public static int validateUByte(int value) throws IllegalArgumentException {
+      if (value >= 0 && value <= 255) {
+         return value;
       } else {
-         throw new IllegalArgumentException(String.format("%d out of uint8 range", var0));
+         throw new IllegalArgumentException(String.format("%d out of uint8 range", value));
       }
    }
 
-   public static int validateUShort(int var0) throws IllegalArgumentException {
-      if (var0 >= 0 && var0 <= 65535) {
-         return var0;
+   public static int validateUShort(int value) throws IllegalArgumentException {
+      if (value >= 0 && value <= 65535) {
+         return value;
       } else {
-         throw new IllegalArgumentException(String.format("%d out of uint16 range", var0));
+         throw new IllegalArgumentException(String.format("%d out of uint16 range", value));
       }
    }
 
-   public static long validateUInt(long var0) throws IllegalArgumentException {
-      if (var0 >= 0L && var0 <= 4294967295L) {
-         return var0;
+   public static long validateUInt(long value) throws IllegalArgumentException {
+      if (value >= 0L && value <= 4294967295L) {
+         return value;
       } else {
-         throw new IllegalArgumentException(String.format("%d out of uint32 range", var0));
+         throw new IllegalArgumentException(String.format("%d out of uint32 range", value));
       }
    }
 
-   public static Cipher getAESCipher(byte[] var0, int var1) throws IllegalArgumentException {
+   public static Cipher getAESCipher(byte[] key, int mode) throws IllegalArgumentException {
       try {
-         Cipher var2 = Cipher.getInstance("AES/ECB/NoPadding");
-         var2.init(var1, new SecretKeySpec(var0, "AES"));
-         return var2;
-      } catch (InvalidKeyException var3) {
-         throw new IllegalArgumentException("invalid key", var3);
-      } catch (NoSuchPaddingException | NoSuchAlgorithmException var4) {
-         throw new RuntimeException("unexpected exception", var4);
+         Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+         cipher.init(mode, new SecretKeySpec(key, "AES"));
+         return cipher;
+      } catch (InvalidKeyException ex) {
+         throw new IllegalArgumentException("invalid key", ex);
+      } catch (NoSuchPaddingException | NoSuchAlgorithmException ex) {
+         throw new RuntimeException("unexpected exception", ex);
       }
    }
 
-   public static String hexDump(byte[] var0) {
-      if (var0 == null) {
+   public static String hexDump(byte[] data) {
+      if (data == null) {
          return "null";
-      } else if (var0.length == 0) {
+      } else if (data.length == 0) {
          return "";
       } else {
-         StringBuilder var1 = new StringBuilder(var0.length * 3);
-         var1.append(String.format("%02X", var0[0]));
+         StringBuilder sb = new StringBuilder(data.length * 3);
+         sb.append(String.format("%02X", data[0]));
 
-         for(int var2 = 1; var2 < var0.length; ++var2) {
-            var1.append(' ').append(String.format("%02X", var0[var2]));
+         for(int i = 1; i < data.length; ++i) {
+            sb.append(' ').append(String.format("%02X", data[i]));
          }
 
-         return var1.toString();
+         return sb.toString();
       }
    }
 
@@ -66,6 +66,5 @@ public final class DscUtils {
       return EMPTY_BYTE_ARRAY;
    }
 
-   private DscUtils() {
-   }
+   private DscUtils() { }
 }

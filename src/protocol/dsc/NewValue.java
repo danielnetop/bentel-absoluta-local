@@ -10,12 +10,13 @@ public class NewValue extends Message.Response {
    }
 
    public <P, V> NewValue(Message<P, V> message, P param, V value) {
-      super(Preconditions.checkNotNull(message), param);
+      super(Preconditions.checkNotNull(message), param); // Garantisce che il messaggio non sia null
       this.value = value;
    }
 
    @SuppressWarnings("unchecked")
    public <V> V getValue(Message<?, V> message) {
+      // Controllo identità oggetto, non solo uguaglianza: evita errori logici in caso di istanze diverse
       if (this.message != message) {
          throw new IllegalArgumentException(
                String.format("unexpected message: %s instead of %s", message, this.message)

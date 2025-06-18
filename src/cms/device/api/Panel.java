@@ -9,9 +9,12 @@ import cms.device.spi.PanelProvider;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
 import org.openide.util.ChangeSupport;
 
 public final class Panel implements DeviceOrPanel {
+   private static final Logger logger = Logger.getLogger(Panel.class.getName());
    private boolean connected;
    private Arming arming;
    public Status status;
@@ -266,7 +269,7 @@ public final class Panel implements DeviceOrPanel {
       }
 
       public void connectionLost() {
-         System.out.println("INFO: connection lost on: " + Panel.this);
+         logger.info("Connection lost on: " + Panel.this);
          Panel.this.disconnect();
       }
 

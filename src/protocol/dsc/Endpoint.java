@@ -4,26 +4,22 @@ import java.beans.PropertyChangeListener;
 import java.util.concurrent.ScheduledExecutorService;
 
 public interface Endpoint {
-   String PROP_PANEL_ID = "panelId";
-   String PROP_PIN = "pin";
-   String PROP_SESSIONFUL = "sessionful";
-   String PROP_STATE = "state";
 
    String getPanelId();
 
    String getPin();
 
-   void setPin(String var1);
+   void setPin(String pin);
 
-   boolean isSessionful();
+   boolean isSessionActive();
 
-   void setSessionful(boolean var1);
+   void setSessionActive(boolean active);
 
    DscEndpointState getState();
 
-   void addPropertyChangeListener(PropertyChangeListener var1);
+   void addPropertyChangeListener(PropertyChangeListener listener);
 
-   void removePropertyChangeListener(PropertyChangeListener var1);
+   void removePropertyChangeListener(PropertyChangeListener listener);
 
    void close();
 

@@ -4,10 +4,13 @@ import cms.device.api.Panel.Arming;
 import protocol.dsc.Message;
 
 import java.util.Objects;
+import java.util.logging.Logger;
+
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 
 public class Commander {
+   private static final Logger logger = Logger.getLogger(Commander.class.getName());
    private static final Integer SYSTEM = null;
    private static final int STAY_ARM = 1;
    private static final int AWAY_ARM = 2;
@@ -24,7 +27,7 @@ public class Commander {
    }
 
    public void arming(Arming newArmingStatus) {
-      System.out.println("DEBUG: setting global arming to: " + newArmingStatus);
+      logger.fine("Setting global arming to: " + newArmingStatus);
       switch(newArmingStatus) {
       case GLOBALLY_DISARMED:
          this.messageHandler.sendCommand(Message.DISARM, SYSTEM);
@@ -39,7 +42,7 @@ public class Commander {
    }
 
    public void partitionArming(String partitionID, cms.device.api.Partition.Arming newArmingStatus) {
-      System.out.println("DEBUG: setting partition " + partitionID + " arming to: " + newArmingStatus);
+      logger.fine("Setting partition " + partitionID + " arming to: " + newArmingStatus);
       Integer partitionIDInteger = Integer.valueOf(partitionID);
       switch(newArmingStatus) {
       case DISARMED:
@@ -65,7 +68,7 @@ public class Commander {
    }
 
    public void armingSet(char presetMode) {
-      System.out.println("DEBUG: setting global arming to preset " + presetMode);
+      logger.fine("Setting global arming to preset " + presetMode);
       Integer presetModeInteger = (Integer)CustomizedArmingModes.CUSTOMIZED_ARMING_MODES.get(presetMode);
       if (presetModeInteger != null) {
          this.messageHandler.sendCommand(Message.ARM, Pair.with(SYSTEM, presetModeInteger));
@@ -76,23 +79,23 @@ public class Commander {
       Integer zoneIDInteger = Integer.valueOf(zoneID);
       Boolean currentBypassed = panelStatus.getZoneBypass(zoneIDInteger);
       if (currentBypassed == null || currentBypassed != setBypassed) {
-         System.out.println("DEBUG: setting zone " + zoneID + " bypass to " + setBypassed);
+         logger.fine("Setting zone " + zoneID + " bypass to " + setBypassed);
          panelStatus.setZoneBypass(zoneIDInteger, setBypassed);
          this.messageHandler.sendCommand(Message.SINGLE_ZONE_BYPASS_WRITE, Triplet.with((Integer)null, zoneIDInteger, setBypassed));
       } else {
-         System.out.println("DEBUG: zone " + zoneID + " bypass already " + setBypassed + ", skipping command.");
+         logger.fine("Zone " + zoneID + " bypass already " + setBypassed + ", skipping command.");
       }
    }
 
    public void setOutput(String outputID, boolean setStatus) {
-      System.out.println("DEBUG: " + (setStatus ? "closing" : "opening") + " output  " + outputID);
+      logger.fine((setStatus ? "closing" : "opening") + " output  " + outputID);
       Integer outputIDInteger = Integer.valueOf(outputID);
       Integer statusInteger = setStatus ? 1 : 2;
       this.messageHandler.sendCommand(Message.SET_OUTPUT, Triplet.with((Integer)null, outputIDInteger, statusInteger));
    }
 
    public void cleanTroubles() {
-      System.out.println("DEBUG: cleaning troubles");
+      logger.fine("Cleaning troubles");
       this.messageHandler.sendCommand(Message.USER_ACTIVITY, CLEAR_FAULTS);
    }
 }

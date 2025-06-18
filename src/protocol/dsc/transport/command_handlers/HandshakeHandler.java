@@ -1,11 +1,13 @@
 package protocol.dsc.transport.command_handlers;
 
 import com.google.common.base.Preconditions;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+
 import protocol.dsc.commands.CommandResponse;
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.DscCommandWithAppSeq;
@@ -15,12 +17,14 @@ import protocol.dsc.session.SessionInfo;
 import protocol.dsc.transport.SimpleMessage;
 import protocol.dsc.util.LogOnFailure;
 
+import java.util.logging.Logger;
+
 public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInboundHandlerAdapter {
+   private static final Logger logger = Logger.getLogger(HandshakeHandler.class.getName());
    private final Class<C> commandClass;
    private ChannelHandlerContext context;
    private boolean commandSent;
    private boolean commandReceived;
-   private static final boolean VERBOSE_DEBUG = false;
 
    protected HandshakeHandler(Class<C> commandClass) {
       if (this.isSharable()) {
@@ -36,7 +40,6 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
    protected int onCommandReceived(Channel channel, C command) {
       return 0;
    }
-
    protected void onCommandSent(Channel channel) {
    }
 
@@ -66,18 +69,19 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
          C command = commandClass.cast(msg);
          int responseCode = this.onCommandReceived(ctx.channel(), command);
 
+         // Risposta automatica se il comando prevede sequenza applicativa
          if (command instanceof DscCommandWithAppSeq) {
-               DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
-               CommandResponse response = new CommandResponse();
-               response.setCommandSeq(withSeq.getAppSeq());
-               response.setResponseCode(responseCode);
-               ctx.write(response).addListener(LogOnFailure.INSTANCE);
+            DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
+            CommandResponse response = new CommandResponse();
+            response.setCommandSeq(withSeq.getAppSeq());
+            response.setResponseCode(responseCode);
+            ctx.write(response).addListener(LogOnFailure.INSTANCE);
          }
 
          if (responseCode == 0) {
-               onReceptionSuccess(ctx);
+            onReceptionSuccess(ctx);
          } else {
-               onFailure(ctx);
+            onFailure(ctx);
          }
       } else {
          super.channelRead(ctx, msg);
@@ -101,9 +105,7 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
    }
 
    private void onSuccess(ChannelHandlerContext ctx) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: handshake stage completed for " + this.commandClass.getSimpleName());
-      }
+      logger.fine("Handshake stage completed for " + this.commandClass.getSimpleName());
       ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_STAGE_COMPLETED_EVENT);
    }
 
@@ -118,7 +120,7 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       if (command instanceof DscCommandWithAppSeq) {
          DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
          if (withSeq.hasResponseCallback()) {
-               throw new IllegalStateException("Response callback already set");
+            throw new IllegalStateException("Response callback already set");
          }
          withSeq.setResponseCallback(new ResponseReceivedCallback());
          hasAppSeqCallback = true;
@@ -137,9 +139,9 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       @Override
       public void operationComplete(ChannelFuture future) {
          if (future.isSuccess()) {
-               onCommandSent(future.channel());
+            onCommandSent(future.channel());
          } else {
-               System.out.println("WARN: sending failed for " + commandClass.getSimpleName() + ": " + future.cause());
+            logger.warning("Sending failed for " + commandClass.getSimpleName() + ": " + future.cause());
          }
       }
    }
@@ -149,10 +151,10 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       public void generalResponseReceived(Channel channel, DscGeneralResponse response) {
          ChannelHandlerContext ctx = channel.pipeline().context(HandshakeHandler.this);
          if (response.isSuccess()) {
-               onSendSuccess(ctx);
+            onSendSuccess(ctx);
          } else {
-               System.out.println("WARN: negative response for " + commandClass.getSimpleName() + ": " + response);
-               onFailure(ctx);
+            logger.warning("Negative response for " + commandClass.getSimpleName() + ": " + response);
+            onFailure(ctx);
          }
       }
    }

@@ -6,6 +6,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.TooLongFrameException;
+
 import protocol.dsc.session.SessionInfo;
 
 import java.nio.ByteOrder;
@@ -18,127 +19,120 @@ public class FrameDecoder extends ByteToMessageDecoder {
    private boolean discarding = false;
 
    @SuppressWarnings("deprecation")
-   protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws DecoderException {
+   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws DecoderException {
       try {
-         byte var4;
-         while(this.discarding && var2.isReadable()) {
-            var4 = var2.readByte();
-            switch(var4) {
-            case 126:
-               this.inFrame = true;
-               this.discarding = false;
-               break;
-            case 127:
-               this.inFrame = false;
-               this.discarding = false;
-            }
-         }
-
-         if (var2.isReadable()) {
-            assert !this.discarding;
-
-            if (this.outBuf == null) {
-               this.outBuf = var1.alloc().buffer().order(ByteOrder.BIG_ENDIAN);
-
-               assert this.outBuf.maxCapacity() > MAX_FRAME_LENGTH;
-            }
-
-            while(var2.isReadable()) {
-               var4 = var2.readByte();
-               switch(var4) {
-               case 125:
-                  if (this.inFrame) {
-                     if (!var2.isReadable()) {
-                        var2.readerIndex(var2.readerIndex() - 1);
-                        return;
-                     }
-
-                     var4 = var2.readByte();
-                     Byte var5 = (Byte)FrameHelper.UNESCAPE_MAP.get(var4);
-                     if (var5 == null) {
-                        var2.readerIndex(var2.readerIndex() - 1);
-                        this.discarding = true;
-                        throw new CorruptedFrameException(String.format("unexpected escape sequence: %02X %02X", 125, var4));
-                     }
-
-                     var4 = var5;
-                  }
-               default:
-                  if (this.outBuf.readableBytes() >= MAX_FRAME_LENGTH) {
-                     this.discarding = true;
-                     throw new TooLongFrameException(String.format("frame length exceeds %d", MAX_FRAME_LENGTH));
-                  }
-
-                  this.outBuf.writeByte(var4);
-                  break;
-               case 126:
-                  try {
-                     if (this.inFrame) {
-                        throw new CorruptedFrameException("unexpected start of frame");
-                     }
-
-                     this.setID(var1);
-
-                     assert this.outBuf == null;
-                  } finally {
+         byte b;
+         // Scarta dati fino a nuovo inizio frame se in stato discarding
+         while (this.discarding && in.isReadable()) {
+               b = in.readByte();
+               switch (b) {
+                  case FrameHelper.START_OF_FRAME:
                      this.inFrame = true;
-                  }
-
-                  return;
-               case 127:
-                  try {
-                     if (!this.inFrame) {
-                        throw new CorruptedFrameException("unexpected end of frame");
-                     }
-
-                     var3.add(this.outBuf);
-                     this.outBuf = null;
-                  } finally {
+                     this.discarding = false;
+                     break;
+                  case FrameHelper.END_OF_FRAME:
                      this.inFrame = false;
-                  }
-
-                  return;
+                     this.discarding = false;
+                     break;
                }
-            }
-
          }
-      } catch (DecoderException var15) {
+
+         if (in.isReadable()) {
+               assert !this.discarding;
+
+               // Alloca buffer di output se necessario
+               if (this.outBuf == null) {
+                  this.outBuf = ctx.alloc().buffer().order(ByteOrder.BIG_ENDIAN);
+                  assert this.outBuf.maxCapacity() > MAX_FRAME_LENGTH;
+               }
+
+               while (in.isReadable()) {
+                  b = in.readByte();
+                  switch (b) {
+                     case FrameHelper.ESCAPE:
+                           if (this.inFrame) {
+                              if (!in.isReadable()) {
+                                 in.readerIndex(in.readerIndex() - 1);
+                                 return;
+                              }
+                              b = in.readByte();
+                              Byte unescaped = FrameHelper.UNESCAPE_MAP.get(b);
+                              if (unescaped == null) {
+                                 in.readerIndex(in.readerIndex() - 1);
+                                 this.discarding = true;
+                                 throw new CorruptedFrameException(String.format("unexpected escape sequence: %02X %02X", FrameHelper.ESCAPE, b));
+                              }
+                              b = unescaped;
+                           }
+                           // no break, continua con default per scrivere il byte
+                     default:
+                           // Controlla lunghezza massima frame
+                           if (this.outBuf.readableBytes() >= MAX_FRAME_LENGTH) {
+                              this.discarding = true;
+                              throw new TooLongFrameException(String.format("frame length exceeds %d", MAX_FRAME_LENGTH));
+                           }
+                           this.outBuf.writeByte(b);
+                           break;
+                     case FrameHelper.START_OF_FRAME:
+                           try {
+                              if (this.inFrame) {
+                                 throw new CorruptedFrameException("unexpected start of frame");
+                              }
+                              this.setID(ctx);
+                              assert this.outBuf == null;
+                           } finally {
+                              this.inFrame = true;
+                           }
+                           return;
+                     case FrameHelper.END_OF_FRAME:
+                           try {
+                              if (!this.inFrame) {
+                                 throw new CorruptedFrameException("unexpected end of frame");
+                              }
+                              out.add(this.outBuf);
+                              this.outBuf = null;
+                           } finally {
+                              this.inFrame = false;
+                           }
+                           return;
+                  }
+               }
+         }
+      } catch (DecoderException ex) {
          this.releaseOutBuf();
-         throw var15;
+         throw ex;
       }
    }
 
-   private void setID(ChannelHandlerContext var1) throws CorruptedFrameException {
+   // Gestisce l'ID multipunto all'inizio frame
+   private void setID(ChannelHandlerContext ctx) throws CorruptedFrameException {
       assert this.outBuf != null;
-
       try {
-         String var2 = this.outBuf.toString(FrameHelper.MULTI_POINT_COMM_ID_CHARSET);
-         SessionInfo var3 = SessionInfo.getPeerInfo(var1.channel());
-         String var4 = var3.getMultiPointCommId();
-         if (var4 == null) {
-            var3.setMultiPointCommId(var2);
-         } else if (!var4.equals(var2)) {
-            throw new CorruptedFrameException(String.format("unexpected multi-point communication id '%s' (it was '%s')", var2, var4));
+         String commId = this.outBuf.toString(FrameHelper.MULTI_POINT_COMM_ID_CHARSET);
+         SessionInfo sessionInfo = SessionInfo.getPeerInfo(ctx.channel());
+         String currentId = sessionInfo.getMultiPointCommId();
+         if (currentId == null) {
+               sessionInfo.setMultiPointCommId(commId);
+         } else if (!currentId.equals(commId)) {
+               throw new CorruptedFrameException(String.format("unexpected multi-point communication id '%s' (it was '%s')", commId, currentId));
          }
       } finally {
          this.releaseOutBuf();
       }
-
    }
 
-   protected void decodeLast(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws DecoderException {
+   protected void decodeLast(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws DecoderException {
       try {
-         this.decode(var1, var2, var3);
+         this.decode(ctx, in, out);
          if (this.inFrame) {
-            throw new CorruptedFrameException("no end of frame");
+               throw new CorruptedFrameException("no end of frame");
          }
       } finally {
          this.reset();
       }
-
    }
 
-   protected void handlerRemoved0(ChannelHandlerContext var1) {
+   protected void handlerRemoved0(ChannelHandlerContext ctx) {
       this.reset();
    }
 
@@ -147,7 +141,6 @@ public class FrameDecoder extends ByteToMessageDecoder {
          this.outBuf.release();
          this.outBuf = null;
       }
-
    }
 
    private void reset() {

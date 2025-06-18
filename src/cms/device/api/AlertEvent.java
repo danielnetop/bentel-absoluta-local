@@ -3,18 +3,19 @@ package cms.device.api;
 import java.util.EventObject;
 
 public class AlertEvent extends EventObject {
-   private final String message;
+   private final String alertMessage;
 
-   public AlertEvent(String var1, Object var2) {
-      super(var2);
-      this.message = var1;
+   public AlertEvent(String alertMessage, Object eventSource) {
+      super(eventSource);
+      this.alertMessage = alertMessage;
    }
 
-   public String getMessage() {
-      return this.message;
+   public String getAlertMessage() {
+      return this.alertMessage;
    }
 
+   @Override
    public String toString() {
-      return "AlertEvent{message=" + this.message + ", source=" + this.source + '}';
+      return "AlertEvent{alertMessage=" + this.alertMessage + ", source=" + this.source + '}';
    }
 }

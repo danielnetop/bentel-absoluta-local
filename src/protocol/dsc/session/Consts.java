@@ -6,6 +6,5 @@ public final class Consts {
    public static final int IDLE_TIMEOUT = 45;
    public static final int CLOSING_TIMEOUT = 20;
 
-   private Consts() {
-   }
+   private Consts() { }
 }

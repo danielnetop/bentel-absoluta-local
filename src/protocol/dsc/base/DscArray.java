@@ -25,6 +25,7 @@ public final class DscArray<T extends DscSerializable> extends ArrayList<T> impl
                this.add(element);
          }
       } else {
+         // Se il numero di elementi non è noto, si legge fino a esaurimento buffer
          while (buffer.isReadable()) {
                T element = this.elementProvider.newElement();
                element.readFrom(buffer);
@@ -47,6 +48,7 @@ public final class DscArray<T extends DscSerializable> extends ArrayList<T> impl
          if (this.size() != otherArray.size()) {
                return false;
          }
+         // Confronto elemento per elemento tramite isEquivalent (non equals)
          for (int i = 0; i < this.size(); ++i) {
                if (!this.get(i).isEquivalent((DscSerializable) otherArray.get(i))) {
                   return false;
@@ -68,7 +70,7 @@ public final class DscArray<T extends DscSerializable> extends ArrayList<T> impl
    }
 
    public interface ElementProvider<T> {
-      int numberOfElements();
+      int numberOfElements(); // -1 se il numero non è noto a priori
       T newElement();
    }
 }
