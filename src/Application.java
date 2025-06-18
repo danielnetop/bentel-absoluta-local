@@ -107,7 +107,28 @@ public class Application {
             mqttClient.connect(mqttOption);
             logger.info("Connesso");
             provider.initialize(callback);
-            panel.connect();
+
+            int maxAttempts = 5;
+            int attempt = 0;
+            Panel.ConnStatus connStatus = Panel.ConnStatus.UNREACHABLE;
+            while (attempt < maxAttempts && connStatus != Panel.ConnStatus.SUCCESS) {
+               attempt++;
+               logger.info("Tentativo di connessione alla centrale n° " + attempt);
+               connStatus = panel.connect();
+               if (connStatus != Panel.ConnStatus.SUCCESS) {
+                  logger.warning("Connessione fallita: " + connStatus + ". Riprovo tra 90 secondi...");
+                  try {
+                        Thread.sleep(90000L);
+                  } catch (InterruptedException e) {
+                        logger.severe("Interrotto durante l'attesa di riconnessione: " + e.getMessage());
+                        break;
+                  }
+               }
+            }
+            if (connStatus != Panel.ConnStatus.SUCCESS) {
+               logger.severe("Impossibile connettersi alla centrale dopo " + maxAttempts + " tentativi.");
+               System.exit(1);
+            }
          } catch (MqttException ex) {
             logger.warning("Exception: " + ex.getReasonCode());
             logger.warning("Attendo 15 secondi prima del prossimo tentativo...");
