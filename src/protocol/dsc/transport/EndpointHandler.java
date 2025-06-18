@@ -7,6 +7,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AttributeKey;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
 import protocol.dsc.NewValue;
@@ -16,8 +17,10 @@ import protocol.dsc.session.SessionInfo;
 import protocol.dsc.util.LogOnFailure;
 
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class EndpointHandler extends ChannelDuplexHandler {
+   private static final Logger logger = Logger.getLogger(EndpointHandler.class.getName());
    private static final AttributeKey<String> PIN_KEY = AttributeKey.valueOf("EndpointHandler.pin");
    private final DscEndpoint endpoint;
    private String panelId;
@@ -73,7 +76,7 @@ public class EndpointHandler extends ChannelDuplexHandler {
       var1.executor().schedule(new Runnable() {
          public void run() {
             if (var2.isOpen()) {
-               System.out.println("WARN: forcing channel closure ...");
+               logger.warning("Forcing channel closure ...");
                var2.close().addListener(LogOnFailure.INSTANCE);
             }
 

@@ -2,6 +2,7 @@
 package plugin.absoluta.connection;
 
 import java.util.Objects;
+import java.util.logging.Logger;
 
 import protocol.dsc.AbsolutaClient;
 import protocol.dsc.Endpoint;
@@ -9,6 +10,7 @@ import protocol.dsc.ITv2Client;
 import protocol.dsc.ITv2Client.Callback;
 
 public class ConnectionThread extends Thread {
+   private static final Logger logger = Logger.getLogger(ConnectionThread.class.getName());
    private final ITv2Client client;
    private final ConnectionHandler connectionHandler;
 
@@ -26,9 +28,9 @@ public class ConnectionThread extends Thread {
             }
          });
       } catch (RuntimeException | InterruptedException ex) {
-         System.out.println("DEBUG: error during connection: " + ex);
+         logger.severe("Error during connection: " + ex);
       } finally {
-         System.out.println("Connection closed");
+         logger.info("Connection closed");
          this.connectionHandler.disconnected();
       }
    }

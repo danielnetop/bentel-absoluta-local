@@ -1,16 +1,19 @@
 package protocol.dsc.transport.command_handlers;
 
 import io.netty.channel.Channel;
+
 import protocol.dsc.commands.RequestAccess;
 import protocol.dsc.session.SessionInfo;
 import protocol.dsc.transport.AESDecoder;
 import protocol.dsc.transport.AESEncoder;
 import protocol.dsc.util.DscUtils;
 
+import java.util.logging.Logger;
+
 public class RequestAccessHandler extends HandshakeHandler<RequestAccess> {
+   private static final Logger logger = Logger.getLogger(RequestAccessHandler.class.getName());
    public static final String DEFAULT_ACCESS_CODE = "12345678";
    private byte[] ownSessionKey;
-   private static final boolean VERBOSE_DEBUG = false;
 
    public RequestAccessHandler() {
       super(RequestAccess.class);
@@ -50,9 +53,7 @@ public class RequestAccessHandler extends HandshakeHandler<RequestAccess> {
 
    protected void commandSent(Channel var1) {
       if (this.ownSessionKey != null) {
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: decoding key: " + DscUtils.hexDump(this.ownSessionKey));
-         }
+         logger.fine("Decoding key: " + DscUtils.hexDump(this.ownSessionKey));
          AESDecoder.setKey(var1, this.ownSessionKey);
       }
    }
@@ -63,9 +64,7 @@ public class RequestAccessHandler extends HandshakeHandler<RequestAccess> {
       case 0:
          String var4 = var2.getIdentifier();
          var3.setIdentifierOrInitKey(var4);
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: peer identifier: " + var4);
-         }
+         logger.fine("Peer identifier: " + var4);
          return 0;
       case 1:
          String var5 = var3.getIdentifierOrInitKey();
@@ -76,17 +75,15 @@ public class RequestAccessHandler extends HandshakeHandler<RequestAccess> {
 
          byte[] var6 = (new RequestAccessAESHelper(var2)).decryptKey(var5);
          if (var6 != null) {
-            if(VERBOSE_DEBUG) {
-               System.out.println("DEBUG: encoding key: " + DscUtils.hexDump(var6));
-            }
+            logger.fine("Encoding key: " + DscUtils.hexDump(var6));
             AESEncoder.setKey(var1, var6);
             return 0;
          }
 
-         System.out.println("WARN: invalid access request received");
+         logger.warning("Invalid access request received");
          return 1;
       default:
-         System.out.println("WARN: unexpected encryption type");
+         logger.warning("Unexpected encryption type");
          return 1;
       }
    }

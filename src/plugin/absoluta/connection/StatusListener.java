@@ -1,17 +1,22 @@
 package plugin.absoluta.connection;
 
 import com.google.common.collect.ImmutableList;
+
 import cms.device.api.Output.Status;
 import cms.device.api.Partition.Arming;
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.MessageListener;
 import protocol.dsc.NewValue;
+
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
+
 import org.javatuples.Pair;
 
 class StatusListener implements MessageListener {
+   private static final Logger logger = Logger.getLogger(StatusListener.class.getName());
 
    // Partition status indices
    private static final int PARTITION_ARMED = 0;
@@ -53,7 +58,7 @@ class StatusListener implements MessageListener {
                List<Integer> zones = (List<Integer>) msg.getValue(Message.PARTITION_ZONES);
                panelStatus.setZones(ImmutableList.copyOf(zones));
          } else {
-            System.out.println("WARN: unexpected partition number for partition zones: " + partitionNumber);
+            logger.warning("Unexpected partition number for partition zones: " + partitionNumber);
          }
       } else if (msg.isFor(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)) {
          List<Integer> outputs = (List<Integer>) ((Pair<?, ?>) msg.getValue(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)).getValue0();
@@ -63,7 +68,7 @@ class StatusListener implements MessageListener {
          List<List<Boolean>> partitionStatuses = (List<List<Boolean>>) msg.getValue(Message.PARTITION_STATUSES);
 
             if (partitionIds.size() != partitionStatuses.size()) {
-               System.out.println("WARN: Partition IDs and statuses size mismatch");
+               logger.warning("Partition IDs and statuses size mismatch");
                return;
             }
 
@@ -127,7 +132,7 @@ class StatusListener implements MessageListener {
       } else if (statusMask.get(PARTITION_STAY)) {
          armingMode = Arming.STAY;
       } else if (!statusMask.get(PARTITION_NODELAY) && !statusMask.get(PARTITION_NIGHT)) {
-         System.out.println("WARN: Arming status ambiguous for partition " + partitionId);
+         logger.warning("Arming status ambiguous for partition " + partitionId);
          armingMode = Arming.AWAY;
       } else {
          armingMode = Arming.NODELAY;

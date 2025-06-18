@@ -2,6 +2,7 @@ package protocol.dsc.messages;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
@@ -13,8 +14,10 @@ import protocol.dsc.session.SendingMessage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 abstract class MessageWithResponse<P, V> extends Message<P, V> {
+   private static final Logger logger = Logger.getLogger(MessageWithResponse.class.getName());
 
    @SuppressWarnings({"unchecked", "rawtypes"})
    static <P, V> DscCommandWithAppSeq tryToPrepare(
@@ -92,7 +95,7 @@ abstract class MessageWithResponse<P, V> extends Message<P, V> {
                      return;
                   }
                } catch (RuntimeException ex) {
-                  System.out.println("ERROR: error parsing command response " + ex);
+                  logger.severe("Error parsing command response " + ex);
                }
          }
 
@@ -100,7 +103,7 @@ abstract class MessageWithResponse<P, V> extends Message<P, V> {
                if (MessageWithResponse.this.expectedSuccessfulResponse()) {
                   this.ctx.fireChannelRead(MessageWithResponse.this.newACK(this.param));
                } else {
-                  System.out.println("WARN: unexpected successful response: " + response);
+                  logger.warning("Unexpected successful response: " + response);
                }
          } else {
                this.ctx.fireChannelRead(MessageWithResponse.this.errorFromDscResponse(this.param, response));

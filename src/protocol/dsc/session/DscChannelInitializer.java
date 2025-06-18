@@ -11,6 +11,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.Poll;
@@ -49,8 +50,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 public abstract class DscChannelInitializer extends ChannelInitializer<SocketChannel> {
+   private static final Logger logger = Logger.getLogger(DscChannelInitializer.class.getName());
    private static final FrameEncoder FRAME_ENCODER = new FrameEncoder();
    private static final AESDecoder AES_DECODER = new AESDecoder();
    private static final AESEncoder AES_ENCODER = new AESEncoder();
@@ -72,7 +75,6 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    private static final WritingHandler WRITING_HANDLER = new WritingHandler();
    private static final AtomicInteger counter = new AtomicInteger();
    private final int num;
-   private static final boolean VERBOSE_DEBUG = false;
 
    public DscChannelInitializer() {
       this.num = counter.getAndIncrement();
@@ -125,9 +127,7 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    protected abstract void inizialized(DscEndpoint var1, SocketChannel var2);
 
    protected final void initChannel(SocketChannel var1) throws Exception {
-      if(VERBOSE_DEBUG) {
-         System.out.println("DEBUG: initializing channel for connection number " + this.num + " ...");
-      }
+      logger.fine("Initializing channel for connection number " + this.num + " ...");
       final DscEndpoint var2 = new DscEndpoint(var1);
       var1.closeFuture().addListener(new ChannelFutureListener() {
          public void operationComplete(ChannelFuture var1) throws Exception {

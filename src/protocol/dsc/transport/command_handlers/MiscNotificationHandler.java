@@ -1,9 +1,11 @@
 package protocol.dsc.transport.command_handlers;
 
 import com.google.common.collect.ImmutableSet;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelHandler.Sharable;
+
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.commands.AbstractPartitionReqCommand;
@@ -20,10 +22,13 @@ import protocol.dsc.commands.PartitionReadyStatusNotification;
 import protocol.dsc.commands.TimeDateBroadcastNotification;
 
 import java.util.Set;
+import java.util.logging.Logger;
+
 import org.javatuples.Quartet;
 
 @Sharable
 public class MiscNotificationHandler extends ChannelInboundHandlerAdapter {
+   private static final Logger logger = Logger.getLogger(MiscNotificationHandler.class.getName());
    private static final Set<Class<? extends AbstractPartitionReqCommand>> PARTITION_STATUS_NOTIFICATIONS =
       ImmutableSet.of(
          ArmingDisarmingNotification.class,
@@ -35,7 +40,6 @@ public class MiscNotificationHandler extends ChannelInboundHandlerAdapter {
          PartitionQuickExitNotification.class,
          PartitionReadyStatusNotification.class
       );
-   private static final boolean VERBOSE_DEBUG = false;
 
    @Override
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -65,12 +69,10 @@ public class MiscNotificationHandler extends ChannelInboundHandlerAdapter {
                   )
                ));
          } else {
-               System.out.println("WARN: unexpected partition for AccessLevelLeadInOut: " + accessLevel.getPartitionNumber());
+               logger.warning("Unexpected partition for AccessLevelLeadInOut: " + accessLevel.getPartitionNumber());
          }
       } else if (msg instanceof TimeDateBroadcastNotification) {
-         if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: time and date received: " + msg.toString());
-         }
+         logger.fine("Time and date received: " + msg.toString());
       } else {
          super.channelRead(ctx, msg);
       }

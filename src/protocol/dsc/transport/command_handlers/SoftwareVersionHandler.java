@@ -1,11 +1,14 @@
 package protocol.dsc.transport.command_handlers;
 
 import io.netty.channel.Channel;
+
 import protocol.dsc.commands.SoftwareVersion;
 import protocol.dsc.session.SessionInfo;
 
+import java.util.logging.Logger;
+
 public class SoftwareVersionHandler extends HandshakeHandler<SoftwareVersion> {
-   private static final boolean VERBOSE_DEBUG = false;
+   private static final Logger logger = Logger.getLogger(SoftwareVersionHandler.class.getName());
 
    public SoftwareVersionHandler() {
       super(SoftwareVersion.class);
@@ -25,9 +28,7 @@ public class SoftwareVersionHandler extends HandshakeHandler<SoftwareVersion> {
    protected int commandReceived(Channel var1, SoftwareVersion var2) {
       String var3 = var2.getVersionFields();
       SessionInfo.getPeerInfo(var1).setIdentifierOrInitKey(var3);
-      if(VERBOSE_DEBUG) {
-         System.out.println("DEBUG: peer software version fields:" + var3);
-      }
+      logger.fine("Peer software version fields:" + var3);
       return 0;
    }
 }

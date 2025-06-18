@@ -1,14 +1,17 @@
 package protocol.dsc.base;
 
 import com.google.common.collect.ImmutableMap;
+
 import protocol.dsc.util.BCDCharset;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public final class DscCharsets {
+   private static final Logger logger = Logger.getLogger(DscCharsets.class.getName());
    public static final int FORMAT_HEXADECIMAL = 0;
    public static final int FORMAT_BCD = 1;
    public static final int FORMAT_ASCII = 2;
@@ -42,7 +45,7 @@ public final class DscCharsets {
       try {
          win1252Charset = Charset.forName("Windows-1252");
       } catch (UnsupportedCharsetException ex) {
-         System.out.println("WARN: Unsupported charset Windows-1252, using ISO_8859_1");
+         logger.severe("Unsupported charset Windows-1252, using ISO_8859_1");
          win1252Charset = StandardCharsets.ISO_8859_1;
       }
 

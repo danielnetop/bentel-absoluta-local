@@ -10,7 +10,10 @@ import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.openide.util.NbBundle;
 
+import java.util.logging.Logger;
+
 class AlertListener implements MessageListener {
+   private static final Logger logger = Logger.getLogger(AlertListener.class.getName());
 	private final AlertCallback alertCallback;
 	private final PanelStatus panelStatus;
 
@@ -27,7 +30,7 @@ class AlertListener implements MessageListener {
          return;
 		}
 
-		System.out.println("DEBUG: error received: " + error);
+		logger.fine("Error received: " + error);
 
 		if (error.isFor(Message.ARM)) {
          // ARM error: check if it's global or for a specific partition

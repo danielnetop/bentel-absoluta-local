@@ -5,14 +5,16 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.MessageToMessageDecoder;
+
 import protocol.dsc.errors.WrongSequenceNumberException;
 
 import java.nio.ByteOrder;
 import java.util.List;
+import java.util.logging.Logger;
 
 @Sharable
 public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
-   private static final boolean VERBOSE_DEBUG = false;
+   private static final Logger logger = Logger.getLogger(TransportLayerDecoder.class.getName());
 
    @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws WrongSequenceNumberException, CorruptedFrameException {
@@ -35,9 +37,7 @@ public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
                   }
                } else {
                   if (var4 == var7.remoteSequenceNumber()) {
-                     if (VERBOSE_DEBUG) {
-                        System.out.println("WARN: repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
-                     }
+                     logger.fine("Repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
                      return;
                   }
 

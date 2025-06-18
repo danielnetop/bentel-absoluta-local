@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
 import protocol.dsc.Endpoint;
@@ -22,8 +23,10 @@ import java.beans.PropertyChangeSupport;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.Logger;
 
 public class DscEndpoint implements Endpoint, Messenger {
+   private static final Logger logger = Logger.getLogger(DscEndpoint.class.getName());
    private final Channel channel;
    private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
    private final List<MessageListener> messageListeners = new CopyOnWriteArrayList<>();
@@ -31,7 +34,6 @@ public class DscEndpoint implements Endpoint, Messenger {
    private String pin;
    private boolean sessionful;
    private DscEndpointState state;
-   private static final boolean VERBOSE_DEBUG = false;
 
    public DscEndpoint(Channel channel) {
       this.channel = Preconditions.checkNotNull(channel);
@@ -42,9 +44,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void setPanelId(String newPanelId) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: setting panel id: " + newPanelId);
-      }
+      logger.fine("Setting panel id: " + newPanelId);
       String oldPanelId = this.panelId;
       this.panelId = newPanelId;
       this.changeSupport.firePropertyChange("panelId", oldPanelId, newPanelId);
@@ -55,9 +55,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void setPin(String newPin) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: setting pin: " + newPin);
-      }
+      logger.fine("Setting pin: " + newPin);
       String oldPin = this.pin;
       this.pin = newPin;
       EndpointHandler.setPin(this.channel, newPin);
@@ -69,9 +67,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void setSessionful(boolean sessionful) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: setting sessionful: " + sessionful);
-      }
+      logger.fine("Setting sessionful: " + sessionful);
       boolean oldSessionful = this.sessionful;
       this.sessionful = sessionful;
       this.setPoller();
@@ -85,9 +81,9 @@ public class DscEndpoint implements Endpoint, Messenger {
    public void setState(DscEndpointState newState) {
       DscEndpointState oldState = this.state;
       if (oldState == DscEndpointState.CLOSED) {
-         System.out.println("WARN: Current status is CLOSED: ignoring the request to change to " + newState);
+         logger.warning("Current status is CLOSED: ignoring the request to change to " + newState);
       } else {
-         System.out.println("INFO: setting state: " + newState);
+         logger.info("Setting state: " + newState);
          this.state = newState;
          this.setPoller();
          this.changeSupport.firePropertyChange("state", oldState, newState);
@@ -105,16 +101,12 @@ public class DscEndpoint implements Endpoint, Messenger {
    public void close() {
       if (this.state != DscEndpointState.CLOSING && this.state != DscEndpointState.CLOSED) {
          if (this.channel.isActive()) {
-               if (VERBOSE_DEBUG) {
-                  System.out.println("DEBUG: closing endpoint: sending end session");
-               }
+               logger.fine("Closing endpoint: sending end session");
                EndSession endSession = new EndSession();
                endSession.setPriority(Priority.HIGH);
                this.channel.write(endSession);
          } else {
-               if (VERBOSE_DEBUG) {
-                  System.out.println("DEBUG: closing endpoint: closing channel");
-               }
+               logger.fine("Closing endpoint: closing channel");
                this.channel.close();
          }
       }
@@ -144,9 +136,7 @@ public class DscEndpoint implements Endpoint, Messenger {
       Preconditions.checkNotNull(message);
       Preconditions.checkNotNull(priority);
       SendingMessage<P, V> sendingMessage = new SendingMessage<>(message, param, priority);
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: sending: " + sendingMessage);
-      }
+      logger.fine("Sending: " + sendingMessage);
       this.channel.write(sendingMessage).addListener(new ChannelFutureListener() {
          @Override
          public void operationComplete(ChannelFuture future) throws Exception {
@@ -167,18 +157,14 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void broadcastNewValue(NewValue value) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: new value received: " + value);
-      }
+      logger.fine("New value received: " + value);
       for (MessageListener listener : this.messageListeners) {
          listener.newValue(value);
       }
    }
 
    public void broadcastError(DscError error) {
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: error received: " + error);
-      }
+      logger.fine("Error received: " + error);
       for (MessageListener listener : this.messageListeners) {
          listener.error(error);
       }

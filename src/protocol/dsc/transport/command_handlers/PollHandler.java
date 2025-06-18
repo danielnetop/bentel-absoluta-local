@@ -8,10 +8,14 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
+
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.util.LogOnFailure;
 
+import java.util.logging.Logger;
+
 public class PollHandler extends ChannelInboundHandlerAdapter {
+   private static final Logger logger = Logger.getLogger(PollHandler.class.getName());
    private static final AttributeKey<Boolean> POLL_KEY = AttributeKey.valueOf("PollHandler.poll");
    private final PollHandler.PollFactory pollFactory;
 
@@ -22,7 +26,7 @@ public class PollHandler extends ChannelInboundHandlerAdapter {
    public void userEventTriggered(ChannelHandlerContext var1, Object var2) throws Exception {
       if (var2 instanceof IdleStateEvent && ((IdleStateEvent)var2).state() == IdleState.WRITER_IDLE) {
          if (isPollEnabled(var1.channel())) {
-            System.out.println("TRACE: sending poll");
+            logger.finer("Sending poll");
             DscCommand var3 = this.pollFactory.createPoll();
             var1.write(var3).addListener(LogOnFailure.INSTANCE);
          }

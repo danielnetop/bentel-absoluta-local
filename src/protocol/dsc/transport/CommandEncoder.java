@@ -4,24 +4,24 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.MessageToByteEncoder;
+
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.DscCommandWithAppSeq;
 import protocol.dsc.commands.LowACK;
 
 import java.nio.ByteOrder;
+import java.util.logging.Logger;
 
 @Sharable
 public class CommandEncoder extends MessageToByteEncoder<DscCommand> {
-   private static final boolean VERBOSE_DEBUG = false;
+   private static final Logger logger = Logger.getLogger(CommandEncoder.class.getName());
 
    @SuppressWarnings("deprecation")
    protected void encode(ChannelHandlerContext ctx, DscCommand cmd, ByteBuf buffer) throws Exception {
       assert buffer.order() == ByteOrder.BIG_ENDIAN;
 
       if (cmd instanceof LowACK) {
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: low ACK encoded");
-         }
+         logger.finer("Low ACK encoded");
       } else {
          buffer.writeShort(cmd.getCommandNumber());
          if (cmd instanceof DscCommandWithAppSeq) {
@@ -31,9 +31,7 @@ public class CommandEncoder extends MessageToByteEncoder<DscCommand> {
          }
 
          cmd.writeTo(buffer);
-         if(VERBOSE_DEBUG) {
-            System.out.println("DEBUG: command encoded: " + cmd);
-         }
+         logger.finer("Command encoded: " + cmd);
       }
    }
 }

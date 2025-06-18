@@ -9,6 +9,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.UserActivity;
 import protocol.dsc.session.DscChannelInitializer;
@@ -23,8 +24,10 @@ import protocol.dsc.transport.command_handlers.SoftwareVersionHandler;
 import java.net.InetSocketAddress;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.logging.Logger;
 
 public class AbsolutaClient implements ITv2Client {
+   private static final Logger logger = Logger.getLogger(AbsolutaClient.class.getName());
    private final String hostname;
    private final int port;
 
@@ -37,7 +40,7 @@ public class AbsolutaClient implements ITv2Client {
    public void connect(ITv2Client.Callback var1) throws InterruptedException {
       Preconditions.checkNotNull(var1);
       InetSocketAddress var2 = new InetSocketAddress(this.hostname, this.port);
-      System.out.println("INFO: connecting to " + var2);
+      logger.info("Connecting to " + var2);
       NioEventLoopGroup var3 = new NioEventLoopGroup();
 
       try {
@@ -50,7 +53,7 @@ public class AbsolutaClient implements ITv2Client {
          Channel var6 = var5.channel();
          var6.closeFuture().sync();
       } finally {
-         System.out.println("INFO: disconnected from " + var2);
+         logger.info("Disconnected from " + var2);
          var3.shutdownGracefully();
       }
 

@@ -3,6 +3,7 @@ package protocol.dsc.transport.command_handlers;
 import com.google.common.base.Preconditions;
 
 import io.netty.handler.codec.DecoderException;
+
 import protocol.dsc.base.DscVariableBytes;
 import protocol.dsc.commands.RequestAccess;
 import protocol.dsc.util.DscUtils;
@@ -12,7 +13,10 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 
+import java.util.logging.Logger;
+
 public class RequestAccessAESHelper {
+   private static final Logger logger = Logger.getLogger(RequestAccessAESHelper.class.getName());
    public static final int INIT_KEY_LENGTH = 8;
    private static final int KEY_LENGTH = 16;
    private static final int IDENTIFIER_LENGTH = 48;
@@ -74,7 +78,7 @@ public class RequestAccessAESHelper {
             return var4;
          }
       } catch (RuntimeException ex) {
-         System.out.println("WARN: invalid access request: " + ex);
+         logger.severe("Invalid access request: " + ex);
          return null;
       } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException ex) {
          throw new RuntimeException("unexpected exception", ex);

@@ -1,6 +1,7 @@
 package protocol.dsc.messages;
 
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.commands.DscCommandWithAppSeq;
@@ -10,6 +11,8 @@ import protocol.dsc.commands.EventBufferReadResponse;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.logging.Logger;
+
 import org.javatuples.Pair;
 import org.javatuples.Septet;
 
@@ -18,6 +21,8 @@ public class EventBufferReading extends Reading<
       List<Septet<Calendar, Integer, Boolean, Integer, Integer, Integer, List<Integer>>>,
       EventBufferReadResponse> {
 
+   private static final Logger logger = Logger.getLogger(EventBufferReading.class.getName());
+
    public EventBufferReading() {
       super(EventBufferReadResponse.class);
    }
@@ -25,13 +30,13 @@ public class EventBufferReading extends Reading<
    @Override
    protected void parseResponse(ChannelHandlerContext ctx, EventBufferReadResponse response, List<Message.Response> responses) {
       if (response.getBufferID() != 3) {
-            System.out.println("WARN: unmanaged buffer ID: " + response.getBufferID());
+            logger.warning("Unmanaged buffer ID: " + response.getBufferID());
             return;
       }
 
       List<EventBufferReadResponse.Event> events = response.getEvents();
       if (events.size() != response.getNumberOfEvents()) {
-            System.out.println("WARN: event count mismatch");
+            logger.warning("Event count mismatch");
             return;
       }
 
@@ -40,7 +45,7 @@ public class EventBufferReading extends Reading<
 
       for (EventBufferReadResponse.Event event : events) {
             if (event.getFlags() != 9) {
-               System.out.println("WARN: unexpected flags: " + event.getFlags());
+               logger.warning("Unexpected flags: " + event.getFlags());
                return;
             }
 
@@ -49,7 +54,7 @@ public class EventBufferReading extends Reading<
             if (unusedBytes == 0) {
                partitions = event.getPartitions();
             } else if (unusedBytes != 65535) {
-               System.out.println("WARN: unexpected partition mask unused bytes: " + unusedBytes);
+               logger.warning("Unexpected partition mask unused bytes: " + unusedBytes);
             }
 
             eventDetails.add(Septet.with(

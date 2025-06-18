@@ -3,28 +3,39 @@ package cms.device.api;
 import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
 
 public final class AlertNotifier {
+   private static final Logger logger = Logger.getLogger(AlertNotifier.class.getName());
+   // Singleton per la gestione centralizzata delle notifiche di allarme
    private static final AlertNotifier INSTANCE = new AlertNotifier();
-   private final List<AlertListener> listeners = new CopyOnWriteArrayList<AlertListener>();
+
+   // Lista thread-safe di listener registrati
+   private final List<AlertListener> listeners = new CopyOnWriteArrayList<>();
 
    public static AlertNotifier getDefault() {
       return INSTANCE;
    }
 
-   void fire(Object var1, String var2) {
-      final AlertEvent var3 = new AlertEvent((String)Preconditions.checkNotNull(var2), Preconditions.checkNotNull(var1));
-      System.out.println("TRACE: firing new event: " + var3);
+   //Notifica tutti i listener di un nuovo evento di allarme.
+   void fire(Object source, String message) {
+      final AlertEvent alertEvent = new AlertEvent(
+         Preconditions.checkNotNull(message),
+         Preconditions.checkNotNull(source)
+      );
+      logger.finer("Firing new event: " + alertEvent);
+
+      // Esegue la notifica dei listener
       SwingUtilities.invokeLater(new Runnable() {
          public void run() {
-            for (AlertListener listener : AlertNotifier.this.listeners) {
-               try {
-                  listener.alertEventReceived(var3);
-               } catch (RuntimeException ex) {
-                  System.out.println("WARN: exception in event listener: " + ex);
+               for (AlertListener listener : AlertNotifier.this.listeners) {
+                  try {
+                     listener.alertEventReceived(alertEvent);
+                  } catch (RuntimeException ex) {
+                     logger.severe("Exception in event listener: " + ex);
+                  }
                }
-            }
          }
       });
    }

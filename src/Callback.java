@@ -17,7 +17,10 @@ import cms.device.api.Panel.Arming;
 import cms.device.api.Panel.ConnStatus;
 import cms.device.spi.PanelProvider;
 
+import java.util.logging.Logger;
+
 class Callback implements PanelProvider.PanelCallback, MqttCallback {
+   private static final Logger logger = Logger.getLogger(Callback.class.getName());
    private MqttClient mqttClient;
    private int[] sensorIDs;
    private int[] partitionIDs;
@@ -40,25 +43,23 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    private HashSet<Integer> partitionDiscoverySent = new HashSet<>();
    private HashSet<Integer> modeDiscoverySent = new HashSet<>();
    private Boolean discoveryEnabled;
-   private boolean verbose = false;
    private MqttMessageDispatcher mqttDispatcher;
 
-   public Callback(MqttClient mqttClient, Panel panel, MqttConnectOptions mqttOption, Boolean discoveryEnabled, boolean verboseDebug) {
+   public Callback(MqttClient mqttClient, Panel panel, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
       this.mqttClient = mqttClient;
       this.panel = panel;
       this.connOpts = mqttOption;
       this.discoveryEnabled = discoveryEnabled;
-      this.verbose = verboseDebug;
       this.mqttDispatcher = new MqttMessageDispatcher(mqttClient);
    }
 
-   public void connectionLost(Throwable var1) {
-      System.out.println("WARN: Connessione persa con il broker MQTT: " + var1.getMessage() + ". Riconnessione...");
+   public void connectionLost(Throwable ex) {
+      logger.warning("Connessione persa con il broker MQTT: " + ex.getMessage() + ". Riconnessione...");
       this.reconnectWithDelay("broker MQTT");
    }
 
    public void connectionLost() {
-      System.out.println("WARN: Connessione persa con la centrale! Riconnessione...");
+      logger.warning("Connessione persa con la centrale! Riconnessione...");
       this.reconnectWithDelay("centrale");
    }
 
@@ -73,7 +74,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.sensorIDs[i] = Integer.parseInt(msg.get(i));
             if (this.sensorIDs[i] > maxId) maxId = this.sensorIDs[i];
          } catch (NumberFormatException e) {
-            System.err.println("Errore di parsing sensorID: '" + msg.get(i) + "' non è un intero valido.");
+            logger.warning("Errore di parsing sensorID: '" + msg.get(i) + "' non è un intero valido.");
             this.sensorIDs[i] = -1;
          }
       }
@@ -81,9 +82,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       this.sensorTopics = new String[maxId + 1];
       this.sensorStatuses = new String[maxId + 1];
       this.sensorBypass = new String[maxId + 1];
-      if(this.verbose) {
-         System.out.println("DEBUG: Sensore ID: " + msg);
-      }
+      logger.fine("Sensore ID: " + msg);
    }
 
    public void changeOutputs(List<String> var1) {
@@ -101,7 +100,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          try {
             this.partitionIDs[i + 1] = Integer.parseInt(msg.get(i));
          } catch (NumberFormatException e) {
-            System.err.println("Errore di parsing partitionID: '" + msg.get(i) + "' non è un intero valido.");
+            logger.warning("Errore di parsing partitionID: '" + msg.get(i) + "' non è un intero valido.");
             this.partitionIDs[i + 1] = -1;
          }
       }
@@ -121,13 +120,13 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.mqttDispatcher.publishString(topic, payload, QOS, true);
             partitionDiscoverySent.add(0);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio discovery : " + topic);
+            logger.warning("Invio discovery : " + topic);
          }
          // Subscribe al topic di homeassistant
          try {
             this.mqttClient.subscribe("homeassistant/status");
          } catch (Exception ex) {
-            System.out.println("ERROR: subscribe to: homeassistant/status");
+            logger.warning("Subscribe to: homeassistant/status");
          }
       }
 
@@ -136,7 +135,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          try {
                this.mqttDispatcher.publishString("ABS/conn", "Status: Connesso", QOS, false);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio messaggio: ABS/conn Exception: " + ex.getMessage());
+            logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
          }
       }
 
@@ -145,11 +144,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          this.mqttClient.subscribe("ABS/+/set");
          this.mqttClient.subscribe("ABS/+/+/set");
       } catch (Exception ex) {
-         System.out.println("ERROR: subscribe to: ABS/+/set and ABS/+/+/set");
+         logger.warning("Subscribe to: ABS/+/set and ABS/+/+/set");
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Partizione ID: " + String.valueOf(msg));
-      }
+      logger.fine("Partizione ID: " + String.valueOf(msg));
    }
 
    public void setArming(Panel.Arming actArming) {
@@ -177,11 +174,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          }
          this.mqttDispatcher.publishString(this.partitionTopics[0], str, QOS, false);
       } catch (Exception ex) {
-         System.out.println("ERROR: invio messaggio: " + this.partitionTopics[0] + " Exception: " + ex.getMessage());
+         logger.warning("Invio messaggio: " + this.partitionTopics[0] + " Exception: " + ex.getMessage());
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Partition Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0]);
-      }
+      logger.fine("Partition Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0]);
    }
 
    public void setInputRemoteName(String sensorID, String sensorName) {
@@ -196,14 +191,14 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.mqttDispatcher.publishString(topic, payload, QOS, true);
             sensorDiscoverySent.add(sensorIDInt);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio discovery sensore: " + topic);
+            logger.warning("Invio discovery sensore: " + topic);
          }
          topic = "homeassistant/switch/absoluta_sensor_" + sensorIDInt + "_bypass/config";
          payload = HomeAssistantManager.buildSensorBypass(sensorID, sensorNames[sensorIDInt]);
          try {
             this.mqttDispatcher.publishString(topic, payload, QOS, true);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio discovery sensore Bypass: " + topic);
+            logger.warning("Invio discovery sensore Bypass: " + topic);
          }
       }
       try {
@@ -219,11 +214,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          }
          this.mqttDispatcher.publishString(this.sensorTopics[sensorIDInt], str, QOS, false);
       } catch (Exception ex) {
-         System.out.println("ERROR: invio messaggio: " + this.sensorTopics[sensorIDInt] + " Exception: " + ex.getMessage());
+         logger.warning("Invio messaggio: " + this.sensorTopics[sensorIDInt] + " Exception: " + ex.getMessage());
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Sensor Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt]);
-      }
+      logger.fine("Sensor Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt]);
    }
 
    public void setInputStatus(String sensorID, Input.Status sensorStatus) {
@@ -257,7 +250,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
                try {
                   this.mqttDispatcher.publishString(topic, str, QOS, false);
                } catch (Exception ex) {
-                  System.out.println("ERROR: invio comando Bypass sensore: " + topic);
+                  logger.warning("Invio comando Bypass sensore: " + topic);
                }
                if (this.sensorStatuses[sensorID] == null) {
                   str = "OFF";
@@ -269,13 +262,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             }
             this.mqttDispatcher.publishString(this.sensorTopics[sensorID], str, QOS, false);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio messaggio: " + this.sensorTopics[sensorID]);
+            logger.warning("Invio messaggio: " + this.sensorTopics[sensorID]);
          }
       }
-
-      if(this.verbose) {
-         System.out.println("DEBUG: Sensor Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID]);
-      }
+      logger.fine("Sensor Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID]);
    }
 
    public void setLabelArming(char modeChar, String modeLabel) {
@@ -324,7 +314,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.mqttDispatcher.publishString(topic, payload, QOS, true);
             modeDiscoverySent.add(modeIDInt);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio discovery button mode: " + topic);
+            logger.warning("Invio discovery button mode: " + topic);
          }
       }
    }
@@ -367,12 +357,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             }
             this.mqttDispatcher.publishString(this.partitionTopics[partitionID], str, QOS, false);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio messaggio: " + this.partitionTopics[partitionID] + " Exception: " + ex.getMessage());
+            logger.warning("Invio messaggio: " + this.partitionTopics[partitionID] + " Exception: " + ex.getMessage());
          }
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
-      }
+      logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
 
    public void setPartitionRemoteName(String partitionID, String partitionName) {
@@ -397,7 +385,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.mqttDispatcher.publishString(topic, payload, QOS, true);
             partitionDiscoverySent.add(partitionIDInt);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio discovery partizione: " + topic);
+            logger.warning("Invio discovery partizione: " + topic);
          }
       }
 
@@ -414,11 +402,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          }
          this.mqttDispatcher.publishString(this.partitionTopics[partitionIDInt], str, QOS, false);
       } catch (Exception ex) {
-         System.out.println("ERROR: invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
+         logger.warning("Invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
-      }
+      logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
 
    public void setPartitionStatus(String partitionID, Partition.Status actStatus) {
@@ -454,12 +440,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             }
             this.mqttDispatcher.publishString(this.partitionTopics[partitionIDInt], str, QOS, false);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
+            logger.warning("Invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
          }
       }
-      if(this.verbose) {
-         System.out.println("DEBUG: Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
-      }
+      logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
 
    public void setRemoteName(String var1) {
@@ -486,7 +470,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
                this.commandGlobal(idArray, msg);
             } else {
                // Errore
-               System.out.println("WARN: ID " + idArray + " non valido per il topic: " + topic);
+               logger.warning("ID " + idArray + " non valido per il topic: " + topic);
             }
          } else if (ArrayUtils.contains(this.sensorTopics, parentTopic)) {
             int idSensor = ArrayUtils.indexOf(this.sensorTopics, parentTopic);
@@ -496,7 +480,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
                this.commandSensor(idArray, msg);
             } else {
                // Errore
-               System.out.println("WARN: ID " + idArray + " non valido per il topic: " + topic);
+               logger.warning("ID " + idArray + " non valido per il topic: " + topic);
             }
          } else if (parentTopic.contains("mode")) {
             this.commandMode(msg);
@@ -507,14 +491,12 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          }
       } else {
          // Comando non riconosciuto
-         System.out.println("WARN: Comando non riconosciuto per il topic: " + topic);
+         logger.warning("Comando non riconosciuto per il topic: " + topic);
       }
    }
 
    private void commandPartition(int idArray, MqttMessage msg) {
-      if(this.verbose) {
-         System.out.println("DEBUG: Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
-      }
+      logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
             this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.DISARMED);
@@ -529,14 +511,12 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.NODELAY);
             return;
          default:
-            System.out.println("WARN: Comando " + msg.toString() + " non valido");
+            logger.warning("Comando " + msg.toString() + " non valido");
       }
    }
 
    private void commandGlobal(int idArray, MqttMessage msg) {
-      if(this.verbose) {
-            System.out.println("DEBUG: Comando ricevuto per stato globale: " + msg.toString());
-         }
+         logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
                this.panel.arming(Arming.GLOBALLY_DISARMED);
@@ -545,14 +525,12 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
                this.panel.arming(Arming.GLOBALLY_ARMED);
                return;
             default:
-               System.out.println("WARN: Comando " + msg.toString() + " non valido");
+               logger.warning("Comando " + msg.toString() + " non valido");
          }
    }
 
    private void commandMode(MqttMessage msg) {
-      if(this.verbose) {
-         System.out.println("DEBUG: Comando ricevuto per modalità: " + msg.toString());
-      }
+      logger.fine("Comando ricevuto per modalità: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "MODE_A" :
             this.panel.modalityArming('A');
@@ -567,7 +545,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
             this.panel.modalityArming('D');
             return;
          default:
-            System.out.println("WARN: Comando " + msg.toString() + " non valido");
+            logger.warning("Comando " + msg.toString() + " non valido");
       }
    }
 
@@ -577,7 +555,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       } else if(msg.toString().equals("OFF")){
          this.panel.bypassInput(String.valueOf(this.sensorIDs[idArray]), false);
       } else {
-         System.out.println("WARN: Comando " + msg.toString() + " non valido per il sensore ID: " + idArray);
+         logger.warning("Comando " + msg.toString() + " non valido per il sensore ID: " + idArray);
       }
    }
 
@@ -585,9 +563,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    private void commandOnline() {
-      if(this.verbose) {
-         System.out.println("DEBUG: Comando ricevuto per Home Assistant online");
-      }
+      logger.fine("Comando ricevuto per Home Assistant online");
       // Stato globale (centrale)
       if (this.partitionArmStatuses != null && this.partitionArmStatuses.length > 0) {
          this.sendMessageOnsetArming();
@@ -613,20 +589,18 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    private void reconnectWithDelay(String objName) {
       this.isConnected = false;
       ++this.reconnectionAttempts;
-      System.out.println("WARN: Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
+      logger.warning("Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
       try {
          this.mqttDispatcher.publishString("ABS/conn", "Status: Scollegato", QOS, false);
       } catch (Exception ex) {
-         System.out.println("ERROR: invio messaggio: ABS/conn Exception: " + ex.getMessage());
+         logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
       }
       try {
          TimeUnit.SECONDS.sleep((long)RECON_DELAY);
          if (objName.equals("centrale")) {
-            ConnStatus var2 = this.panel.connect();
-            if (var2 == ConnStatus.UNREACHABLE) {
-               if(this.verbose) {
-                  System.out.println("DEBUG: Rilevato 'busy panel'. Tentativo di riconnessione forzata...");
-               }
+            ConnStatus status = this.panel.connect();
+            if (status == ConnStatus.UNREACHABLE) {
+               logger.fine("Rilevato 'busy panel'. Tentativo di riconnessione forzata...");
                throw new Exception("Busy panel");
             }
          } else if (objName.equals("broker MQTT")) {
@@ -638,7 +612,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          try {
             this.mqttDispatcher.publishString("ABS/conn", "Status: Connesso", QOS, false);
          } catch (Exception ex) {
-            System.out.println("ERROR: invio messaggio: ABS/conn Exception: " + ex.getMessage());
+            logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
          }
       } catch (InterruptedException ex) {
          Thread.currentThread().interrupt();
@@ -649,7 +623,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    private void handleReconnectionFailure(String name, Exception ex) {
-      System.err.println("ERROR: Impossibile riconnettersi a " + name + " Causa: " + ex.getMessage());
+      logger.warning("Impossibile riconnettersi a " + name + " Causa: " + ex.getMessage());
       ex.printStackTrace();
       this.reconnectWithDelay(name);
    }

@@ -7,6 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.MessageToMessageDecoder;
+
 import protocol.dsc.commands.AccessCodeLengthNotification;
 import protocol.dsc.commands.AccessCodes;
 import protocol.dsc.commands.AccessCodesResponse;
@@ -76,9 +77,11 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @Sharable
 public class CommandDecoder extends MessageToMessageDecoder<ByteBuf> {
+   private static final Logger logger = Logger.getLogger(CommandDecoder.class.getName());
    private static final Map<Integer, Class<? extends DscCommand>> COMMANDS = initCommandsWith(
          AccessCodeLengthNotification.class, AccessCodes.class, AccessCodesResponse.class, AccessLevelLeadInOut.class,
          AlarmMemoryInformation.class, ArmingDisarmingNotification.class, ArmingPreAlertNotification.class,
@@ -177,7 +180,7 @@ public class CommandDecoder extends MessageToMessageDecoder<ByteBuf> {
          request.setRequestedCmd(reqCmd);
          request.readCodeFrom(in);
       } else {
-         System.out.println("WARN: Unknown or unexpected requested command: " + requestedCmd.getCommandNumber());
+         logger.warning("Unknown or unexpected requested command: " + requestedCmd.getCommandNumber());
       }
    }
 }

@@ -1,10 +1,12 @@
 package protocol.dsc.transport;
 
 import com.google.common.base.Preconditions;
+
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
+
 import protocol.dsc.session.SessionInfo;
 import protocol.dsc.transport.command_handlers.HandshakeHandler;
 
@@ -12,12 +14,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
+import java.util.logging.Logger;
 
 public class PipelineHandler extends ChannelInboundHandlerAdapter {
+   private static final Logger logger = Logger.getLogger(PipelineHandler.class.getName());
    private final Queue<HandshakeHandler<?>> handshakeHandlers;
    private final List<ChannelHandler> normalModeHandlers;
    private final List<String> managedHandlerNames = new ArrayList<>();
-   private static final boolean VERBOSE_DEBUG = false;
 
    public PipelineHandler(Queue<HandshakeHandler<?>> handshakeHandlers, List<ChannelHandler> normalModeHandlers) {
       this.handshakeHandlers = Preconditions.checkNotNull(handshakeHandlers);
@@ -42,9 +45,7 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
    @Override
    public void channelActive(ChannelHandlerContext ctx) throws Exception {
       super.channelActive(ctx);
-      if (VERBOSE_DEBUG) {
-         System.out.println("DEBUG: handshake begin");
-      }
+      logger.fine("Handshake begin");
       ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_BEGIN_EVENT);
       this.nextStage(ctx);
    }
@@ -67,18 +68,14 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
    private void nextStage(ChannelHandlerContext ctx) {
       HandshakeHandler<?> handler = this.handshakeHandlers.poll();
       if (handler != null) {
-         if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: handshake next stage");
-         }
+         logger.fine("Handshake next stage");
          this.setManagedHandlers(ctx, Collections.singletonList(handler));
          SessionInfo sessionInfo = SessionInfo.getOwnInfo(ctx.channel());
          if (sessionInfo.isClient()) {
                handler.startHandshakeStage();
          }
       } else {
-         if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: handshake end");
-         }
+         logger.fine("Handshake end");
          this.setManagedHandlers(ctx, this.normalModeHandlers);
          ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_END_EVENT);
       }
@@ -89,9 +86,7 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
 
       // Remove all managed handlers
       for (String handlerName : this.managedHandlerNames) {
-         if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: removing " + handlerName + " from pipeline");
-         }
+         logger.finer("Removing " + handlerName + " from pipeline");
          pipeline.remove(handlerName);
       }
       this.managedHandlerNames.clear();
@@ -102,9 +97,7 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
       for (int i = handlers.size() - 1; i >= 0; --i) {
          ChannelHandler handler = handlers.get(i);
          String handlerName = String.format("%s:%s#%d", ctx.name(), handler.getClass().getSimpleName(), i);
-         if (VERBOSE_DEBUG) {
-               System.out.println("DEBUG: adding " + handlerName + " to pipeline before " + previousName);
-         }
+         logger.finer("Adding " + handlerName + " to pipeline before " + previousName);
          pipeline.addBefore(previousName, handlerName, handler);
          this.managedHandlerNames.add(handlerName);
          previousName = handlerName;

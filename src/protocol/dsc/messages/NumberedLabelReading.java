@@ -3,6 +3,7 @@ package protocol.dsc.messages;
 import com.google.common.base.Preconditions;
 
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.base.DscCharsets;
@@ -10,8 +11,10 @@ import protocol.dsc.commands.Configuration;
 
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class NumberedLabelReading extends RequestableCommandReading<Integer, String, Configuration> {
+   private static final Logger logger = Logger.getLogger(EventBufferReading.class.getName());
    private final int optionId;
    private final int offset;
    private final int max;
@@ -48,7 +51,7 @@ public class NumberedLabelReading extends RequestableCommandReading<Integer, Str
          Integer var4 = var2.getOptionIdOffsetFrom();
          List<String> var5 = var2.getStrings(this.charset);
          if (var4 == null) {
-            System.out.println("WARN: unexpected null from for option id: " + this.optionId);
+            logger.warning("Unexpected null from for option id: " + this.optionId);
             return;
          }
 

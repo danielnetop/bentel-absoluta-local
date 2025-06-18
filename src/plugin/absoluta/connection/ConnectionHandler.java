@@ -14,10 +14,13 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.logging.Logger;
+
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 
 public class ConnectionHandler {
+   private static final Logger logger = Logger.getLogger(ConnectionHandler.class.getName());
    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^[0-9]{1,6}$");
    private static final int USER_ACCESS_LEVEL = 2;
    private static final int INVALID_ACCESS_CODE = 17;
@@ -32,7 +35,6 @@ public class ConnectionHandler {
    private Panel.ConnStatus connectionStatus;
    private boolean loggedIn;
    private boolean closing;
-   private static final boolean VERBOSE_DEBUG = false;
 
    public ConnectionHandler(PanelStatus var1, AlertCallback var3) {
       this.panelStatus = (PanelStatus)Objects.requireNonNull(var1);
@@ -113,7 +115,7 @@ public class ConnectionHandler {
       }
 
       void fatalError() {
-         System.out.println("WARN: fatal error: closing connection");
+         logger.severe("Fatal error: closing connection");
          ConnectionHandler.this.endpoint.close();
       }
 
@@ -129,9 +131,7 @@ public class ConnectionHandler {
 
       public void propertyChange(PropertyChangeEvent var1) {
          if ("state".equals(var1.getPropertyName())) {
-            if(VERBOSE_DEBUG) {
-               System.out.println("DEBUG: endpoint status: " + var1.getOldValue() + " -> " + var1.getNewValue());
-            }
+            logger.fine("Endpoint status: " + var1.getOldValue() + " -> " + var1.getNewValue());
             switch((DscEndpointState)var1.getNewValue()) {
             case READY:
                ConnectionHandler.this.endpoint.setPin("");
