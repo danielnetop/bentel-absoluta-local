@@ -15,12 +15,14 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 public class Application {
+
    private static final Logger logger = Logger.getLogger(Application.class.getName());
+
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
-   private static String getConfigValue(Properties props, String envKey, String propKey) {
-      String value = System.getenv(envKey);
+   private static String getConfigValue(Properties props, String key) {
+      String value = System.getenv(key);
       if (value == null || value.isEmpty()) {
-         value = props.getProperty(propKey);
+         value = props.getProperty(key);
       }
       return value;
    }
@@ -29,23 +31,38 @@ public class Application {
    }
 
    public static void main(String[] var0) {
+
+      boolean configFromFile = true;
       Properties props = new Properties();
       try (FileInputStream fis = new FileInputStream("config.properties")) {
          props.load(fis);
       } catch (IOException e) {
-         logger.severe("Impossibile caricare config.properties: " + e.getMessage());
+         if (!e.getMessage().contains("No such file or directory")) {
+            logger.severe("Errore durante il caricamento del file di configurazione: " + e.getMessage());
+            System.exit(1);
+         }
+         else {
+            configFromFile = false;
+         }
       }
 
-      String MQTT_ADDRESS = getConfigValue(props, "MQTT_ADDRESS", "MQTT_ADDRESS");
-      String MQTT_PORT = getConfigValue(props, "MQTT_PORT", "MQTT_PORT");
-      String Username = getConfigValue(props, "MQTT_USERNAME", "MQTT_USERNAME");
-      String Password = getConfigValue(props, "MQTT_PASSWORD", "MQTT_PASSWORD");
-      String ADDRESS = getConfigValue(props, "ALARM_ADDRESS", "ALARM_ADDRESS");
-      String PIN = getConfigValue(props, "ALARM_PIN", "ALARM_PIN");
-      String PORT = getConfigValue(props, "ALARM_PORT", "ALARM_PORT");
-      String MQTT_CONNECT_ATTEMPTS_STR = getConfigValue(props, "MQTT_CONNECT_ATTEMPTS", "MQTT_CONNECT_ATTEMPTS");
-      String HOME_ASSISTANT_DISCOVERY = getConfigValue(props, "HOME_ASSISTANT_DISCOVERY", "HOME_ASSISTANT_DISCOVERY");
-      String LOG_LEVEL = getConfigValue(props, "LOG_LEVEL", "LOG_LEVEL");
+      String MQTT_ADDRESS = getConfigValue(props, "MQTT_ADDRESS");
+      String MQTT_PORT = getConfigValue(props, "MQTT_PORT");
+      String Username = getConfigValue(props, "MQTT_USERNAME");
+      String Password = getConfigValue(props, "MQTT_PASSWORD");
+      String ADDRESS = getConfigValue(props, "ALARM_ADDRESS");
+      String PIN = getConfigValue(props, "ALARM_PIN");
+      String PORT = getConfigValue(props, "ALARM_PORT");
+      String MQTT_CONNECT_ATTEMPTS_STR = getConfigValue(props, "MQTT_CONNECT_ATTEMPTS");
+      String HOME_ASSISTANT_DISCOVERY = getConfigValue(props, "HOME_ASSISTANT_DISCOVERY");
+      String LOG_LEVEL = getConfigValue(props, "LOG_LEVEL");
+
+      if (MQTT_ADDRESS == null || MQTT_PORT == null || Username == null || Password == null ||
+         ADDRESS == null || PIN == null || PORT == null) {
+         logger.severe("MQTT_ADDRESS, MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, ALARM_ADDRESS, ALARM_PIN e ALARM_PORT devono essere valorizzati!" + 
+            (configFromFile ? " Controlla il file di configurazione config.properties." : "Nessun file config.properties trovato. Controlla le variabili d'ambiente."));
+         System.exit(1);
+      }
 
       MemoryPersistence memPers = new MemoryPersistence();
 
