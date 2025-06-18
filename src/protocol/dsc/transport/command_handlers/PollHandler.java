@@ -14,34 +14,36 @@ import protocol.dsc.util.LogOnFailure;
 
 import java.util.logging.Logger;
 
+// Invia periodicamente un comando di poll quando il canale è inattivo in scrittura.
 public class PollHandler extends ChannelInboundHandlerAdapter {
    private static final Logger logger = Logger.getLogger(PollHandler.class.getName());
    private static final AttributeKey<Boolean> POLL_KEY = AttributeKey.valueOf("PollHandler.poll");
-   private final PollHandler.PollFactory pollFactory;
+   private final PollFactory pollFactory;
 
-   public PollHandler(PollHandler.PollFactory var1) {
-      this.pollFactory = (PollHandler.PollFactory)Preconditions.checkNotNull(var1);
+   public PollHandler(PollFactory pollFactory) {
+      this.pollFactory = Preconditions.checkNotNull(pollFactory);
    }
 
-   public void userEventTriggered(ChannelHandlerContext var1, Object var2) throws Exception {
-      if (var2 instanceof IdleStateEvent && ((IdleStateEvent)var2).state() == IdleState.WRITER_IDLE) {
-         if (isPollEnabled(var1.channel())) {
+   // Invia un comando di poll quando scatta l'IdleStateEvent in scrittura, se abilitato.
+   @Override
+   public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+      if (evt instanceof IdleStateEvent && ((IdleStateEvent)evt).state() == IdleState.WRITER_IDLE) {
+         if (isPollEnabled(ctx.channel())) {
             logger.finer("Sending poll");
-            DscCommand var3 = this.pollFactory.createPoll();
-            var1.write(var3).addListener(LogOnFailure.INSTANCE);
+            DscCommand pollCommand = this.pollFactory.createPoll();
+            ctx.write(pollCommand).addListener(LogOnFailure.INSTANCE);
          }
       } else {
-         super.userEventTriggered(var1, var2);
+         super.userEventTriggered(ctx, evt);
       }
-
    }
 
-   public static boolean isPollEnabled(Channel var0) {
-      return Boolean.TRUE.equals(var0.attr(POLL_KEY).get());
+   public static boolean isPollEnabled(Channel channel) {
+      return Boolean.TRUE.equals(channel.attr(POLL_KEY).get());
    }
 
-   public static void setPollEnabled(Channel var0, boolean var1) {
-      var0.attr(POLL_KEY).set(var1);
+   public static void setPollEnabled(Channel channel, boolean enabled) {
+      channel.attr(POLL_KEY).set(enabled);
    }
 
    public interface PollFactory {

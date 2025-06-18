@@ -7,28 +7,29 @@ import protocol.dsc.Priority;
 
 public class SendingMessage<P, V> {
    private final Message<P, V> message;
-   private final P param;
+   private final P parameter;
    private final Priority priority;
 
-   public SendingMessage(Message<P, V> var1, P var2, Priority var3) {
-      this.message = Preconditions.checkNotNull(var1);
-      this.param = var2;
-      this.priority = (Priority)Preconditions.checkNotNull(var3);
+   public SendingMessage(Message<P, V> message, P parameter, Priority priority) {
+      this.message = Preconditions.checkNotNull(message);
+      this.parameter = parameter;
+      this.priority = Preconditions.checkNotNull(priority);
    }
 
    public Message<P, V> getMessage() {
       return this.message;
    }
 
-   public P getParam() {
-      return this.param;
+   public P getParameter() {
+      return this.parameter;
    }
 
    public Priority getPriority() {
       return this.priority;
    }
 
+   @Override
    public String toString() {
-      return this.message + "(" + this.param + ") " + this.priority;
+      return message + "(" + parameter + ") " + priority;
    }
 }

@@ -40,7 +40,6 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
    protected int onCommandReceived(Channel channel, C command) {
       return 0;
    }
-
    protected void onCommandSent(Channel channel) {
    }
 
@@ -70,18 +69,19 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
          C command = commandClass.cast(msg);
          int responseCode = this.onCommandReceived(ctx.channel(), command);
 
+         // Risposta automatica se il comando prevede sequenza applicativa
          if (command instanceof DscCommandWithAppSeq) {
-               DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
-               CommandResponse response = new CommandResponse();
-               response.setCommandSeq(withSeq.getAppSeq());
-               response.setResponseCode(responseCode);
-               ctx.write(response).addListener(LogOnFailure.INSTANCE);
+            DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
+            CommandResponse response = new CommandResponse();
+            response.setCommandSeq(withSeq.getAppSeq());
+            response.setResponseCode(responseCode);
+            ctx.write(response).addListener(LogOnFailure.INSTANCE);
          }
 
          if (responseCode == 0) {
-               onReceptionSuccess(ctx);
+            onReceptionSuccess(ctx);
          } else {
-               onFailure(ctx);
+            onFailure(ctx);
          }
       } else {
          super.channelRead(ctx, msg);
@@ -120,7 +120,7 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       if (command instanceof DscCommandWithAppSeq) {
          DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
          if (withSeq.hasResponseCallback()) {
-               throw new IllegalStateException("Response callback already set");
+            throw new IllegalStateException("Response callback already set");
          }
          withSeq.setResponseCallback(new ResponseReceivedCallback());
          hasAppSeqCallback = true;
@@ -139,9 +139,9 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       @Override
       public void operationComplete(ChannelFuture future) {
          if (future.isSuccess()) {
-               onCommandSent(future.channel());
+            onCommandSent(future.channel());
          } else {
-               logger.warning("Sending failed for " + commandClass.getSimpleName() + ": " + future.cause());
+            logger.warning("Sending failed for " + commandClass.getSimpleName() + ": " + future.cause());
          }
       }
    }
@@ -151,10 +151,10 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
       public void generalResponseReceived(Channel channel, DscGeneralResponse response) {
          ChannelHandlerContext ctx = channel.pipeline().context(HandshakeHandler.this);
          if (response.isSuccess()) {
-               onSendSuccess(ctx);
+            onSendSuccess(ctx);
          } else {
-               logger.warning("Negative response for " + commandClass.getSimpleName() + ": " + response);
-               onFailure(ctx);
+            logger.warning("Negative response for " + commandClass.getSimpleName() + ": " + response);
+            onFailure(ctx);
          }
       }
    }

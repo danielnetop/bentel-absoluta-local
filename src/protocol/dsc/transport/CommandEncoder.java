@@ -24,10 +24,11 @@ public class CommandEncoder extends MessageToByteEncoder<DscCommand> {
          logger.finer("Low ACK encoded");
       } else {
          buffer.writeShort(cmd.getCommandNumber());
+         // Gestisce sequenza applicativa se necessario
          if (cmd instanceof DscCommandWithAppSeq) {
-            int var4 = SequenceHandlersHelper.getCounters(ctx).nextAppSeq();
-            ((DscCommandWithAppSeq)cmd).setAppSeq(var4);
-            buffer.writeByte(var4);
+               int appSeq = SequenceHandlersHelper.getCounters(ctx).nextAppSeq();
+               ((DscCommandWithAppSeq) cmd).setAppSeq(appSeq);
+               buffer.writeByte(appSeq);
          }
 
          cmd.writeTo(buffer);

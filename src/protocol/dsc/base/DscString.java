@@ -14,18 +14,18 @@ public final class DscString implements DscSerializable {
    private final Charset charset;
    private byte[] bytes;
 
-   public DscString(int var1, Charset var2) {
-      Preconditions.checkArgument(var1 > 0);
-      Preconditions.checkNotNull(var2);
+   public DscString(int length, Charset charset) {
+      Preconditions.checkArgument(length > 0);
+      Preconditions.checkNotNull(charset);
       this.fixedSize = true;
-      this.charset = var2;
-      this.bytes = new byte[var1];
+      this.charset = charset;
+      this.bytes = new byte[length];
    }
 
-   public DscString(Charset var1) {
-      Preconditions.checkNotNull(var1);
+   public DscString(Charset charset) {
+      Preconditions.checkNotNull(charset);
       this.fixedSize = false;
-      this.charset = var1;
+      this.charset = charset;
       this.bytes = DscUtils.emptyByteArray();
    }
 
@@ -33,14 +33,12 @@ public final class DscString implements DscSerializable {
       return this.bytes.length;
    }
 
-   public void setLength(int var1) {
+   public void setLength(int newLength) {
       if (this.fixedSize) {
          throw new UnsupportedOperationException("fixed size");
-      } else {
-         if (var1 != this.bytes.length) {
-            this.bytes = new byte[DscUtils.validateUByte(var1)];
-         }
-
+      }
+      if (newLength != this.bytes.length) {
+         this.bytes = new byte[DscUtils.validateUByte(newLength)];
       }
    }
 
@@ -56,19 +54,20 @@ public final class DscString implements DscSerializable {
       return this.bytes;
    }
 
-   public DscString setString(String var1) {
-      byte[] var2 = var1.getBytes(this.charset);
+   /**
+    * Imposta il valore della stringa, gestendo padding e taglio se necessario.
+    */
+   public DscString setString(String value) {
+      byte[] encoded = value.getBytes(this.charset);
       if (!this.fixedSize) {
-         this.bytes = var2;
+         this.bytes = encoded;
       } else {
-         if (var2.length > this.bytes.length) {
-            throw new IllegalArgumentException(String.format("too long string: %s", var1));
+         if (encoded.length > this.bytes.length) {
+               throw new IllegalArgumentException(String.format("too long string: %s", value));
          }
-
-         System.arraycopy(var2, 0, this.bytes, 0, var2.length);
-         Arrays.fill(this.bytes, var2.length, this.bytes.length, (byte)0);
+         System.arraycopy(encoded, 0, this.bytes, 0, encoded.length);
+         Arrays.fill(this.bytes, encoded.length, this.bytes.length, (byte) 0); // Padding con zeri
       }
-
       return this;
    }
 
@@ -76,50 +75,55 @@ public final class DscString implements DscSerializable {
       return new String(this.bytes, this.charset);
    }
 
-   public boolean equals(Object var1) {
-      if (var1 != null && this.getClass() == var1.getClass()) {
-         DscString var2 = (DscString)var1;
-         return Arrays.equals(this.bytes, var2.bytes) && this.charset.equals(var2.charset);
-      } else {
-         return false;
+   @Override
+   public boolean equals(Object obj) {
+      // Confronto sia dei byte che del charset
+      if (obj != null && this.getClass() == obj.getClass()) {
+         DscString other = (DscString) obj;
+         return Arrays.equals(this.bytes, other.bytes) && this.charset.equals(other.charset);
       }
+      return false;
    }
 
+   @Override
    public int hashCode() {
       return Arrays.hashCode(this.bytes) ^ this.charset.hashCode();
    }
 
-   public void readFrom(ByteBuf var1) throws IndexOutOfBoundsException, DecoderException {
+   @Override
+   public void readFrom(ByteBuf buffer) throws IndexOutOfBoundsException, DecoderException {
       if (!this.fixedSize) {
-         this.bytes = new byte[var1.readableBytes()];
+         this.bytes = new byte[buffer.readableBytes()]; // Alloca in base ai byte disponibili
       }
-
-      var1.readBytes(this.bytes);
+      buffer.readBytes(this.bytes);
    }
 
-   public void writeTo(ByteBuf var1) {
-      var1.writeBytes(this.bytes);
+   @Override
+   public void writeTo(ByteBuf buffer) {
+      buffer.writeBytes(this.bytes);
    }
 
-   public boolean isEquivalent(DscSerializable var1) {
-      if (var1 instanceof DscString) {
-         DscString var2 = (DscString)var1;
-         return this.toString().equals(var2.toString());
-      } else {
-         return false;
+   @Override
+   public boolean isEquivalent(DscSerializable other) {
+      // Equivalenza basata sul valore stringa, non sui byte
+      if (other instanceof DscString) {
+         DscString otherString = (DscString) other;
+         return this.toString().equals(otherString.toString());
       }
+      return false;
    }
 
-   public static DscString newBCDString(int var0) {
-      return new DscString(var0, DscCharsets.BCD);
+   // Factory methods per istanze con charset predefiniti
+   public static DscString newBCDString(int length) {
+      return new DscString(length, DscCharsets.BCD);
    }
 
    public static DscString newBCDString() {
       return new DscString(DscCharsets.BCD);
    }
 
-   public static DscString newUnicodeString(int var0) {
-      return new DscString(var0, DscCharsets.UNICODE);
+   public static DscString newUnicodeString(int length) {
+      return new DscString(length, DscCharsets.UNICODE);
    }
 
    public static DscString newUnicodeString() {

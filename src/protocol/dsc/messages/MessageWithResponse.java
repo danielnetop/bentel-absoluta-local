@@ -29,7 +29,7 @@ abstract class MessageWithResponse<P, V> extends Message<P, V> {
          Message<P, V> message = sendingMsg.getMessage();
          if (expectedClass.isInstance(message)) {
                MessageWithResponse<P, V> msgWithResp = (MessageWithResponse<P, V>) message;
-               return msgWithResp.doPrepare(ctx, sendingMsg.getParam(), sendingMsg.getPriority());
+               return msgWithResp.doPrepare(ctx, sendingMsg.getParameter(), sendingMsg.getPriority());
          }
       }
       return null;

@@ -18,26 +18,26 @@ public class Aes128ecbEncrypter extends MessageToMessageEncoder<ByteBuf> {
    public static final int BLOCK_SIZE = 16;
    public static final AttributeKey<byte[]> ENCRYPT_KEY = AttributeKey.valueOf("Aes128ecbEncrypter.key");
 
-   protected void encode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws Exception {
-      byte[] var4 = (byte[])var1.channel().attr(ENCRYPT_KEY).get();
-      if (var4 != null) {
-         Preconditions.checkArgument(var4.length == KEY_SIZE);
-         Preconditions.checkArgument(var2.readableBytes() % BLOCK_SIZE == 0);
-         ByteBuffer var5 = var2.nioBuffer();
-         ByteBuffer var6 = encrypt(var4, var5);
-         var3.add(Unpooled.wrappedBuffer(var6));
+   protected void encode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+      byte[] key = (byte[]) ctx.channel().attr(ENCRYPT_KEY).get();
+      if (key != null) {
+         Preconditions.checkArgument(key.length == KEY_SIZE);
+         Preconditions.checkArgument(in.readableBytes() % BLOCK_SIZE == 0);
+         ByteBuffer src = in.nioBuffer();
+         ByteBuffer encrypted = encrypt(key, src);
+         out.add(Unpooled.wrappedBuffer(encrypted));
       } else {
-         var3.add(var2.retain());
+         out.add(in.retain());
       }
-
    }
 
-   private static ByteBuffer encrypt(byte[] var0, ByteBuffer var1) throws Exception {
-      ByteBuffer var2 = ByteBuffer.allocate(var1.remaining());
-      Cipher var3 = Cipher.getInstance("AES/ECB/NoPadding");
-      SecretKeySpec var4 = new SecretKeySpec(var0, "AES");
-      var3.init(1, var4);
-      var3.doFinal(var1, var2);
-      return (ByteBuffer)var2.flip();
+   // Cifra il buffer usando AES/ECB/NoPadding con la chiave fornita
+   private static ByteBuffer encrypt(byte[] key, ByteBuffer src) throws Exception {
+      ByteBuffer dst = ByteBuffer.allocate(src.remaining());
+      Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+      SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
+      cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+      cipher.doFinal(src, dst);
+      return (ByteBuffer) dst.flip();
    }
 }

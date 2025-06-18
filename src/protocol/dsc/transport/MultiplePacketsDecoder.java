@@ -14,23 +14,23 @@ import java.util.List;
 public class MultiplePacketsDecoder extends MessageToMessageDecoder<ByteBuf> {
 
    @SuppressWarnings("deprecation")
-   protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws Exception {
-      assert var2.order() == ByteOrder.BIG_ENDIAN;
+   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+      assert in.order() == ByteOrder.BIG_ENDIAN;
 
-      if (var2.readableBytes() >= 2 && var2.getShort(var2.readerIndex()) == 1571) {
-         var3.add(var2.readSlice(2).retain());
+      // Se il pacchetto inizia con 1571 (0x0623), gestisce pacchetti multipli
+      if (in.readableBytes() >= 2 && in.getShort(in.readerIndex()) == 1571) {
+         out.add(in.readSlice(2).retain()); // Header
 
          try {
-            while(var2.isReadable()) {
-               int var4 = Decoders.readBytesToFollow(var2);
-               var3.add(var2.readSlice(var4).retain());
-            }
-         } catch (IndexOutOfBoundsException var5) {
-            throw new WrongCommandLengthException(1571, "unexpected packet length");
+               while (in.isReadable()) {
+                  int len = Decoders.readBytesToFollow(in); // Legge lunghezza pacchetto
+                  out.add(in.readSlice(len).retain());
+               }
+         } catch (IndexOutOfBoundsException e) {
+               throw new WrongCommandLengthException(1571, "unexpected packet length");
          }
       } else {
-         var3.add(var2.retain());
+         out.add(in.retain()); // Pacchetto singolo, passa direttamente
       }
-
    }
 }

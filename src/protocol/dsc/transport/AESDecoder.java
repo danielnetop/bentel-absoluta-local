@@ -13,20 +13,20 @@ import java.util.List;
 public class AESDecoder extends MessageToMessageDecoder<ByteBuf> {
    private static final AttributeKey<AESHelper> HELPER_KEY = AttributeKey.valueOf("AESDecoder.helper");
 
-   protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws CorruptedFrameException {
-      AESHelper var4 = (AESHelper)var1.channel().attr(HELPER_KEY).get();
-      if (var4 != null) {
-         ByteBuf var5 = var1.alloc().buffer(var2.readableBytes());
-         var4.process(var2, var5);
-         var3.add(var5);
+   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws CorruptedFrameException {
+      AESHelper helper = ctx.channel().attr(HELPER_KEY).get();
+      if (helper != null) {
+         ByteBuf decoded = ctx.alloc().buffer(in.readableBytes());
+         helper.process(in, decoded); // Decifra se helper presente
+         out.add(decoded);
       } else {
-         var3.add(var2.retain());
+         out.add(in.retain()); // Passa dati in chiaro se nessuna chiave impostata
       }
-
    }
 
-   public static void setKey(Channel var0, byte[] var1) {
-      AESHelper var2 = AESHelper.getInstance(var1, 2);
-      var0.attr(HELPER_KEY).set(var2);
+   // Imposta la chiave AES sul canale
+   public static void setKey(Channel ch, byte[] key) {
+      AESHelper helper = AESHelper.getInstance(key, 2);
+      ch.attr(HELPER_KEY).set(helper);
    }
 }

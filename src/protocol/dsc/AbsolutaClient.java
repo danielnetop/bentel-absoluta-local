@@ -28,84 +28,97 @@ import java.util.logging.Logger;
 
 public class AbsolutaClient implements ITv2Client {
    private static final Logger logger = Logger.getLogger(AbsolutaClient.class.getName());
-   private final String hostname;
+   private final String host;
    private final int port;
 
-   public AbsolutaClient(String var1, int var2) {
-      this.hostname = (String)Preconditions.checkNotNull(var1);
-      this.port = var2;
+   public AbsolutaClient(String host, int port) {
+      this.host = Preconditions.checkNotNull(host);
+      this.port = port;
    }
 
    @SuppressWarnings("deprecation")
-   public void connect(ITv2Client.Callback var1) throws InterruptedException {
-      Preconditions.checkNotNull(var1);
-      InetSocketAddress var2 = new InetSocketAddress(this.hostname, this.port);
-      logger.info("Connecting to " + var2);
-      NioEventLoopGroup var3 = new NioEventLoopGroup();
+   public void connect(ITv2Client.Callback callback) throws InterruptedException {
+      Preconditions.checkNotNull(callback);
+      InetSocketAddress remoteAddress = new InetSocketAddress(this.host, this.port);
+      logger.info("Connecting to " + remoteAddress);
+      NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
       try {
-         Bootstrap var4 = new Bootstrap();
-         var4.group(var3);
-         var4.channel(NioSocketChannel.class);
-         var4.option(ChannelOption.SO_KEEPALIVE, true);
-         var4.handler(new AbsolutaClient.ChannelInitializer(var1));
-         ChannelFuture var5 = var4.connect(var2).sync();
-         Channel var6 = var5.channel();
-         var6.closeFuture().sync();
+         Bootstrap bootstrap = new Bootstrap();
+         bootstrap.group(eventLoopGroup);
+         bootstrap.channel(NioSocketChannel.class);
+         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+         bootstrap.handler(new AbsolutaChannelInitializer(callback));
+         ChannelFuture connectFuture = bootstrap.connect(remoteAddress).sync();
+         Channel channel = connectFuture.channel();
+         // Blocco fino a chiusura canale (gestione sincrona)
+         channel.closeFuture().sync();
       } finally {
-         logger.info("Disconnected from " + var2);
-         var3.shutdownGracefully();
+         logger.info("Disconnected from " + remoteAddress);
+         eventLoopGroup.shutdownGracefully();
       }
-
    }
 
-   private class ChannelInitializer extends DscChannelInitializer {
+   // Inizializzatore canale custom per Absoluta
+   private class AbsolutaChannelInitializer extends DscChannelInitializer {
       private final ITv2Client.Callback callback;
 
-      ChannelInitializer(ITv2Client.Callback var2) {
-         this.callback = var2;
+      AbsolutaChannelInitializer(ITv2Client.Callback callback) {
+         this.callback = callback;
       }
 
-      protected SessionInfo getOwnInfo() {
-         SessionInfo var1 = new SessionInfo();
-         var1.setClient(true);
-         var1.setDeviceTypeOrVendorID(143);
-         var1.setDeviceId(0);
-         var1.setSoftwareVersion("0100");
-         var1.setProtocolVersion("0203");
-         var1.setTxSize(50);
-         var1.setRxSize(1024);
-         var1.setEncryptionType(0);
-         var1.setIdentifierOrInitKey("00000000");
-         var1.setSoftwareVersionFields("35 00 00 1E 02 03 00 00 01 03 01");
-         return var1;
+      // Costruisce le info di sessione da inviare al server
+      @Override
+      protected SessionInfo buildOwnSessionInfo() {
+         SessionInfo sessionInfo = new SessionInfo();
+         sessionInfo.setClient(true);
+         sessionInfo.setDeviceTypeOrVendorID(143); // 0x8F
+         sessionInfo.setDeviceId(0);
+         sessionInfo.setSoftwareVersion("0100");
+         sessionInfo.setProtocolVersion("0203");
+         sessionInfo.setTxSize(50);
+         sessionInfo.setRxSize(1024);
+         sessionInfo.setEncryptionType(0);
+         sessionInfo.setIdentifierOrInitKey("00000000");
+         // Campi software version custom (probabilmente richiesti dal protocollo)
+         sessionInfo.setSoftwareVersionFields("35 00 00 1E 02 03 00 00 01 03 01");
+         return sessionInfo;
       }
 
+      // Sequenza di handshake da eseguire all'avvio della sessione
+      @Override
       protected Queue<HandshakeHandler<?>> buildHandshakeHandlers() {
-         Queue<HandshakeHandler<?>> var1 = new ArrayDeque<HandshakeHandler<?>>(3);
-         var1.add(new OpenSessionHandler());
-         var1.add(new RequestAccessHandler());
-         var1.add(new SoftwareVersionHandler());
-         return var1;
+         Queue<HandshakeHandler<?>> handshakeHandlers = new ArrayDeque<>(3);
+         handshakeHandlers.add(new OpenSessionHandler());
+         handshakeHandlers.add(new RequestAccessHandler());
+         handshakeHandlers.add(new SoftwareVersionHandler());
+         return handshakeHandlers;
       }
 
-      protected int writerIdleTimeSeconds() {
+      // Timeout scrittura (idle) per il canale
+      @Override
+      protected int getWriterIdleTimeSeconds() {
          return 5;
       }
 
+      // Factory per la generazione dei poll (keepalive)
+      @Override
       protected PollHandler.PollFactory pollFactory() {
          return new PollHandler.PollFactory() {
-            public DscCommand createPoll() {
-               UserActivity var1 = new UserActivity();
-               var1.setPartitionNumber((Integer)null);
-               var1.setType(4);
-               return var1;
-            }
+               @Override
+               public DscCommand createPoll() {
+                  UserActivity userActivity = new UserActivity();
+                  userActivity.setPartitionNumber(null); // Nessuna partizione specifica
+                  userActivity.setType(4); // Tipo 4: keepalive/user activity
+                  return userActivity;
+               }
          };
       }
 
-      protected void inizialized(DscEndpoint var1, SocketChannel var2) {
-         this.callback.connected(var1);
+      // Callback chiamata quando il canale è pronto e autenticato
+      @Override
+      protected void onInitialized(DscEndpoint endpoint, SocketChannel channel) {
+         this.callback.connected(endpoint);
       }
    }
 }

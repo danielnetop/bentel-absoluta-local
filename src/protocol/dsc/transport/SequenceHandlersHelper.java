@@ -6,34 +6,39 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 
 class SequenceHandlersHelper {
+    // Chiave per associare i contatori al canale Netty
    private static final AttributeKey<SequenceHandlersHelper.Counters> COUNTERS_KEY = AttributeKey.valueOf("SequenceHandlersHelper.counters");
 
-   static int next(int var0) {
-      return var0 < 255 ? var0 + 1 : 1;
+   // Calcola il prossimo numero di sequenza (1..255, ricicla su 1)
+   static int next(int n) {
+      return n < 255 ? n + 1 : 1;
    }
 
-   static boolean isLowACK(ByteBuf var0) {
-      return !var0.isReadable();
+   // Riconosce un ACK basso: buffer vuoto
+   static boolean isLowACK(ByteBuf buf) {
+      return !buf.isReadable();
    }
 
-   static SequenceHandlersHelper.Counters getCounters(ChannelHandlerContext var0) {
-      Attribute<SequenceHandlersHelper.Counters> var1 = var0.channel().attr(COUNTERS_KEY);
-      SequenceHandlersHelper.Counters var2 = (SequenceHandlersHelper.Counters)var1.get();
+   // Recupera o crea i contatori associati al canale
+   static SequenceHandlersHelper.Counters getCounters(ChannelHandlerContext ctx) {
+      Attribute<SequenceHandlersHelper.Counters> attr = ctx.channel().attr(COUNTERS_KEY);
+      SequenceHandlersHelper.Counters counters = attr.get();
 
-      assert var2 == null || var2.thread == Thread.currentThread();
+      // Garantisce che i contatori siano usati solo dal thread che li ha creati
+      assert counters == null || counters.thread == Thread.currentThread();
 
-      if (var2 == null) {
-         var2 = new SequenceHandlersHelper.Counters();
-         var1.set(var2);
+      if (counters == null) {
+         counters = new SequenceHandlersHelper.Counters();
+         attr.set(counters);
       }
 
-      return var2;
+      return counters;
    }
 
-   private SequenceHandlersHelper() {
-   }
+   private SequenceHandlersHelper() {}
 
    static class Counters {
+      // Thread che ha creato l'istanza (per sicurezza)
       private final Thread thread;
       private boolean firstMessage;
       private int prevSequenceNumber;
@@ -50,60 +55,52 @@ class SequenceHandlersHelper {
          this.lastReceivedACK = -1;
       }
 
-      int prevSequenceNumber() {
-         return this.prevSequenceNumber;
-      }
+      int prevSequenceNumber() { return this.prevSequenceNumber; }
+      int sequenceNumber() { return this.sequenceNumber; }
+      int remoteSequenceNumber() { return this.remoteSequenceNumber; }
 
-      int sequenceNumber() {
-         return this.sequenceNumber;
-      }
-
-      int remoteSequenceNumber() {
-         return this.remoteSequenceNumber;
-      }
-
-      void setNextSequenceNumber(boolean var1) {
-         if (!var1 && !this.firstMessage) {
-            this.prevSequenceNumber = this.sequenceNumber;
-            this.sequenceNumber = SequenceHandlersHelper.next(this.sequenceNumber);
+      // Aggiorna il numero di sequenza locale se non è un ACK basso e non è il primo messaggio
+      void setNextSequenceNumber(boolean isLowAck) {
+         if (!isLowAck && !this.firstMessage) {
+               this.prevSequenceNumber = this.sequenceNumber;
+               this.sequenceNumber = SequenceHandlersHelper.next(this.sequenceNumber);
          }
-
          this.firstMessage = false;
       }
 
-      void messageReceived(boolean var1, int var2, int var3) {
-         if (!var1) {
-            this.remoteSequenceNumber = var2;
+      // Aggiorna i contatori dopo la ricezione di un messaggio
+      void messageReceived(boolean isLowAck, int remoteSeq, int localSeq) {
+         if (!isLowAck) {
+               this.remoteSequenceNumber = remoteSeq;
          }
-
-         this.lastReceivedACK = var3;
+         this.lastReceivedACK = localSeq;
          this.firstMessage = false;
       }
 
-      void setSentRemoteSequenceNumber(int var1) {
-         this.lastSentACK = var1;
+      // Memorizza l'ultimo ACK remoto inviato
+      void setSentRemoteSequenceNumber(int remoteSeq) {
+         this.lastSentACK = remoteSeq;
       }
 
+      // Pronto per nuovo comando se ACK ricevuto o primo messaggio
       boolean isReadyForANewCommand() {
          return this.sequenceNumber == this.lastReceivedACK || this.firstMessage;
       }
 
+      // Serve inviare un ACK se il remoteSeq è cambiato e non è il primo messaggio
       boolean isOutgoingACKRequired() {
          return this.remoteSequenceNumber != this.lastSentACK && !this.firstMessage;
       }
 
-      boolean isFirstMessage() {
-         return this.firstMessage;
-      }
+      boolean isFirstMessage() { return this.firstMessage; }
 
+      // Incrementa e ritorna il contatore di sequenza applicativo
       int nextAppSeq() {
          this.appSeq = SequenceHandlersHelper.next(this.appSeq);
          return this.appSeq;
       }
 
-      // $FF: synthetic method
-      Counters(Object var1) {
-         this();
-      }
+      // Costruttore sintetico (non usato direttamente)
+      Counters(Object unused) { this(); }
    }
 }
