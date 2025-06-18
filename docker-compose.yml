@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   bentel-absoluta:
-    image: "bentel-absoluta:latest"
+    image: "axtx2301/bentel-absoluta-local-bridge:latest"
     environment:
       MQTT_ADDRESS: "<MQTT_ADDRESS>"
       MQTT_PORT: "<MQTT_PORT>"
