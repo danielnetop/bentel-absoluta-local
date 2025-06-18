@@ -23,7 +23,7 @@ public class EndSessionHandler extends ChannelDuplexHandler {
 
    public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
       if (var2 instanceof EndSession) {
-         System.out.println("DEBUG: end session request received");
+         System.out.println("DEBUG: Mobile App or Boss have requested an end session, request received");
          var1.fireUserEventTriggered(SimpleMessage.CLOSING_CHANNEL_EVENT);
          var1.write(LowACK.getInstance()).addListener(ChannelFutureListener.CLOSE);
       } else {

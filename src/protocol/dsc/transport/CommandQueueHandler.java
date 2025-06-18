@@ -39,7 +39,9 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
          Priority var5 = var2[var4];
          Queue<CommandQueueHandler.WaitingMsg> var6 = this.queues.get(var5);
          if (!var6.isEmpty()) {
-            System.out.println("WARN: removing " + var6.size() + " enqueued commands with priority " + var5);
+            if (VERBOSE_DEBUG) {
+               System.out.println("WARN: removing " + var6.size() + " enqueued commands with priority " + var5);
+            }
             CancellationException var7 = new CancellationException("channel inactivated before sending");
             for (CommandQueueHandler.WaitingMsg var9 : var6) {
                var9.promise.setFailure(var7);

@@ -12,6 +12,7 @@ import java.util.List;
 
 @Sharable
 public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
+   private static final boolean VERBOSE_DEBUG = false;
 
    @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws WrongSequenceNumberException, CorruptedFrameException {
@@ -34,7 +35,9 @@ public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
                   }
                } else {
                   if (var4 == var7.remoteSequenceNumber()) {
-                     System.out.println("WARN: repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
+                     if (VERBOSE_DEBUG) {
+                        System.out.println("WARN: repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
+                     }
                      return;
                   }
 
