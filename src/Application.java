@@ -41,6 +41,11 @@ public class Application {
       String PORT = getConfigValue(props, "ALARM_PORT", "ALARM_PORT");
       String MQTT_CONNECT_ATTEMPTS_STR = getConfigValue(props, "MQTT_CONNECT_ATTEMPTS", "MQTT_CONNECT_ATTEMPTS");
       String HOME_ASSISTANT_DISCOVERY = getConfigValue(props, "HOME_ASSISTANT_DISCOVERY", "HOME_ASSISTANT_DISCOVERY");
+      String VERBOSE = getConfigValue(props, "VERBOSE", "VERBOSE");
+      boolean verboseBool = false;
+      if (VERBOSE != null) {
+         verboseBool = VERBOSE.equalsIgnoreCase("true");
+      }
 
       MemoryPersistence memPers = new MemoryPersistence();
 
@@ -91,7 +96,7 @@ public class Application {
             map.put("address", ADDRESS);
             PanelProvider provider = (new AbsolutaPlugin()).newPanel(map);
             Panel panel = new Panel(provider);
-            Callback callback = new Callback(mqttClient, panel, mqttOption, discoveryEnabled);
+            Callback callback = new Callback(mqttClient, panel, mqttOption, discoveryEnabled, verboseBool);
             mqttClient.setCallback(callback);
             mqttClient.connect(mqttOption);
             System.out.println("Connesso");
