@@ -8,55 +8,52 @@ final class Callbacks {
    static enum PanelCb implements PanelProvider.PanelCallback {
       DUMMY;
 
-      public void changePartitions(List<String> var1) {
-      }
+      @Override
+      public void changePartitions(List<String> partitionIds) { }
 
-      public void setPartitionsArming(Partition.Arming var1) {
-      }
+      @Override
+      public void setPartitionArming(String partitionId, Partition.Arming armingMode) { }
 
-      public void setPartitionArming(String var1, Partition.Arming var2) {
-      }
+      @Override
+      public void changeInputs(List<String> inputIds) { }
 
-      public void changeInputs(List<String> var1) {
-      }
+      @Override
+      public void tagInputIntoPartition(String inputId, List<String> partitionIds) { }
 
-      public void tagInputIntoPartition(String var1, List<String> var2) {
-      }
+      @Override
+      public void setArming(Panel.Arming armingMode) { }
 
-      public void setArming(Panel.Arming var1) {
-      }
+      @Override
+      public void setStatus(Panel.Status status) { }
 
-      public void setStatus(Panel.Status var1) {
-      }
+      @Override
+      public void setInputStatus(String inputId, Input.Status status) { }
 
-      public void setInputStatus(String var1, Input.Status var2) {
-      }
+      @Override
+      public void setPartitionStatus(String partitionId, Partition.Status status) { }
 
-      public void setPartitionStatus(String var1, Partition.Status var2) {
-      }
+      @Override
+      public void connectionLost() { }
 
-      public void connectionLost() {
-      }
+      @Override
+      public void setLabelArming(char presetMode, String label) { }
 
-      public void setLabelArming(char var1, String var2) {
-      }
+      @Override
+      public void alert(String message) { }
 
-      public void alert(String var1) {
-      }
+      @Override
+      public void setPartitionRemoteName(String partitionId, String remoteName) { }
 
-      public void setPartitionRemoteName(String var1, String var2) {
-      }
+      @Override
+      public void setInputRemoteName(String inputId, String remoteName) { }
 
-      public void setInputRemoteName(String var1, String var2) {
-      }
+      @Override
+      public void changeOutputs(List<String> outputIds) { }
 
-      public void changeOutputs(List<String> var1) {
-      }
+      @Override
+      public void setOutputRemoteName(String outputId, String remoteName) { }
 
-      public void setOutputRemoteName(String var1, String var2) {
-      }
-
-      public void setOutputStatus(String var1, Output.Status var2) {
-      }
+      @Override
+      public void setOutputStatus(String outputId, Output.Status status) { }
    }
 }
