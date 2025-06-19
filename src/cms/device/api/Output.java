@@ -12,7 +12,7 @@ public class Output {
    private final Consumer<Output.Action> controller;
    private final ChangeSupport changeSupport;
 
-   Output(DeviceOrPanel var1, String var2, Consumer<Output.Action> var3) {
+   Output(String var2, Consumer<Output.Action> var3) {
       this.type = Output.Type.BISTABLE;
       this.status = Output.Status.UNKNOWN;
       this.controller = Objects.requireNonNull(var3);
