@@ -4,13 +4,15 @@ import java.util.Objects;
 
 import org.openide.util.ChangeSupport;
 
+import plugin.absoluta.connection.PanelStatus;
+
 public class Input {
    private String remoteName;
-   private Input.Status status;
+   private PanelStatus.inputStatus status;
    private final ChangeSupport changeSupport;
 
    public Input(Panel var1) {
-      this.status = Input.Status.OK;
+      this.status = PanelStatus.inputStatus.OK;
       this.changeSupport = new ChangeSupport(this);
    }
 
@@ -26,11 +28,11 @@ public class Input {
       }
    }
 
-   public Input.Status getStatus() {
+   public PanelStatus.inputStatus getStatus() {
       return this.status;
    }
 
-   public void setStatus(Input.Status var1) {
+   public void setStatus(PanelStatus.inputStatus var1) {
       if (this.status != var1) {
          this.status = var1;
          this.changeSupport.fireChange();
@@ -39,14 +41,5 @@ public class Input {
 
    public void fireChange() {
       this.changeSupport.fireChange();
-   }
-
-   public static enum Status {
-      TAMPER,
-      FAULT,
-      ALARM,
-      ACTIVE,
-      BYPASSED,
-      OK;
    }
 }

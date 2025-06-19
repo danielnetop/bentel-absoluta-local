@@ -2,8 +2,6 @@ package plugin.absoluta.connection;
 
 import com.google.common.collect.ImmutableList;
 
-import cms.device.api.Output.Status;
-import cms.device.api.Partition.Arming;
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.MessageListener;
@@ -88,7 +86,7 @@ class StatusListener implements MessageListener {
       } else if (msg.isFor(Message.ABSOLUTA_COMMAND_OUTPUT_ACTIVATION)) {
          List<Integer> activeOutputs = (List<Integer>) msg.getValue(Message.ABSOLUTA_COMMAND_OUTPUT_ACTIVATION);
          for (Integer outputId : panelStatus.getOutputs()) {
-               Status outputStatus = activeOutputs.contains(outputId) ? Status.CLOSED : Status.OPEN;
+               PanelStatus.outputStatus outputStatus = activeOutputs.contains(outputId) ? PanelStatus.outputStatus.CLOSED : PanelStatus.outputStatus.OPEN;
                panelStatus.setOutputStatus(outputId, outputStatus);
          }
       } else if (msg.isFor(Message.ABSOLUTA_SYSTEM_LABEL)) {
@@ -124,37 +122,37 @@ class StatusListener implements MessageListener {
          return;
       }
 
-      Arming armingMode;
+      PanelStatus.partitionArming armingMode;
       if (!statusMask.get(PARTITION_ARMED)) {
-         armingMode = Arming.DISARMED;
+         armingMode = PanelStatus.partitionArming.DISARMED;
       } else if (statusMask.get(PARTITION_AWAY)) {
-         armingMode = Arming.AWAY;
+         armingMode = PanelStatus.partitionArming.AWAY;
       } else if (statusMask.get(PARTITION_STAY)) {
-         armingMode = Arming.STAY;
+         armingMode = PanelStatus.partitionArming.STAY;
       } else if (!statusMask.get(PARTITION_NODELAY) && !statusMask.get(PARTITION_NIGHT)) {
          logger.warning("Arming status ambiguous for partition " + partitionId);
-         armingMode = Arming.AWAY;
+         armingMode = PanelStatus.partitionArming.AWAY;
       } else {
-         armingMode = Arming.NODELAY;
+         armingMode = PanelStatus.partitionArming.NODELAY;
       }
 
       // Partition status detection
-      cms.device.api.Partition.Status partitionStatus;
+      PanelStatus.partitionStatus partitionStatus;
       if (statusMask.get(PARTITION_FIRE)) {
-         partitionStatus = cms.device.api.Partition.Status.FIRE;
+         partitionStatus = PanelStatus.partitionStatus.FIRE;
       } else if (statusMask.get(PARTITION_TROUBLES)) {
-         partitionStatus = cms.device.api.Partition.Status.FAULTS;
+         partitionStatus = PanelStatus.partitionStatus.FAULTS;
       } else if (!statusMask.get(PARTITION_ALARM) && !statusMask.get(PARTITION_ALARM_IN_MEMORY)) {
-         partitionStatus = cms.device.api.Partition.Status.OK;
+         partitionStatus = PanelStatus.partitionStatus.OK;
       } else {
-         partitionStatus = cms.device.api.Partition.Status.ALARMS;
+         partitionStatus = PanelStatus.partitionStatus.ALARMS;
       }
 
       panelStatus.setPartitionStatus(partitionId, partitionStatus);
 
       // If partition is in alarm, set TRIGGERED
-      if (partitionStatus == cms.device.api.Partition.Status.ALARMS) {
-         armingMode = Arming.TRIGGERED;
+      if (partitionStatus == PanelStatus.partitionStatus.ALARMS) {
+         armingMode = PanelStatus.partitionArming.TRIGGERED;
       }
 
       panelStatus.setPartitionArming(partitionId, armingMode);
@@ -165,12 +163,12 @@ class StatusListener implements MessageListener {
       boolean anyPartitionTriggered = false;
 
       for (Integer id : panelStatus.getPartitions()) {
-         Arming mode = panelStatus.getPartitionArming(id);
+         PanelStatus.partitionArming mode = panelStatus.getPartitionArming(id);
          if (mode == null) {
             missingData = true;
-         } else if (mode == Arming.TRIGGERED){
+         } else if (mode == PanelStatus.partitionArming.TRIGGERED){
             anyPartitionTriggered = true;
-         }else if (mode == Arming.DISARMED) {
+         }else if (mode == PanelStatus.partitionArming.DISARMED) {
             anyPartitionDisarmed = true;
          } else {
             anyPartitionArmed = true;
@@ -194,21 +192,21 @@ class StatusListener implements MessageListener {
    }
 
    private void updateZoneStatus(int zoneId, List<Boolean> statusMask) {
-      cms.device.api.Input.Status zoneStatus;
+      PanelStatus.inputStatus zoneStatus;
       if (statusMask.get(ZONE_BYPASSED)) {
-         zoneStatus = statusMask.get(ZONE_OPEN) ? cms.device.api.Input.Status.ACTIVE : cms.device.api.Input.Status.OK;
+         zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.inputStatus.ACTIVE : PanelStatus.inputStatus.OK;
       } else if (!statusMask.get(ZONE_TAMPER) && !statusMask.get(ZONE_DELINQUENCY)) {
          if (!statusMask.get(ZONE_FAULT) && !statusMask.get(ZONE_LOW_BATTERY)) {
                if (!statusMask.get(ZONE_ALARM) && !statusMask.get(ZONE_ALARM_IN_MEMORY)) {
-                  zoneStatus = statusMask.get(ZONE_OPEN) ? cms.device.api.Input.Status.ACTIVE : cms.device.api.Input.Status.OK;
+                  zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.inputStatus.ACTIVE : PanelStatus.inputStatus.OK;
                } else {
-                  zoneStatus = cms.device.api.Input.Status.ALARM;
+                  zoneStatus = PanelStatus.inputStatus.ALARM;
                }
          } else {
-               zoneStatus = cms.device.api.Input.Status.FAULT;
+               zoneStatus = PanelStatus.inputStatus.FAULT;
          }
       } else {
-         zoneStatus = cms.device.api.Input.Status.TAMPER;
+         zoneStatus = PanelStatus.inputStatus.TAMPER;
       }
 
       panelStatus.setZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));

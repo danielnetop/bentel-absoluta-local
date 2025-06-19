@@ -3,7 +3,6 @@ package plugin.absoluta.connection;
 import com.google.common.collect.ImmutableList;
 
 import cms.device.api.Panel.Arming;
-import cms.device.api.Partition.Status;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -28,31 +27,31 @@ public class PanelStatus {
    public static final String ARMING_MODE_LABEL = "ARMING_MODE_LABEL";
    public static final String TROUBLES = "TROUBLES";
    private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
-   private PanelStatus.ConnectionStatus connectionStatus;
+   private connStatus connectionStatus;
    private Arming globalArming;
    private String systemLabel;
    private ImmutableList<Integer> partitions;
    private ImmutableList<Integer> zones;
    private ImmutableList<Integer> outputs;
-   private final Map<Integer, cms.device.api.Partition.Arming> partitionArmings;
-   private final Map<Integer, Status> partitionStatuses;
+   private final Map<Integer, partitionArming> partitionArmings;
+   private final Map<Integer, partitionStatus> partitionStatuses;
    private final Map<Integer, String> partitionLabels;
-   private final Map<Integer, cms.device.api.Input.Status> zoneStatuses;
+   private final Map<Integer, inputStatus> zoneStatuses;
    private final Map<Integer, Boolean> zoneBypass;
    private final Map<Integer, String> zoneLabels;
-   private final Map<Integer, cms.device.api.Output.Status> outputStatuses;
+   private final Map<Integer, outputStatus> outputStatuses;
    private final Map<Integer, String> outputLabels;
    private final Map<Integer, String> armingModeLabels;
 
    public PanelStatus() {
-      this.connectionStatus = PanelStatus.ConnectionStatus.DISCONNECTED;
-      this.partitionArmings = new HashMap<Integer, cms.device.api.Partition.Arming>();
-      this.partitionStatuses = new HashMap<Integer, Status>();
+      this.connectionStatus = connStatus.DISCONNECTED;
+      this.partitionArmings = new HashMap<Integer, partitionArming>();
+      this.partitionStatuses = new HashMap<Integer, partitionStatus>();
       this.partitionLabels = new HashMap<Integer, String>();
-      this.zoneStatuses = new HashMap<Integer, cms.device.api.Input.Status>();
+      this.zoneStatuses = new HashMap<Integer, inputStatus>();
       this.zoneBypass = new HashMap<Integer, Boolean>();
       this.zoneLabels = new HashMap<Integer, String>();
-      this.outputStatuses = new HashMap<Integer, cms.device.api.Output.Status>();
+      this.outputStatuses = new HashMap<Integer, outputStatus>();
       this.outputLabels = new HashMap<Integer, String>();
       this.armingModeLabels = new HashMap<Integer, String>();
    }
@@ -65,8 +64,8 @@ public class PanelStatus {
       this.changeSupport.removePropertyChangeListener(var1);
    }
 
-   void setConnectionStatus(PanelStatus.ConnectionStatus newConnectionStatus) {
-      PanelStatus.ConnectionStatus oldConnectionStatus;
+   void setConnectionStatus(connStatus newConnectionStatus) {
+      connStatus oldConnectionStatus;
       synchronized(this) {
          oldConnectionStatus = this.connectionStatus;
          this.connectionStatus = newConnectionStatus;
@@ -74,7 +73,7 @@ public class PanelStatus {
       this.changeSupport.firePropertyChange("CONNECTION_STATUS", oldConnectionStatus, newConnectionStatus);
    }
 
-   public synchronized PanelStatus.ConnectionStatus getConnectionStatus() {
+   public synchronized connStatus getConnectionStatus() {
       return this.connectionStatus;
    }
 
@@ -128,30 +127,30 @@ public class PanelStatus {
       return this.outputs;
    }
 
-   void setPartitionArming(int partitionID, cms.device.api.Partition.Arming newMode) {
+   void setPartitionArming(int partitionID, partitionArming newMode) {
       if (this.partitions.contains(partitionID)) {
-         cms.device.api.Partition.Arming oldMode = (cms.device.api.Partition.Arming)this.partitionArmings.get(partitionID);
+         partitionArming oldMode = this.partitionArmings.get(partitionID);
          this.partitionArmings.put(partitionID, newMode);
          this.changeSupport.fireIndexedPropertyChange("PARTITION_ARMING", partitionID, oldMode, newMode);
       }
 
    }
 
-   public cms.device.api.Partition.Arming getPartitionArming(int mode) {
-      return (cms.device.api.Partition.Arming)this.partitionArmings.get(mode);
+   public partitionArming getPartitionArming(int mode) {
+      return this.partitionArmings.get(mode);
    }
 
-   void setPartitionStatus(int partitionID, Status newStatus) {
+   void setPartitionStatus(int partitionID, partitionStatus newStatus) {
       if (this.partitions.contains(partitionID)) {
-         Status oldStatus = (Status)this.partitionStatuses.get(partitionID);
+         partitionStatus oldStatus = this.partitionStatuses.get(partitionID);
          this.partitionStatuses.put(partitionID, newStatus);
          this.changeSupport.fireIndexedPropertyChange("PARTITION_STATUS", partitionID, oldStatus, newStatus);
       }
 
    }
 
-   public Status getPartitionStatus(int partitionID) {
-      return (Status)this.partitionStatuses.get(partitionID);
+   public partitionStatus getPartitionStatus(int partitionID) {
+      return this.partitionStatuses.get(partitionID);
    }
 
    void setPartitionLabel(int partitionID, String newLabel) {
@@ -164,20 +163,20 @@ public class PanelStatus {
    }
 
    public String getPartitionLabel(int partitionID) {
-      return (String)this.partitionLabels.get(partitionID);
+      return this.partitionLabels.get(partitionID);
    }
 
-   void setZoneStatus(int zoneID, cms.device.api.Input.Status newStatus) {
+   void setZoneStatus(int zoneID, inputStatus newStatus) {
       if (this.zones.contains(zoneID)) {
-         cms.device.api.Input.Status oldStatus = (cms.device.api.Input.Status)this.zoneStatuses.get(zoneID);
+         inputStatus oldStatus = (inputStatus)this.zoneStatuses.get(zoneID);
          this.zoneStatuses.put(zoneID, newStatus);
          this.changeSupport.fireIndexedPropertyChange("ZONE_STATUS", zoneID, oldStatus, newStatus);
       }
 
    }
 
-   public cms.device.api.Input.Status getZoneStatus(int zoneID) {
-      return (cms.device.api.Input.Status)this.zoneStatuses.get(zoneID);
+   public inputStatus getZoneStatus(int zoneID) {
+      return this.zoneStatuses.get(zoneID);
    }
 
    void setZoneBypass(int zoneID, Boolean newSet) {
@@ -190,7 +189,7 @@ public class PanelStatus {
    }
 
    public Boolean getZoneBypass(int zoneID) {
-      return (Boolean)this.zoneBypass.get(zoneID);
+      return this.zoneBypass.get(zoneID);
    }
 
    void setZoneLabel(int zoneID, String newLabel) {
@@ -203,20 +202,20 @@ public class PanelStatus {
    }
 
    public String getZoneLabel(int zoneID) {
-      return (String)this.zoneLabels.get(zoneID);
+      return this.zoneLabels.get(zoneID);
    }
 
-   void setOutputStatus(int outputID, cms.device.api.Output.Status newStatus) {
+   void setOutputStatus(int outputID, outputStatus newStatus) {
       if (this.outputs.contains(outputID)) {
-         cms.device.api.Output.Status oldStatus = (cms.device.api.Output.Status)this.outputStatuses.get(outputID);
+         outputStatus oldStatus = (outputStatus)this.outputStatuses.get(outputID);
          this.outputStatuses.put(outputID, newStatus);
          this.changeSupport.fireIndexedPropertyChange("OUTPUT_STATUS", outputID, oldStatus, newStatus);
       }
 
    }
 
-   public cms.device.api.Output.Status getOutputStatus(int outputID) {
-      return (cms.device.api.Output.Status)this.outputStatuses.get(outputID);
+   public outputStatus getOutputStatus(int outputID) {
+      return this.outputStatuses.get(outputID);
    }
 
    void setOutputLabel(int outputID, String newLabel) {
@@ -229,7 +228,7 @@ public class PanelStatus {
    }
 
    public String getOutputLabel(int outputID) {
-      return (String)this.outputLabels.get(outputID);
+      return this.outputLabels.get(outputID);
    }
 
    void setArmingModeLabel(int modeID, String newLabel) {
@@ -239,12 +238,51 @@ public class PanelStatus {
    }
 
    public String getArmingModeLabel(int modeID) {
-      return (String)this.armingModeLabels.get(modeID);
+      return this.armingModeLabels.get(modeID);
    }
 
-   public static enum ConnectionStatus {
+   public static enum connStatus {
       CONNECTED,
       DISCONNECTING,
       DISCONNECTED;
+   }
+
+   public static enum inputStatus {
+      TAMPER,
+      FAULT,
+      ALARM,
+      ACTIVE,
+      BYPASSED,
+      OK;
+   }
+
+   public static enum outputStatus {
+      UNKNOWN,
+      OPEN,
+      CLOSED;
+   }
+
+   public enum partitionArming {
+      DISARMED,
+      AWAY,
+      STAY,
+      NODELAY,
+      TRIGGERED,
+      NOT_AVAILABLE
+   }
+
+   public enum partitionStatus {
+      FIRE,
+      TAMPER,
+      FAULTS,
+      ALARMS,
+      ACTIVE,
+      OK
+   }
+
+   public static enum outputAction {
+      DO_IMPULSE,
+      DO_OPEN,
+      DO_CLOSE;
    }
 }

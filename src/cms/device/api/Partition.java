@@ -5,16 +5,18 @@ import java.util.Collections;
 import java.util.List;
 import org.openide.util.ChangeSupport;
 
+import plugin.absoluta.connection.PanelStatus;
+
 public class Partition {
    private String remoteName;
-   private Arming arming;
-   private Status status;
+   private PanelStatus.partitionArming arming;
+   private PanelStatus.partitionStatus status;
    private final List<String> inputIds;
    private final ChangeSupport changeSupport;
 
    public Partition(Panel panel) {
-      this.arming = Arming.NOT_AVAILABLE;
-      this.status = Status.OK;
+      this.arming = PanelStatus.partitionArming.NOT_AVAILABLE;
+      this.status = PanelStatus.partitionStatus.OK;
       this.inputIds = new ArrayList<>();
       this.changeSupport = new ChangeSupport(this);
    }
@@ -28,20 +30,20 @@ public class Partition {
       fireChange();
    }
 
-   public Arming getArming() {
+   public PanelStatus.partitionArming getArming() {
       return arming;
    }
 
-   void setArming(Arming arming) {
+   void setArming(PanelStatus.partitionArming arming) {
       this.arming = arming;
       fireChange();
    }
 
-   public Status getStatus() {
+   public PanelStatus.partitionStatus getStatus() {
       return status;
    }
 
-   void setStatus(Status status) {
+   void setStatus(PanelStatus.partitionStatus status) {
       this.status = status;
       fireChange();
    }
@@ -64,23 +66,5 @@ public class Partition {
 
    public List<String> getInputs() {
       return Collections.unmodifiableList(inputIds);
-   }
-
-   public enum Arming {
-      DISARMED,
-      AWAY,
-      STAY,
-      NODELAY,
-      TRIGGERED,
-      NOT_AVAILABLE
-   }
-
-   public enum Status {
-      FIRE,
-      TAMPER,
-      FAULTS,
-      ALARMS,
-      ACTIVE,
-      OK
    }
 }

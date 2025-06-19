@@ -3,6 +3,7 @@ package cms.device.api;
 import java.util.List;
 
 import cms.device.spi.PanelProvider;
+import plugin.absoluta.connection.PanelStatus;
 
 final class Callbacks {
    static enum PanelCb implements PanelProvider.PanelCallback {
@@ -12,7 +13,7 @@ final class Callbacks {
       public void changePartitions(List<String> partitionIds) { }
 
       @Override
-      public void setPartitionArming(String partitionId, Partition.Arming armingMode) { }
+      public void setPartitionArming(String partitionId, PanelStatus.partitionArming armingMode) { }
 
       @Override
       public void changeInputs(List<String> inputIds) { }
@@ -27,10 +28,10 @@ final class Callbacks {
       public void setStatus(Panel.Status status) { }
 
       @Override
-      public void setInputStatus(String inputId, Input.Status status) { }
+      public void setInputStatus(String inputId, PanelStatus.inputStatus status) { }
 
       @Override
-      public void setPartitionStatus(String partitionId, Partition.Status status) { }
+      public void setPartitionStatus(String partitionId, PanelStatus.partitionStatus status) { }
 
       @Override
       public void connectionLost() { }
@@ -54,6 +55,6 @@ final class Callbacks {
       public void setOutputRemoteName(String outputId, String remoteName) { }
 
       @Override
-      public void setOutputStatus(String outputId, Output.Status status) { }
+      public void setOutputStatus(String outputId, PanelStatus.outputStatus status) { }
    }
 }

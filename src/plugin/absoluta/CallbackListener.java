@@ -63,7 +63,7 @@ class CallbackListener implements PropertyChangeListener {
             String propertyName = property.getPropertyName();
             switch(propertyName) {
                case "CONNECTION_STATUS":
-                  if (PanelStatus.ConnectionStatus.CONNECTED == property.getOldValue() && PanelStatus.ConnectionStatus.DISCONNECTED == property.getNewValue()) {
+                  if (PanelStatus.connStatus.CONNECTED == property.getOldValue() && PanelStatus.connStatus.DISCONNECTED == property.getNewValue()) {
                      this.callback.connectionLost();
                   }
                   break;

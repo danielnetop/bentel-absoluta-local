@@ -8,14 +8,11 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import cms.device.api.Input;
-import cms.device.api.Output;
 import cms.device.api.Panel;
-import cms.device.api.Partition;
-import cms.device.api.Input.Status;
 import cms.device.api.Panel.Arming;
 import cms.device.api.Panel.ConnStatus;
 import cms.device.spi.PanelProvider;
+import plugin.absoluta.connection.PanelStatus;
 
 import java.util.logging.Logger;
 
@@ -195,13 +192,13 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Sensor Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt]);
    }
 
-   public void setInputStatus(String sensorID, Input.Status sensorStatus) {
+   public void setInputStatus(String sensorID, PanelStatus.inputStatus sensorStatus) {
       int sensorIDInt = Integer.parseInt(sensorID);
       if (sensorIDInt < 0 || sensorIDInt >= sensorStatuses.length) {
          logger.warning("Indice sensore fuori dai limiti: " + sensorIDInt);
          return;
       }
-      if (sensorStatus != Status.ACTIVE && sensorStatus != Status.ALARM) {
+      if (sensorStatus != PanelStatus.inputStatus.ACTIVE && sensorStatus != PanelStatus.inputStatus.ALARM) {
          this.sensorStatuses[sensorIDInt] = "Off";
       } else {
          this.sensorStatuses[sensorIDInt] = "On";
@@ -217,8 +214,12 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    public void sendMessageOnsetInputStatus(int sensorID) {
-      if (sensorID < 0 || sensorID >= sensorNames.length || this.sensorNames[sensorID] == null) {
-         logger.warning("Indice sensore fuori dai limiti o nome nullo: " + sensorID);
+      if (sensorID < 0 || sensorID >= sensorNames.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + sensorID);
+         return;
+      }
+      if (this.sensorNames[sensorID] == null) {
+         logger.fine("Nome sensore nullo: " + sensorID + ", non invio stato.");
          return;
       }
       String str = "";
@@ -282,24 +283,24 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    public void setOutputRemoteName(String var1, String var2) {
    }
 
-   public void setOutputStatus(String var1, Output.Status var2) {
+   public void setOutputStatus(String var1, PanelStatus.outputStatus var2) {
    }
 
-   public void setPartitionArming(String partitionID, Partition.Arming actArming) {
+   public void setPartitionArming(String partitionID, PanelStatus.partitionArming actArming) {
       int partitionIDInt = Integer.parseInt(partitionID);
       if (partitionIDInt < 0 || partitionIDInt >= partitionArmStatuses.length) {
          logger.warning("Indice partizione fuori dai limiti: " + partitionIDInt);
          return;
       }
-      if (actArming == cms.device.api.Partition.Arming.DISARMED) {
+      if (actArming == PanelStatus.partitionArming.DISARMED) {
          this.partitionArmStatuses[partitionIDInt] = "disarmed";
-      } else if (actArming == cms.device.api.Partition.Arming.AWAY) {
+      } else if (actArming == PanelStatus.partitionArming.AWAY) {
          this.partitionArmStatuses[partitionIDInt] = "armed_away";
-      } else if (actArming == cms.device.api.Partition.Arming.STAY) {
+      } else if (actArming == PanelStatus.partitionArming.STAY) {
          this.partitionArmStatuses[partitionIDInt] = "armed_home";
-      } else if (actArming == cms.device.api.Partition.Arming.NODELAY) {
+      } else if (actArming == PanelStatus.partitionArming.NODELAY) {
          this.partitionArmStatuses[partitionIDInt] = "armed_night";
-      } else if (actArming == cms.device.api.Partition.Arming.TRIGGERED) {
+      } else if (actArming == PanelStatus.partitionArming.TRIGGERED) {
          this.partitionArmStatuses[partitionIDInt] = "triggered";
       }
 
@@ -360,7 +361,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
 
-   public void setPartitionStatus(String partitionID, Partition.Status actStatus) {
+   public void setPartitionStatus(String partitionID, PanelStatus.partitionStatus actStatus) {
       int partitionIDInt = Integer.parseInt(partitionID);
       if (partitionIDInt < 0 || partitionIDInt >= partitionStatuses.length) {
          logger.warning("Indice partizione fuori dai limiti: " + partitionIDInt);
@@ -452,16 +453,16 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.DISARMED);
+            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.DISARMED);
             return;
          case "ARM_HOME":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.STAY);
+            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.STAY);
             return;
          case "ARM_AWAY":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.AWAY);
+            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.AWAY);
             return;
          case "ARM_NIGHT":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), cms.device.api.Partition.Arming.NODELAY);
+            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.NODELAY);
             return;
          default:
             logger.warning("Comando " + msg.toString() + " non valido");

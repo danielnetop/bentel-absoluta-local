@@ -3,10 +3,8 @@ package cms.device.spi;
 import java.util.List;
 import java.util.Map;
 
-import cms.device.api.Input;
-import cms.device.api.Output;
 import cms.device.api.Panel;
-import cms.device.api.Partition;
+import plugin.absoluta.connection.PanelStatus;
 
 public interface PanelProvider {
    void initialize(PanelProvider.PanelCallback callback);
@@ -17,13 +15,13 @@ public interface PanelProvider {
 
    void arming(Panel.Arming armingMode);
 
-   void partitionArming(String partitionId, Partition.Arming armingMode);
+   void partitionArming(String partitionId, PanelStatus.partitionArming armingMode);
 
    void setBypassed(String zoneID, boolean setBypassed);
 
    boolean getBypassed(String zoneID);
 
-   void doOutputAction(String outputId, Output.Action action);
+   void doOutputAction(String outputId, PanelStatus.outputAction action);
 
    boolean armingSupport(char presetMode);
 
@@ -42,15 +40,15 @@ public interface PanelProvider {
 
       void setPartitionRemoteName(String partitionId, String remoteName);
 
-      void setPartitionArming(String partitionId, Partition.Arming armingMode);
+      void setPartitionArming(String partitionId, PanelStatus.partitionArming armingMode);
 
-      void setPartitionStatus(String partitionId, Partition.Status status);
+      void setPartitionStatus(String partitionId, PanelStatus.partitionStatus status);
 
       void changeInputs(List<String> inputIds);
 
       void setInputRemoteName(String inputId, String remoteName);
 
-      void setInputStatus(String inputId, Input.Status status);
+      void setInputStatus(String inputId, PanelStatus.inputStatus status);
 
       void tagInputIntoPartition(String inputId, List<String> partitionIds);
 
@@ -58,7 +56,7 @@ public interface PanelProvider {
 
       void setOutputRemoteName(String outputId, String remoteName);
 
-      void setOutputStatus(String outputId, Output.Status status);
+      void setOutputStatus(String outputId, PanelStatus.outputStatus status);
 
       void setLabelArming(char presetMode, String label);
    }

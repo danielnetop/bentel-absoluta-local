@@ -5,6 +5,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import cms.device.spi.PanelProvider;
+import plugin.absoluta.connection.PanelStatus;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -135,7 +136,7 @@ public final class Panel {
       return this.partitions;
    }
 
-   public void partitionArming(String partitionId, Partition.Arming armingMode) {
+   public void partitionArming(String partitionId, PanelStatus.partitionArming armingMode) {
       this.provider.partitionArming(partitionId, armingMode);
    }
 
@@ -168,7 +169,7 @@ public final class Panel {
       return this.provider.getBypassed(zoneId);
    }
 
-   private void doOutputAction(String outputId, Output.Action action) {
+   private void doOutputAction(String outputId, PanelStatus.outputAction action) {
       this.provider.doOutputAction(outputId, action);
    }
 
@@ -246,11 +247,11 @@ public final class Panel {
          Panel.this.getPartitions().get(partitionId).setRemoteName(remoteName);
       }
 
-      public void setPartitionArming(String partitionId, Partition.Arming arming) {
+      public void setPartitionArming(String partitionId, PanelStatus.partitionArming arming) {
          Panel.this.getPartitions().get(partitionId).setArming(arming);
       }
 
-      public void setPartitionStatus(String partitionId, Partition.Status status) {
+      public void setPartitionStatus(String partitionId, PanelStatus.partitionStatus status) {
          Panel.this.getPartitions().get(partitionId).setStatus(status);
       }
 
@@ -262,7 +263,7 @@ public final class Panel {
          Panel.this.getInputs().get(inputId).setRemoteName(remoteName);
       }
 
-      public void setInputStatus(String inputId, Input.Status status) {
+      public void setInputStatus(String inputId, PanelStatus.inputStatus status) {
          Panel.this.getInputs().get(inputId).setStatus(status);
       }
 
@@ -278,7 +279,7 @@ public final class Panel {
          Panel.this.getOutputs().get(outputId).setRemoteName(remoteName);
       }
 
-      public void setOutputStatus(String outputId, Output.Status status) {
+      public void setOutputStatus(String outputId, PanelStatus.outputStatus status) {
          Panel.this.getOutputs().get(outputId).setStatus(status);
       }
 

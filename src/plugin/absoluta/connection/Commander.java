@@ -41,7 +41,7 @@ public class Commander {
 
    }
 
-   public void partitionArming(String partitionID, cms.device.api.Partition.Arming newArmingStatus) {
+   public void partitionArming(String partitionID, PanelStatus.partitionArming newArmingStatus) {
       logger.fine("Setting partition " + partitionID + " arming to: " + newArmingStatus);
       Integer partitionIDInteger = Integer.valueOf(partitionID);
       switch(newArmingStatus) {

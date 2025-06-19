@@ -3,7 +3,6 @@ package plugin.absoluta;
 import com.google.common.collect.ImmutableMap;
 
 import cms.device.api.Panel;
-import cms.device.api.Output.Action;
 import cms.device.api.Panel.Arming;
 import cms.device.spi.PanelProvider;
 import plugin.absoluta.connection.ConnectionHandler;
@@ -78,7 +77,7 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public void partitionArming(String partitionId, cms.device.api.Partition.Arming armingMode) {
+   public void partitionArming(String partitionId, PanelStatus.partitionArming armingMode) {
       this.connectionHandler.getCommander().partitionArming(partitionId, armingMode);
    }
 
@@ -104,7 +103,7 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public void doOutputAction(String outputId, Action action) {
+   public void doOutputAction(String outputId, PanelStatus.outputAction action) {
       switch (action) {
          case DO_CLOSE:
                this.connectionHandler.getCommander().setOutput(outputId, true);
