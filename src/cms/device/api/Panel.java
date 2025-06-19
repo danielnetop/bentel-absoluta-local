@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 
 import cms.device.spi.PanelProvider;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,7 @@ import java.util.logging.Logger;
 
 import org.openide.util.ChangeSupport;
 
-public final class Panel implements DeviceOrPanel {
+public final class Panel {
    private static final Logger logger = Logger.getLogger(Panel.class.getName());
    private boolean connected;
    private Arming arming;
@@ -24,7 +25,7 @@ public final class Panel implements DeviceOrPanel {
    private final Map<Character, String> labelArming;
    private final Map<String, Partition> partitions;
    private final Map<String, Input> inputs;
-   final OutputSupport outputSupport;
+   private Map<String, Output> outputs = new LinkedHashMap<>();
 
    public Panel(PanelProvider provider) {
       this.arming = Arming.NOT_AVAILABLE;
@@ -35,7 +36,6 @@ public final class Panel implements DeviceOrPanel {
       this.labelArming = new LinkedHashMap<>();
       this.partitions = new LinkedHashMap<>();
       this.inputs = new LinkedHashMap<>();
-      this.outputSupport = new OutputSupport(this, this::doOutputAction);
       this.provider = provider;
       provider.initialize(new Callback());
    }
@@ -188,8 +188,22 @@ public final class Panel implements DeviceOrPanel {
       this.labelArming.put(mode, label);
    }
 
-   public Map<String, Output> getOutputs() {
-      return this.outputSupport.getOutputs();
+   void changeOutputs(List<String> ids) {
+      Map<String, Output> updated = new LinkedHashMap<>(ids.size());
+      for (String id : ids) {
+         if (outputs.containsKey(id)) {
+            updated.put(id, outputs.get(id));
+         } else {
+            Output output = new Output(id, action -> doOutputAction(id, action));
+            updated.put(id, output);
+         }
+      }
+      outputs = Collections.unmodifiableMap(updated);
+      fireChange();
+   }
+
+   Map<String, Output> getOutputs() {
+      return outputs;
    }
 
    public enum Arming {
@@ -257,7 +271,7 @@ public final class Panel implements DeviceOrPanel {
       }
 
       public void changeOutputs(List<String> outputIds) {
-         Panel.this.outputSupport.changeOutputs(outputIds);
+         Panel.this.changeOutputs(outputIds);
       }
 
       public void setOutputRemoteName(String outputId, String remoteName) {
