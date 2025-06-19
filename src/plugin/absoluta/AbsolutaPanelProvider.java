@@ -1,4 +1,3 @@
-
 package plugin.absoluta;
 
 import com.google.common.collect.ImmutableMap;
@@ -12,9 +11,10 @@ import plugin.absoluta.connection.ConnectionThread;
 import plugin.absoluta.connection.PanelStatus;
 
 import java.util.Map;
-import org.openide.util.Exceptions;
+import java.util.logging.Logger;
 
 public class AbsolutaPanelProvider implements PanelProvider {
+   private static final Logger logger = Logger.getLogger(AbsolutaPanelProvider.class.getName());
    private final String address;
    private final int port;
    private final String pin;
@@ -22,13 +22,14 @@ public class AbsolutaPanelProvider implements PanelProvider {
    private PanelCallback callback;
    private ConnectionHandler connectionHandler;
 
-   public AbsolutaPanelProvider(Map<String, String> var1) {
-      this.address = (String)var1.get("address");
-      this.port = Integer.parseInt(var1.getOrDefault("port", "3064"));
-      this.pin = (String)var1.get("pin");
+   public AbsolutaPanelProvider(Map<String, String> settings) {
+      this.address = settings.get("address");
+      this.port = Integer.parseInt(settings.getOrDefault("port", "3064"));
+      this.pin = settings.get("pin");
       this.panelStatus = new PanelStatus();
    }
 
+   @Override
    public Map<String, String> getSettings() {
       return ImmutableMap.<String, String>builder()
          .put("address", this.address)
@@ -37,71 +38,87 @@ public class AbsolutaPanelProvider implements PanelProvider {
          .build();
    }
 
-   public void initialize(PanelCallback var1) {
-      this.callback = var1;
-      this.panelStatus.addPropertyChangeListener(new CallbackListener(var1, this.panelStatus));
+   @Override
+   public void initialize(PanelCallback callback) {
+      this.callback = callback;
+      // Listener per notificare i cambiamenti di stato al callback
+      this.panelStatus.addPropertyChangeListener(new CallbackListener(callback, this.panelStatus));
    }
 
+   @Override
    public Panel.ConnStatus connect() {
       this.connectionHandler = new ConnectionHandler(this.panelStatus, this.callback);
       if (!this.connectionHandler.setPin(this.pin)) {
          return Panel.ConnStatus.UNAUTHORIZED;
       } else {
-         (new ConnectionThread(this.address, this.port, this.connectionHandler)).start();
+         // Avvia il thread di connessione TCP/IP
+         Thread connThread = new ConnectionThread(this.address, this.port, this.connectionHandler);
+         connThread.setName("Absoluta-ConnectionThread");
+         connThread.start();
 
          try {
-            return this.connectionHandler.waitConnection();
-         } catch (InterruptedException var2) {
-            Exceptions.printStackTrace(var2);
-            return Panel.ConnStatus.UNREACHABLE;
+               // Attende l'esito della connessione
+               return this.connectionHandler.waitConnection();
+         } catch (InterruptedException ex) {
+               logger.severe("Connessione interrotta: " + ex.getMessage());
+               Thread.currentThread().interrupt();
+               return Panel.ConnStatus.UNREACHABLE;
          }
       }
    }
 
+   @Override
    public void disconnect() {
       this.connectionHandler.disconnect();
    }
 
-   public void arming(Arming var1) {
-      this.connectionHandler.getCommander().arming(var1);
+   @Override
+   public void arming(Arming armingMode) {
+      this.connectionHandler.getCommander().arming(armingMode);
    }
 
-   public void partitionArming(String var1, cms.device.api.Partition.Arming var2) {
-      this.connectionHandler.getCommander().partitionArming(var1, var2);
+   @Override
+   public void partitionArming(String partitionId, cms.device.api.Partition.Arming armingMode) {
+      this.connectionHandler.getCommander().partitionArming(partitionId, armingMode);
    }
 
+   @Override
    public boolean armingSupport(char presetMode) {
       return this.connectionHandler.getCommander().armingSupport(presetMode);
    }
 
+   @Override
    public void armingSet(char presetMode) {
       this.connectionHandler.getCommander().armingSet(presetMode);
    }
 
-   public void setBypassed(String zoneID, boolean setBypassed) {
-      this.connectionHandler.getCommander().setBypassed(zoneID, setBypassed);
+   @Override
+   public void setBypassed(String zoneId, boolean setBypassed) {
+      this.connectionHandler.getCommander().setBypassed(zoneId, setBypassed);
    }
 
-   public boolean getBypassed(String zoneID) {
-      int zoneInt = Integer.parseInt(zoneID);
+   @Override
+   public boolean getBypassed(String zoneId) {
+      int zoneInt = Integer.parseInt(zoneId);
       return this.panelStatus.getZoneBypass(zoneInt);
    }
 
-   public void doOutputAction(String var1, Action var2) {
-      switch(var2) {
-      case DO_CLOSE:
-         this.connectionHandler.getCommander().setOutput(var1, true);
-         break;
-      case DO_OPEN:
-         this.connectionHandler.getCommander().setOutput(var1, false);
-         break;
-      default:
-         break;
+   @Override
+   public void doOutputAction(String outputId, Action action) {
+      switch (action) {
+         case DO_CLOSE:
+               this.connectionHandler.getCommander().setOutput(outputId, true);
+               break;
+         case DO_OPEN:
+               this.connectionHandler.getCommander().setOutput(outputId, false);
+               break;
+         default:
+               break;
       }
    }
 
+   // Pulisce le segnalazioni di guasto
    void cleanTroubles() {
       this.connectionHandler.getCommander().cleanTroubles();
    }
-
 }
