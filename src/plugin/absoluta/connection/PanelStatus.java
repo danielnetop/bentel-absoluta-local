@@ -2,8 +2,6 @@ package plugin.absoluta.connection;
 
 import com.google.common.collect.ImmutableList;
 
-import cms.device.api.Panel.Arming;
-
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.HashMap;
@@ -28,7 +26,7 @@ public class PanelStatus {
    public static final String TROUBLES = "TROUBLES";
    private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
    private connStatus connectionStatus;
-   private Arming globalArming;
+   private globalArming globalArming;
    private String systemLabel;
    private ImmutableList<Integer> partitions;
    private ImmutableList<Integer> zones;
@@ -77,13 +75,13 @@ public class PanelStatus {
       return this.connectionStatus;
    }
 
-   void setGlobalArming(Arming newMode) {
-      Arming oldMode = this.globalArming;
+   void setGlobalArming(globalArming newMode) {
+      globalArming oldMode = this.globalArming;
       this.globalArming = newMode;
       this.changeSupport.firePropertyChange("GLOBAL_ARMING", oldMode, newMode);
    }
 
-   public Arming getGlobalArming() {
+   public globalArming getGlobalArming() {
       return this.globalArming;
    }
 
@@ -284,5 +282,13 @@ public class PanelStatus {
       DO_IMPULSE,
       DO_OPEN,
       DO_CLOSE;
+   }
+
+   public enum globalArming {
+      GLOBALLY_ARMED,
+      PARTIALLY_ARMED,
+      GLOBALLY_DISARMED,
+      NOT_AVAILABLE,
+      TRIGGERED
    }
 }

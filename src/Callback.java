@@ -9,7 +9,6 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import cms.device.api.Panel;
-import cms.device.api.Panel.Arming;
 import cms.device.api.Panel.ConnStatus;
 import cms.device.spi.PanelProvider;
 import plugin.absoluta.connection.PanelStatus;
@@ -137,12 +136,12 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partizione ID: " + String.valueOf(msg));
    }
 
-   public void setArming(Panel.Arming actArming) {
-      if (actArming == Arming.GLOBALLY_DISARMED) {
+   public void setArming(PanelStatus.globalArming actArming) {
+      if (actArming == PanelStatus.globalArming.GLOBALLY_DISARMED) {
          this.partitionArmStatuses[0] = "disarmed";
-      } else if (actArming == Arming.GLOBALLY_ARMED) {
+      } else if (actArming == PanelStatus.globalArming.GLOBALLY_ARMED) {
          this.partitionArmStatuses[0] = "armed_away";
-      } else if (actArming == Arming.PARTIALLY_ARMED) {
+      } else if (actArming == PanelStatus.globalArming.PARTIALLY_ARMED) {
          this.partitionArmStatuses[0] = "armed_custom_bypass";
       }
       this.sendMessageOnsetArming();
@@ -473,10 +472,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
-               this.panel.arming(Arming.GLOBALLY_DISARMED);
+               this.panel.arming(PanelStatus.globalArming.GLOBALLY_DISARMED);
                return;
             case "ARM_AWAY":
-               this.panel.arming(Arming.GLOBALLY_ARMED);
+               this.panel.arming(PanelStatus.globalArming.GLOBALLY_ARMED);
                return;
             default:
                logger.warning("Comando " + msg.toString() + " non valido");

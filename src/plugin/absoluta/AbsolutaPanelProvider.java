@@ -3,7 +3,6 @@ package plugin.absoluta;
 import com.google.common.collect.ImmutableMap;
 
 import cms.device.api.Panel;
-import cms.device.api.Panel.Arming;
 import cms.device.spi.PanelProvider;
 import plugin.absoluta.connection.ConnectionHandler;
 import plugin.absoluta.connection.ConnectionThread;
@@ -72,7 +71,7 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public void arming(Arming armingMode) {
+   public void arming(PanelStatus.globalArming armingMode) {
       this.connectionHandler.getCommander().arming(armingMode);
    }
 

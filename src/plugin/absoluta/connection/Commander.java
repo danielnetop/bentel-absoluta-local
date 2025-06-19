@@ -1,6 +1,5 @@
 package plugin.absoluta.connection;
 
-import cms.device.api.Panel.Arming;
 import protocol.dsc.Message;
 
 import java.util.Objects;
@@ -26,7 +25,7 @@ public class Commander {
       this.panelStatus = Objects.requireNonNull(panelStatus);
    }
 
-   public void arming(Arming newArmingStatus) {
+   public void arming(PanelStatus.globalArming newArmingStatus) {
       logger.fine("Setting global arming to: " + newArmingStatus);
       switch(newArmingStatus) {
       case GLOBALLY_DISARMED:

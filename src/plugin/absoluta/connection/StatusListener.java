@@ -175,17 +175,17 @@ class StatusListener implements MessageListener {
          }
       }
 
-      cms.device.api.Panel.Arming globalArming;
+      PanelStatus.globalArming globalArming;
       if (missingData) {
          globalArming = null;
       } else if (anyPartitionTriggered) {
-         globalArming = cms.device.api.Panel.Arming.TRIGGERED;
+         globalArming = PanelStatus.globalArming.TRIGGERED;
       } else if (anyPartitionArmed && anyPartitionDisarmed) {
-         globalArming = cms.device.api.Panel.Arming.PARTIALLY_ARMED;
+         globalArming = PanelStatus.globalArming.PARTIALLY_ARMED;
       } else if (anyPartitionArmed) {
-         globalArming = cms.device.api.Panel.Arming.GLOBALLY_ARMED;
+         globalArming = PanelStatus.globalArming.GLOBALLY_ARMED;
       } else {
-         globalArming = cms.device.api.Panel.Arming.GLOBALLY_DISARMED;
+         globalArming = PanelStatus.globalArming.GLOBALLY_DISARMED;
       }
 
       panelStatus.setGlobalArming(globalArming);

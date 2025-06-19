@@ -13,7 +13,7 @@ public interface PanelProvider {
 
    void disconnect();
 
-   void arming(Panel.Arming armingMode);
+   void arming(PanelStatus.globalArming armingMode);
 
    void partitionArming(String partitionId, PanelStatus.partitionArming armingMode);
 
@@ -32,7 +32,7 @@ public interface PanelProvider {
    public interface PanelCallback extends AlertCallback {
       void connectionLost();
 
-      void setArming(Panel.Arming armingMode);
+      void setArming(PanelStatus.globalArming armingMode);
 
       void setStatus(Panel.Status status);
 

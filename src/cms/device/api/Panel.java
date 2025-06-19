@@ -18,7 +18,7 @@ import org.openide.util.ChangeSupport;
 public final class Panel {
    private static final Logger logger = Logger.getLogger(Panel.class.getName());
    private boolean connected;
-   private Arming arming;
+   private PanelStatus.globalArming arming;
    public Status status;
    private boolean alarmed;
    private final PanelProvider provider;
@@ -29,7 +29,7 @@ public final class Panel {
    private Map<String, Output> outputs = new LinkedHashMap<>();
 
    public Panel(PanelProvider provider) {
-      this.arming = Arming.NOT_AVAILABLE;
+      this.arming = PanelStatus.globalArming.NOT_AVAILABLE;
       this.status = Status.OK;
       this.connected = false;
       this.alarmed = false;
@@ -79,15 +79,15 @@ public final class Panel {
       }
    }
 
-   public void arming(Arming mode) {
+   public void arming(PanelStatus.globalArming mode) {
       this.provider.arming(mode);
    }
 
-   public Arming getArming() {
+   public PanelStatus.globalArming getArming() {
       return this.arming;
    }
 
-   void setArming(Arming newMode) {
+   void setArming(PanelStatus.globalArming newMode) {
       if (this.arming != newMode) {
          this.arming = newMode;
          this.changeSupport.fireChange();
@@ -207,14 +207,6 @@ public final class Panel {
       return outputs;
    }
 
-   public enum Arming {
-      GLOBALLY_ARMED,
-      PARTIALLY_ARMED,
-      GLOBALLY_DISARMED,
-      NOT_AVAILABLE,
-      TRIGGERED
-   }
-
    public enum Status {
       TAMPER,
       FAULT,
@@ -231,7 +223,7 @@ public final class Panel {
 
    private class Callback implements PanelProvider.PanelCallback {
 
-      public void setArming(Arming arming) {
+      public void setArming(PanelStatus.globalArming arming) {
          Panel.this.setArming(arming);
       }
 

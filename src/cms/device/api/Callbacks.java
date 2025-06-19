@@ -22,7 +22,7 @@ final class Callbacks {
       public void tagInputIntoPartition(String inputId, List<String> partitionIds) { }
 
       @Override
-      public void setArming(Panel.Arming armingMode) { }
+      public void setArming(PanelStatus.globalArming armingMode) { }
 
       @Override
       public void setStatus(Panel.Status status) { }
