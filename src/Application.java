@@ -17,6 +17,7 @@ import java.util.logging.Level;
 public class Application {
 
    private static final Logger logger = Logger.getLogger(Application.class.getName());
+   private static final String VERSION = "1.2";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
@@ -77,6 +78,8 @@ public class Application {
          handler.setLevel(logLevel);
          logger.addHandler(handler);
       }
+
+      logger.info("Avvio Bentel Absoluta MQTT Bridge - Versione " + VERSION);
 
       logger.fine("MQTT_ADDRESS=" + MQTT_ADDRESS);
       logger.fine("MQTT_PORT=" + MQTT_PORT);
