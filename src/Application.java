@@ -17,7 +17,11 @@ import java.util.logging.Level;
 public class Application {
 
    private static final Logger logger = Logger.getLogger(Application.class.getName());
-   private static final String VERSION = "1.2";
+   // X.Y.Z Major.Minor.Patch
+   // Major: Cambiamenti significativi, API breaking
+   // Minor: Nuove funzionalità, compatibilità con le versioni precedenti
+   // Patch: Correzioni di bug, miglioramenti minori
+   private static final String VERSION = "1.0.4-beta";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
