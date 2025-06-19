@@ -53,6 +53,15 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       this.mqttDispatcher = new MqttMessageDispatcher(mqttClient);
    }
 
+   // Helper per publish MQTT con gestione eccezioni
+   private void safePublish(String topic, String payload, int qos, boolean retained, String context) {
+      try {
+         this.mqttDispatcher.publishString(topic, payload, qos, retained);
+      } catch (Exception ex) {
+         logger.warning("Invio messaggio: " + topic + " (" + context + ") Exception: " + ex.getMessage());
+      }
+   }
+
    public void connectionLost(Throwable ex) {
       logger.warning("Connessione persa con il broker MQTT: " + ex.getMessage() + ". Riconnessione...");
       this.reconnectWithDelay("broker MQTT");
@@ -70,13 +79,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       this.sensorIDs = new int[msg.size()];
       int maxId = 0;
       for (int i = 0; i < msg.size(); i++) {
-         try {
-            this.sensorIDs[i] = Integer.parseInt(msg.get(i));
-            if (this.sensorIDs[i] > maxId) maxId = this.sensorIDs[i];
-         } catch (NumberFormatException e) {
-            logger.warning("Errore di parsing sensorID: '" + msg.get(i) + "' non è un intero valido.");
-            this.sensorIDs[i] = -1;
-         }
+         int id = Integer.parseInt(msg.get(i));
+         this.sensorIDs[i] = id;
+         if (id > maxId) maxId = id;
       }
       this.sensorNames = new String[maxId + 1];
       this.sensorTopics = new String[maxId + 1];
@@ -97,12 +102,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       this.partitionIDs = new int[msg.size() + 1];
       this.partitionIDs[0] = 0;
       for (int i = 0; i < msg.size(); i++) {
-         try {
-            this.partitionIDs[i + 1] = Integer.parseInt(msg.get(i));
-         } catch (NumberFormatException e) {
-            logger.warning("Errore di parsing partitionID: '" + msg.get(i) + "' non è un intero valido.");
-            this.partitionIDs[i + 1] = -1;
-         }
+         this.partitionIDs[i + 1] = Integer.parseInt(msg.get(i));
       }
 
       this.partitionNames = new String[this.partitionIDs.length];
@@ -115,13 +115,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       // Invia discovery per la partizione globale (id 0)
       if (discoveryEnabled && !partitionDiscoverySent.contains(0)) {
          String topic = "homeassistant/alarm_control_panel/absoluta_partition_0/config";
-         String payload = HomeAssistantManager.buildPartition("0",partitionNames[0]);
-         try {
-            this.mqttDispatcher.publishString(topic, payload, QOS, true);
-            partitionDiscoverySent.add(0);
-         } catch (Exception ex) {
-            logger.warning("Invio discovery : " + topic);
-         }
+         String payload = HomeAssistantManager.buildPartition("0", partitionNames[0]);
+         safePublish(topic, payload, QOS, true, "discovery partizione globale");
+         partitionDiscoverySent.add(0);
          // Subscribe al topic di homeassistant
          try {
             this.mqttClient.subscribe("homeassistant/status");
@@ -132,19 +128,14 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
 
       if (!this.isConnected){
          this.isConnected = true;
-         try {
-               this.mqttDispatcher.publishString("ABS/conn", "Status: Connesso", QOS, false);
-         } catch (Exception ex) {
-            logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
-         }
+         safePublish("ABS/conn", "Status: Connesso", QOS, false, "connessione iniziale");
       }
 
-      // Subscribe di tutti i topic a 3 e 4 layer (ABS/layer1/layer2/layer3/layer4/set)
       try {
          this.mqttClient.subscribe("ABS/+/set");
          this.mqttClient.subscribe("ABS/+/+/set");
       } catch (Exception ex) {
-         logger.warning("Subscribe to: ABS/+/set and ABS/+/+/set");
+         logger.warning("Errore durante la subscribe ai topic delle partizioni: " + ex.getMessage());
       }
       logger.fine("Partizione ID: " + String.valueOf(msg));
    }
@@ -161,66 +152,55 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    public void sendMessageOnsetArming() {
-      try {
-         String str = "";
-         if(discoveryEnabled){
-            if (this.partitionArmStatuses[0] == null) {
-               str = "disarmed";
-            } else {
-               str = this.partitionArmStatuses[0];
-            }
+      String str = "";
+      if(discoveryEnabled){
+         if (this.partitionArmStatuses[0] == null) {
+            str = "disarmed";
          } else {
-            str = "Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0];
+            str = this.partitionArmStatuses[0];
          }
-         this.mqttDispatcher.publishString(this.partitionTopics[0], str, QOS, false);
-      } catch (Exception ex) {
-         logger.warning("Invio messaggio: " + this.partitionTopics[0] + " Exception: " + ex.getMessage());
+      } else {
+         str = "Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0];
       }
+      safePublish(this.partitionTopics[0], str, QOS, false, "stato partizione globale");
       logger.fine("Partition Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0]);
    }
 
    public void setInputRemoteName(String sensorID, String sensorName) {
       int sensorIDInt = Integer.parseInt(sensorID);
+      if (sensorIDInt < 0 || sensorIDInt >= sensorNames.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + sensorIDInt);
+         return;
+      }
       this.sensorNames[sensorIDInt] = sensorName;
       this.sensorTopics[sensorIDInt] = "ABS/sensor/" + sensorIDInt;
       // Invia discovery solo la prima volta per ogni sensore
       if (discoveryEnabled && !sensorDiscoverySent.contains(sensorIDInt)) {
          String topic = "homeassistant/binary_sensor/absoluta_sensor_" + sensorIDInt + "/config";
          String payload = HomeAssistantManager.buildSensor(sensorID, sensorNames[sensorIDInt]);
-         try {
-            this.mqttDispatcher.publishString(topic, payload, QOS, true);
-            sensorDiscoverySent.add(sensorIDInt);
-         } catch (Exception ex) {
-            logger.warning("Invio discovery sensore: " + topic);
-         }
+         safePublish(topic, payload, QOS, true, "discovery sensore");
+         sensorDiscoverySent.add(sensorIDInt);
+
          topic = "homeassistant/switch/absoluta_sensor_" + sensorIDInt + "_bypass/config";
          payload = HomeAssistantManager.buildSensorBypass(sensorID, sensorNames[sensorIDInt]);
-         try {
-            this.mqttDispatcher.publishString(topic, payload, QOS, true);
-         } catch (Exception ex) {
-            logger.warning("Invio discovery sensore Bypass: " + topic);
-         }
+         safePublish(topic, payload, QOS, true, "discovery sensore Bypass");
       }
-      try {
-         String str = "";
-         if(discoveryEnabled){
-            if (this.sensorStatuses[sensorIDInt] == null) {
-               str = "OFF";
-            } else {
-               str = this.sensorStatuses[sensorIDInt].toUpperCase();
-            }
-         } else {
-            str = "Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt];
-         }
-         this.mqttDispatcher.publishString(this.sensorTopics[sensorIDInt], str, QOS, false);
-      } catch (Exception ex) {
-         logger.warning("Invio messaggio: " + this.sensorTopics[sensorIDInt] + " Exception: " + ex.getMessage());
+      String str = "";
+      if(discoveryEnabled){
+         str = (this.sensorStatuses[sensorIDInt] == null) ? "OFF" : this.sensorStatuses[sensorIDInt].toUpperCase();
+      } else {
+         str = "Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt];
       }
+      safePublish(this.sensorTopics[sensorIDInt], str, QOS, false, "stato sensore");
       logger.fine("Sensor Name: " + this.sensorNames[sensorIDInt] + " Status: " + this.sensorStatuses[sensorIDInt] + " Bypass: " + this.sensorBypass[sensorIDInt]);
    }
 
    public void setInputStatus(String sensorID, Input.Status sensorStatus) {
       int sensorIDInt = Integer.parseInt(sensorID);
+      if (sensorIDInt < 0 || sensorIDInt >= sensorStatuses.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + sensorIDInt);
+         return;
+      }
       if (sensorStatus != Status.ACTIVE && sensorStatus != Status.ALARM) {
          this.sensorStatuses[sensorIDInt] = "Off";
       } else {
@@ -237,85 +217,65 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    public void sendMessageOnsetInputStatus(int sensorID) {
-      if (this.sensorNames[sensorID] != null) {
-         try {
-            String str = "";
-            if(discoveryEnabled){
-               String topic = "ABS/sensor/" + sensorID + "_bypass";
-               if (this.sensorBypass[sensorID] == null) {
-                  str = "OFF";
-               } else {
-                  str = this.sensorBypass[sensorID].toUpperCase();
-               }
-               try {
-                  this.mqttDispatcher.publishString(topic, str, QOS, false);
-               } catch (Exception ex) {
-                  logger.warning("Invio comando Bypass sensore: " + topic);
-               }
-               if (this.sensorStatuses[sensorID] == null) {
-                  str = "OFF";
-               } else {
-                  str = this.sensorStatuses[sensorID].toUpperCase();
-               }
-            } else {
-               str = "Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID];
-            }
-            this.mqttDispatcher.publishString(this.sensorTopics[sensorID], str, QOS, false);
-         } catch (Exception ex) {
-            logger.warning("Invio messaggio: " + this.sensorTopics[sensorID]);
-         }
+      if (sensorID < 0 || sensorID >= sensorNames.length || this.sensorNames[sensorID] == null) {
+         logger.warning("Indice sensore fuori dai limiti o nome nullo: " + sensorID);
+         return;
       }
+      String str = "";
+      if(discoveryEnabled){
+         String topic = "ABS/sensor/" + sensorID + "_bypass";
+         str = (this.sensorBypass[sensorID] == null) ? "OFF" : this.sensorBypass[sensorID].toUpperCase();
+         safePublish(topic, str, QOS, false, "bypass sensore");
+         str = (this.sensorStatuses[sensorID] == null) ? "OFF" : this.sensorStatuses[sensorID].toUpperCase();
+      } else {
+         str = "Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID];
+      }
+      safePublish(this.sensorTopics[sensorID], str, QOS, false, "stato sensore");
       logger.fine("Sensor Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID]);
    }
 
    public void setLabelArming(char modeChar, String modeLabel) {
-      int modeIDInt = 0;
+      int modeIDInt = -1;
       switch (modeChar) {
          case 'A':
-            modeIDInt = 0;
             if (modeLabel == null || modeLabel.trim().isEmpty()) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
-            this.modeNames[0] = modeLabel;
+            modeIDInt = 0;
+            this.modeNames[modeIDInt] = modeLabel;
             break;
          case 'B':
-            modeIDInt = 1;
             if (modeLabel == null || modeLabel.trim().isEmpty()) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
-            this.modeNames[1] = modeLabel;
+            modeIDInt = 1;
+            this.modeNames[modeIDInt] = modeLabel;
             break;
          case 'C':
-            modeIDInt = 2;
             if (modeLabel == null || modeLabel.trim().isEmpty()) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
-            this.modeNames[2] = modeLabel;
+            modeIDInt = 2;
+            this.modeNames[modeIDInt] = modeLabel;
             break;
          case 'D':
-            modeIDInt = 3;
             if (modeLabel == null || modeLabel.trim().isEmpty()) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
-            this.modeNames[3] = modeLabel;
-            break;
-         default:
+            modeIDInt = 3;
+            this.modeNames[modeIDInt] = modeLabel;
             break;
       }
       // Invia discovery solo la prima volta per ogni modalità
       if (discoveryEnabled && !modeDiscoverySent.contains(modeIDInt)) {
-         String topic = "homeassistant/button/absoluta_mode_" + modeChar + "/config";
+         String topic = "homeassistant/button/absoluta_mode_" + modeIDInt + "/config";
          String payload = HomeAssistantManager.buildMode(modeChar, modeLabel);
-         try {
-            this.mqttDispatcher.publishString(topic, payload, QOS, true);
-            modeDiscoverySent.add(modeIDInt);
-         } catch (Exception ex) {
-            logger.warning("Invio discovery button mode: " + topic);
-         }
+         safePublish(topic, payload, QOS, true, "discovery modalità");
+         modeDiscoverySent.add(modeIDInt);
       }
    }
 
@@ -327,6 +287,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
 
    public void setPartitionArming(String partitionID, Partition.Arming actArming) {
       int partitionIDInt = Integer.parseInt(partitionID);
+      if (partitionIDInt < 0 || partitionIDInt >= partitionArmStatuses.length) {
+         logger.warning("Indice partizione fuori dai limiti: " + partitionIDInt);
+         return;
+      }
       if (actArming == cms.device.api.Partition.Arming.DISARMED) {
          this.partitionArmStatuses[partitionIDInt] = "disarmed";
       } else if (actArming == cms.device.api.Partition.Arming.AWAY) {
@@ -343,23 +307,22 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    }
 
    public void sendMessageOnsetPartitionArming(int partitionID) {
-      if (this.partitionNames[partitionID] != null) {
-         try {
-            String str = "";
-            if(discoveryEnabled){
-               if (this.partitionArmStatuses[partitionID] == null) {
-                  str = "disarmed";
-               } else {
-                  str = this.partitionArmStatuses[partitionID];
-               }
-            } else {
-               str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
-            }
-            this.mqttDispatcher.publishString(this.partitionTopics[partitionID], str, QOS, false);
-         } catch (Exception ex) {
-            logger.warning("Invio messaggio: " + this.partitionTopics[partitionID] + " Exception: " + ex.getMessage());
-         }
+      if (partitionID < 0 || partitionID >= partitionNames.length || this.partitionNames[partitionID] == null) {
+         logger.warning("Indice partizione fuori dai limiti o nome nullo: " + partitionID);
+         return;
       }
+      String str = "";
+      if(discoveryEnabled){
+         if (this.partitionArmStatuses[partitionID] == null) {
+            str = "disarmed";
+         } else {
+            str = this.partitionArmStatuses[partitionID];
+         }
+      } else {
+         str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
+      }
+            this.mqttDispatcher.publishString(this.partitionTopics[partitionID], str, QOS, false);
+      safePublish(this.partitionTopics[partitionID], str, QOS, false, "stato partizione");
       logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
 
@@ -373,42 +336,36 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          partitionArmStatuses = java.util.Arrays.copyOf(partitionArmStatuses, newSize);
          partitionStatuses = java.util.Arrays.copyOf(partitionStatuses, newSize);
       }
-
       this.partitionNames[partitionIDInt] = partitionName;
-      this.partitionTopics[partitionIDInt] = "ABS/partition/" + (partitionIDInt);
-
+      this.partitionTopics[partitionIDInt] = "ABS/partition/" + partitionIDInt;
       // Invia discovery solo la prima volta per ogni partizione
       if (discoveryEnabled && !partitionDiscoverySent.contains(partitionIDInt)  && partitionIDInt > 0) {
          String topic = "homeassistant/alarm_control_panel/absoluta_partition_" + partitionID + "/config";
          String payload = HomeAssistantManager.buildPartition(partitionID, partitionName);
-         try {
-            this.mqttDispatcher.publishString(topic, payload, QOS, true);
-            partitionDiscoverySent.add(partitionIDInt);
-         } catch (Exception ex) {
-            logger.warning("Invio discovery partizione: " + topic);
-         }
+         safePublish(topic, payload, QOS, true, "discovery partizione");
+         partitionDiscoverySent.add(partitionIDInt);
       }
 
-      try {
-         String str = "";
-         if(discoveryEnabled){
-            if (this.partitionArmStatuses[partitionIDInt] == null) {
-               str = "disarmed";
-            } else {
-               str = this.partitionArmStatuses[partitionIDInt];
-            }
+      String str = "";
+      if(discoveryEnabled){
+         if (this.partitionArmStatuses[partitionIDInt] == null) {
+            str = "disarmed";
          } else {
-            str = "Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt];
+            str = this.partitionArmStatuses[partitionIDInt];
          }
-         this.mqttDispatcher.publishString(this.partitionTopics[partitionIDInt], str, QOS, false);
-      } catch (Exception ex) {
-         logger.warning("Invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
+      } else {
+         str = "Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt];
       }
+      safePublish(this.partitionTopics[partitionIDInt], str, QOS, false, "stato partizione");
       logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
 
    public void setPartitionStatus(String partitionID, Partition.Status actStatus) {
       int partitionIDInt = Integer.parseInt(partitionID);
+      if (partitionIDInt < 0 || partitionIDInt >= partitionStatuses.length) {
+         logger.warning("Indice partizione fuori dai limiti: " + partitionIDInt);
+         return;
+      }
       switch(actStatus) {
          case FIRE:
             this.partitionStatuses[partitionIDInt] = "Fire";
@@ -427,21 +384,17 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       }
 
       if (this.partitionNames[partitionIDInt] != null) {
-         try {
-            String str = "";
-            if(discoveryEnabled){
-               if (this.partitionArmStatuses[partitionIDInt] == null) {
-                  str = "disarmed";
-               } else {
-                  str = this.partitionArmStatuses[partitionIDInt].toUpperCase();
-               }
+         String str = "";
+         if(discoveryEnabled){
+            if (this.partitionArmStatuses[partitionIDInt] == null) {
+               str = "disarmed";
             } else {
-               str = "Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt];
+               str = this.partitionArmStatuses[partitionIDInt].toUpperCase();
             }
-            this.mqttDispatcher.publishString(this.partitionTopics[partitionIDInt], str, QOS, false);
-         } catch (Exception ex) {
-            logger.warning("Invio messaggio: " + this.partitionTopics[partitionIDInt] + " Exception: " + ex.getMessage());
+         } else {
+            str = "Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt];
          }
+         safePublish(this.partitionTopics[partitionIDInt], str, QOS, false, "stato partizione");
       }
       logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
@@ -590,11 +543,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       this.isConnected = false;
       ++this.reconnectionAttempts;
       logger.warning("Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
-      try {
-         this.mqttDispatcher.publishString("ABS/conn", "Status: Scollegato", QOS, false);
-      } catch (Exception ex) {
-         logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
-      }
+      safePublish("ABS/conn", "Status: Scollegato", QOS, false, "disconnessione forzata");
       try {
          TimeUnit.SECONDS.sleep((long)RECON_DELAY);
          if (objName.equals("centrale")) {
@@ -609,11 +558,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
 
          this.reconnectionAttempts = 0;
          this.isConnected = true;
-         try {
-            this.mqttDispatcher.publishString("ABS/conn", "Status: Connesso", QOS, false);
-         } catch (Exception ex) {
-            logger.warning("Invio messaggio: ABS/conn Exception: " + ex.getMessage());
-         }
+         safePublish("ABS/conn", "Status: Connesso", QOS, false, "riconnessione riuscita");
       } catch (InterruptedException ex) {
          Thread.currentThread().interrupt();
          this.handleReconnectionFailure(objName, ex);
