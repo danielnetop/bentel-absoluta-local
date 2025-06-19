@@ -9,56 +9,57 @@ import cms.device.api.Panel;
 import cms.device.api.Partition;
 
 public interface PanelProvider {
-   void initialize(PanelProvider.PanelCallback var1);
+   void initialize(PanelProvider.PanelCallback callback);
 
    Panel.ConnStatus connect();
 
    void disconnect();
 
-   void arming(Panel.Arming var1);
+   void arming(Panel.Arming armingMode);
 
-   void partitionArming(String var1, Partition.Arming var2);
+   void partitionArming(String partitionId, Partition.Arming armingMode);
 
    void setBypassed(String zoneID, boolean setBypassed);
 
    boolean getBypassed(String zoneID);
 
-   void doOutputAction(String var1, Output.Action var2);
+   void doOutputAction(String outputId, Output.Action action);
 
-   boolean armingSupport(char var1);
+   boolean armingSupport(char presetMode);
 
    void armingSet(char mode);
 
    Map<String, String> getSettings();
 
-   public interface PanelCallback extends ConnectionListener, AlertCallback {
+   public interface PanelCallback extends AlertCallback {
+      void connectionLost();
 
-      void setArming(Panel.Arming var1);
+      void setArming(Panel.Arming armingMode);
 
-      void setStatus(Panel.Status var1);
+      void setStatus(Panel.Status status);
 
-      void changePartitions(List<String> var1);
+      void changePartitions(List<String> partitionIds);
 
-      void setPartitionRemoteName(String var1, String var2);
+      void setPartitionRemoteName(String partitionId, String remoteName);
 
-      void setPartitionArming(String var1, Partition.Arming var2);
+      void setPartitionArming(String partitionId, Partition.Arming armingMode);
 
-      void setPartitionStatus(String var1, Partition.Status var2);
+      void setPartitionStatus(String partitionId, Partition.Status status);
 
-      void changeInputs(List<String> var1);
+      void changeInputs(List<String> inputIds);
 
-      void setInputRemoteName(String var1, String var2);
+      void setInputRemoteName(String inputId, String remoteName);
 
-      void setInputStatus(String var1, Input.Status var2);
+      void setInputStatus(String inputId, Input.Status status);
 
-      void tagInputIntoPartition(String var1, List<String> var2);
+      void tagInputIntoPartition(String inputId, List<String> partitionIds);
 
-      void changeOutputs(List<String> var1);
+      void changeOutputs(List<String> outputIds);
 
-      void setOutputRemoteName(String var1, String var2);
+      void setOutputRemoteName(String outputId, String remoteName);
 
-      void setOutputStatus(String var1, Output.Status var2);
+      void setOutputStatus(String outputId, Output.Status status);
 
-      void setLabelArming(char var1, String var2);
+      void setLabelArming(char presetMode, String label);
    }
 }
