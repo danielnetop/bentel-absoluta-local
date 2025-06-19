@@ -9,7 +9,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import cms.device.api.Panel;
 import cms.device.spi.PanelProvider;
-import plugin.absoluta.AbsolutaPlugin;
+import plugin.absoluta.AbsolutaPanelProvider;
 
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -66,46 +66,31 @@ public class Application {
 
       MemoryPersistence memPers = new MemoryPersistence();
 
-      int MQTT_CONNECT_ATTEMPTS = 5; // Default value
-      if (MQTT_CONNECT_ATTEMPTS_STR != null) {
-         try {
-            MQTT_CONNECT_ATTEMPTS = Integer.parseInt(MQTT_CONNECT_ATTEMPTS_STR);
-         } catch (NumberFormatException e) {
-            logger.warning("MQTT_CONNECT_ATTEMPTS non è un numero valido, utilizzando il valore predefinito di 5");
-         }
-      } else {
-         logger.warning("MQTT_CONNECT_ATTEMPTS non è definito, utilizzo il valore predefinito di 5");
-      }
-
-      boolean discoveryEnabled = true;
-      if (HOME_ASSISTANT_DISCOVERY != null) {
-         discoveryEnabled = HOME_ASSISTANT_DISCOVERY.equalsIgnoreCase("true");
-      } else {
-         logger.warning("HOME_ASSISTANT_DISCOVERY non è definito, utilizzo il valore predefinito di true");
-      }
+      int MQTT_CONNECT_ATTEMPTS = parseIntOrDefault(MQTT_CONNECT_ATTEMPTS_STR, 5, logger, "MQTT_CONNECT_ATTEMPTS");
+      boolean discoveryEnabled = HOME_ASSISTANT_DISCOVERY == null ? true : HOME_ASSISTANT_DISCOVERY.equalsIgnoreCase("true");
 
       Level logLevel = parseLogLevel(LOG_LEVEL);
       logger.setLevel(logLevel);
-      // Imposta anche il livello del ConsoleHandler
-      java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler();
-      handler.setLevel(logLevel);
-      logger.addHandler(handler);
+      // Aggiungi ConsoleHandler solo se non già presente
+      if (logger.getHandlers().length == 0) {
+         java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler();
+         handler.setLevel(logLevel);
+         logger.addHandler(handler);
+      }
 
-      for(int i = 0; i < MQTT_CONNECT_ATTEMPTS;  i++) {
+      logger.fine("MQTT_ADDRESS=" + MQTT_ADDRESS);
+      logger.fine("MQTT_PORT=" + MQTT_PORT);
+      logger.fine("MQTT_USERNAME=" + Username);
+      logger.fine("MQTT_PASSWORD=" + (Password != null ? "***" : "non definito"));
+      logger.fine("ALARM_ADDRESS=" + ADDRESS);
+      logger.fine("ALARM_PIN=" + (PIN != null ? "***" : "non definito"));
+      logger.fine("ALARM_PORT=" + PORT);
+      logger.fine("HOME_ASSISTANT_DISCOVERY=" + discoveryEnabled);
+
+      boolean connected = false;
+      for (int i = 0; i < MQTT_CONNECT_ATTEMPTS && !connected; i++) {
          try {
             logger.info("Tentativo di connessione numero: " + (i + 1));
-            logger.fine("MQTT_ADDRESS=" + MQTT_ADDRESS);
-            logger.fine("MQTT_PORT=" + MQTT_PORT);
-            logger.fine("MQTT_USERNAME=" + Username);
-            logger.fine("MQTT_PASSWORD=" + (Password != null ? "***" : "non definito"));
-            logger.fine("ALARM_ADDRESS=" + ADDRESS);
-            logger.fine("ALARM_PIN=" + (PIN != null ? "***" : "non definito"));
-            logger.fine("ALARM_PORT=" + PORT);
-            logger.fine("HOME_ASSISTANT_DISCOVERY=" + discoveryEnabled);
-            // Controllo variabili obbligatorie
-            if (MQTT_ADDRESS == null || MQTT_PORT == null || Username == null || Password == null) {
-               throw new IllegalArgumentException("MQTT_ADDRESS, MQTT_PORT, MQTT_USERNAME e MQTT_PASSWORD devono essere valorizzati!");
-            }
             String mqttServer = "tcp://" + MQTT_ADDRESS + ":" + MQTT_PORT;
             MqttClient mqttClient = new MqttClient(mqttServer, "absolutamqtt", memPers);
             MqttConnectOptions mqttOption = new MqttConnectOptions();
@@ -117,7 +102,7 @@ public class Application {
             map.put("pin", PIN);
             map.put("port", PORT);
             map.put("address", ADDRESS);
-            PanelProvider provider = (new AbsolutaPlugin()).newPanel(map);
+            PanelProvider provider = new AbsolutaPanelProvider(map);
             Panel panel = new Panel(provider);
             Callback callback = new Callback(mqttClient, panel, mqttOption, discoveryEnabled);
             mqttClient.setCallback(callback);
@@ -135,10 +120,10 @@ public class Application {
                if (connStatus != Panel.ConnStatus.SUCCESS) {
                   logger.warning("Connessione fallita: " + connStatus + ". Riprovo tra 90 secondi...");
                   try {
-                        Thread.sleep(90000L);
+                     Thread.sleep(90000L);
                   } catch (InterruptedException e) {
-                        logger.severe("Interrotto durante l'attesa di riconnessione: " + e.getMessage());
-                        break;
+                     logger.severe("Interrotto durante l'attesa di riconnessione: " + e.getMessage());
+                     break;
                   }
                }
             }
@@ -146,6 +131,7 @@ public class Application {
                logger.severe("Impossibile connettersi alla centrale dopo " + maxAttempts + " tentativi.");
                System.exit(1);
             }
+            connected = true;
          } catch (MqttException ex) {
             logger.warning("Exception: " + ex.getReasonCode());
             logger.warning("Attendo 15 secondi prima del prossimo tentativo...");
@@ -155,8 +141,25 @@ public class Application {
                logger.severe("Interruzione durante l'attesa tra i tentativi di connessione: " + e.getMessage());
             }
          }
-         i = MQTT_CONNECT_ATTEMPTS; // Forza l'uscita dal ciclo dopo il primo tentativo
       }
+      if (!connected) {
+         logger.severe("Impossibile connettersi al broker MQTT dopo " + MQTT_CONNECT_ATTEMPTS + " tentativi.");
+         System.exit(1);
+      }
+   }
+
+   // Helper per parsing int con log
+   private static int parseIntOrDefault(String value, int defaultValue, Logger logger, String name) {
+      if (value != null) {
+         try {
+            return Integer.parseInt(value);
+         } catch (NumberFormatException e) {
+            logger.warning(name + " non è un numero valido, utilizzando il valore predefinito di " + defaultValue);
+         }
+      } else {
+         logger.warning(name + " non è definito, utilizzo il valore predefinito di " + defaultValue);
+      }
+      return defaultValue;
    }
 
    private static Level parseLogLevel(String level) {
