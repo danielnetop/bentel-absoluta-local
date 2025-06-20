@@ -2,7 +2,6 @@ package plugin.absoluta;
 
 import com.google.common.collect.ImmutableMap;
 
-import cms.device.api.Panel;
 import cms.device.spi.PanelProvider;
 import plugin.absoluta.connection.ConnectionHandler;
 import plugin.absoluta.connection.ConnectionThread;
@@ -20,10 +19,10 @@ public class AbsolutaPanelProvider implements PanelProvider {
    private PanelCallback callback;
    private ConnectionHandler connectionHandler;
 
-   public AbsolutaPanelProvider(Map<String, String> settings) {
-      this.address = settings.get("address");
-      this.port = Integer.parseInt(settings.getOrDefault("port", "3064"));
-      this.pin = settings.get("pin");
+   public AbsolutaPanelProvider(String address, String pin, String port) {
+      this.address = address;
+      this.port = Integer.parseInt(port);
+      this.pin = pin;
       this.panelStatus = new PanelStatus();
    }
 
@@ -44,10 +43,10 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public Panel.ConnStatus connect() {
+   public providerConnStatus connect() {
       this.connectionHandler = new ConnectionHandler(this.panelStatus, this.callback);
       if (!this.connectionHandler.setPin(this.pin)) {
-         return Panel.ConnStatus.UNAUTHORIZED;
+         return providerConnStatus.UNAUTHORIZED;
       } else {
          // Avvia il thread di connessione TCP/IP
          Thread connThread = new ConnectionThread(this.address, this.port, this.connectionHandler);
@@ -60,7 +59,7 @@ public class AbsolutaPanelProvider implements PanelProvider {
          } catch (InterruptedException ex) {
                logger.severe("Connessione interrotta: " + ex.getMessage());
                Thread.currentThread().interrupt();
-               return Panel.ConnStatus.UNREACHABLE;
+               return providerConnStatus.UNREACHABLE;
          }
       }
    }
@@ -118,5 +117,13 @@ public class AbsolutaPanelProvider implements PanelProvider {
    // Pulisce le segnalazioni di guasto
    void cleanTroubles() {
       this.connectionHandler.getCommander().cleanTroubles();
+   }
+
+   public enum providerConnStatus {
+      USER_DISCONNECTED,
+      SUCCESS,
+      INCOMPATIBLE,
+      UNAUTHORIZED,
+      UNREACHABLE
    }
 }

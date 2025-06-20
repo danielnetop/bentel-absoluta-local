@@ -8,14 +8,13 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import cms.device.api.Panel;
-import cms.device.api.Panel.ConnStatus;
-import cms.device.spi.PanelProvider;
+import plugin.absoluta.AbsolutaPanelProvider;
+import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
 import plugin.absoluta.connection.PanelStatus;
 
 import java.util.logging.Logger;
 
-class Callback implements PanelProvider.PanelCallback, MqttCallback {
+class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private static final Logger logger = Logger.getLogger(Callback.class.getName());
    private MqttClient mqttClient;
    private int[] sensorIDs;
@@ -29,7 +28,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    private String[] sensorTopics;
    private String[] partitionTopics;
    private String[] modeNames = new String[4];
-   private Panel panel;
+   private AbsolutaPanelProvider provider;
    private MqttConnectOptions connOpts;
    private int reconnectionAttempts = 0;
    private boolean isConnected = false;
@@ -41,9 +40,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
    private Boolean discoveryEnabled;
    private MqttMessageDispatcher mqttDispatcher;
 
-   public Callback(MqttClient mqttClient, Panel panel, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
+   public Callback(MqttClient mqttClient, AbsolutaPanelProvider provider, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
       this.mqttClient = mqttClient;
-      this.panel = panel;
+      this.provider = provider;
       this.connOpts = mqttOption;
       this.discoveryEnabled = discoveryEnabled;
       this.mqttDispatcher = new MqttMessageDispatcher(mqttClient);
@@ -203,7 +202,7 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          this.sensorStatuses[sensorIDInt] = "On";
       }
 
-      if (this.panel.getBypassInput(sensorID)) {
+      if (this.provider.getBypassed(sensorID)) {
          this.sensorBypass[sensorIDInt] = "ON";
       } else {
          this.sensorBypass[sensorIDInt] = "OFF";
@@ -399,12 +398,6 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[partitionIDInt] + " Arming: " + this.partitionArmStatuses[partitionIDInt] + " Status: " + this.partitionStatuses[partitionIDInt]);
    }
 
-   public void setRemoteName(String var1) {
-   }
-
-   public void setStatus(Panel.Status var1) {
-   }
-
    public void tagInputIntoPartition(String var1, List<String> var2) {
    }
 
@@ -452,16 +445,16 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.DISARMED);
+            this.provider.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.DISARMED);
             return;
          case "ARM_HOME":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.STAY);
+            this.provider.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.STAY);
             return;
          case "ARM_AWAY":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.AWAY);
+            this.provider.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.AWAY);
             return;
          case "ARM_NIGHT":
-            this.panel.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.NODELAY);
+            this.provider.partitionArming(String.valueOf(this.partitionIDs[idArray]), PanelStatus.partitionArming.NODELAY);
             return;
          default:
             logger.warning("Comando " + msg.toString() + " non valido");
@@ -472,10 +465,10 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
          logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
-               this.panel.arming(PanelStatus.globalArming.GLOBALLY_DISARMED);
+               this.provider.arming(PanelStatus.globalArming.GLOBALLY_DISARMED);
                return;
             case "ARM_AWAY":
-               this.panel.arming(PanelStatus.globalArming.GLOBALLY_ARMED);
+               this.provider.arming(PanelStatus.globalArming.GLOBALLY_ARMED);
                return;
             default:
                logger.warning("Comando " + msg.toString() + " non valido");
@@ -486,16 +479,16 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per modalità: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "MODE_A" :
-            this.panel.modalityArming('A');
+            this.provider.armingSet('A');
             return;
          case "MODE_B" :
-            this.panel.modalityArming('B');
+            this.provider.armingSet('B');
             return;
          case "MODE_C" :
-            this.panel.modalityArming('C');
+            this.provider.armingSet('C');
             return;
          case "MODE_D" :
-            this.panel.modalityArming('D');
+            this.provider.armingSet('D');
             return;
          default:
             logger.warning("Comando " + msg.toString() + " non valido");
@@ -504,9 +497,9 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
 
    private void commandSensor(int idArray, MqttMessage msg) {
       if(msg.toString().equals("ON")) {
-         this.panel.bypassInput(String.valueOf(this.sensorIDs[idArray]), true);
+         this.provider.setBypassed(String.valueOf(this.sensorIDs[idArray]), true);
       } else if(msg.toString().equals("OFF")){
-         this.panel.bypassInput(String.valueOf(this.sensorIDs[idArray]), false);
+         this.provider.setBypassed(String.valueOf(this.sensorIDs[idArray]), false);
       } else {
          logger.warning("Comando " + msg.toString() + " non valido per il sensore ID: " + idArray);
       }
@@ -547,8 +540,8 @@ class Callback implements PanelProvider.PanelCallback, MqttCallback {
       try {
          TimeUnit.SECONDS.sleep((long)RECON_DELAY);
          if (objName.equals("centrale")) {
-            ConnStatus status = this.panel.connect();
-            if (status == ConnStatus.UNREACHABLE) {
+            providerConnStatus status = this.provider.connect();
+            if (status == providerConnStatus.UNREACHABLE) {
                logger.fine("Rilevato 'busy panel'. Tentativo di riconnessione forzata...");
                throw new Exception("Busy panel");
             }

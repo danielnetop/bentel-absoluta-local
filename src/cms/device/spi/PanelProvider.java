@@ -3,25 +3,30 @@ package cms.device.spi;
 import java.util.List;
 import java.util.Map;
 
-import cms.device.api.Panel;
-import plugin.absoluta.connection.PanelStatus;
+import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
+import plugin.absoluta.connection.PanelStatus.globalArming;
+import plugin.absoluta.connection.PanelStatus.partitionArming;
+import plugin.absoluta.connection.PanelStatus.partitionStatus;
+import plugin.absoluta.connection.PanelStatus.inputStatus;
+import plugin.absoluta.connection.PanelStatus.outputAction;
+import plugin.absoluta.connection.PanelStatus.outputStatus;
 
 public interface PanelProvider {
    void initialize(PanelProvider.PanelCallback callback);
 
-   Panel.ConnStatus connect();
+   providerConnStatus connect();
 
    void disconnect();
 
-   void arming(PanelStatus.globalArming armingMode);
+   void arming(globalArming armingMode);
 
-   void partitionArming(String partitionId, PanelStatus.partitionArming armingMode);
+   void partitionArming(String partitionId, partitionArming armingMode);
 
    void setBypassed(String zoneID, boolean setBypassed);
 
    boolean getBypassed(String zoneID);
 
-   void doOutputAction(String outputId, PanelStatus.outputAction action);
+   void doOutputAction(String outputId, outputAction action);
 
    boolean armingSupport(char presetMode);
 
@@ -32,23 +37,21 @@ public interface PanelProvider {
    public interface PanelCallback extends AlertCallback {
       void connectionLost();
 
-      void setArming(PanelStatus.globalArming armingMode);
-
-      void setStatus(Panel.Status status);
+      void setArming(globalArming armingMode);
 
       void changePartitions(List<String> partitionIds);
 
       void setPartitionRemoteName(String partitionId, String remoteName);
 
-      void setPartitionArming(String partitionId, PanelStatus.partitionArming armingMode);
+      void setPartitionArming(String partitionId, partitionArming armingMode);
 
-      void setPartitionStatus(String partitionId, PanelStatus.partitionStatus status);
+      void setPartitionStatus(String partitionId, partitionStatus status);
 
       void changeInputs(List<String> inputIds);
 
       void setInputRemoteName(String inputId, String remoteName);
 
-      void setInputStatus(String inputId, PanelStatus.inputStatus status);
+      void setInputStatus(String inputId, inputStatus status);
 
       void tagInputIntoPartition(String inputId, List<String> partitionIds);
 
@@ -56,7 +59,7 @@ public interface PanelProvider {
 
       void setOutputRemoteName(String outputId, String remoteName);
 
-      void setOutputStatus(String outputId, PanelStatus.outputStatus status);
+      void setOutputStatus(String outputId, outputStatus status);
 
       void setLabelArming(char presetMode, String label);
    }

@@ -25,7 +25,7 @@ public class PanelStatus {
    public static final String ARMING_MODE_LABEL = "ARMING_MODE_LABEL";
    public static final String TROUBLES = "TROUBLES";
    private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
-   private connStatus connectionStatus;
+   private panelConnStatus connectionStatus;
    private globalArming globalArming;
    private String systemLabel;
    private ImmutableList<Integer> partitions;
@@ -42,7 +42,7 @@ public class PanelStatus {
    private final Map<Integer, String> armingModeLabels;
 
    public PanelStatus() {
-      this.connectionStatus = connStatus.DISCONNECTED;
+      this.connectionStatus = panelConnStatus.DISCONNECTED;
       this.partitionArmings = new HashMap<Integer, partitionArming>();
       this.partitionStatuses = new HashMap<Integer, partitionStatus>();
       this.partitionLabels = new HashMap<Integer, String>();
@@ -62,8 +62,8 @@ public class PanelStatus {
       this.changeSupport.removePropertyChangeListener(var1);
    }
 
-   void setConnectionStatus(connStatus newConnectionStatus) {
-      connStatus oldConnectionStatus;
+   void setConnectionStatus(panelConnStatus newConnectionStatus) {
+      panelConnStatus oldConnectionStatus;
       synchronized(this) {
          oldConnectionStatus = this.connectionStatus;
          this.connectionStatus = newConnectionStatus;
@@ -71,7 +71,7 @@ public class PanelStatus {
       this.changeSupport.firePropertyChange("CONNECTION_STATUS", oldConnectionStatus, newConnectionStatus);
    }
 
-   public synchronized connStatus getConnectionStatus() {
+   public synchronized panelConnStatus getConnectionStatus() {
       return this.connectionStatus;
    }
 
@@ -239,7 +239,7 @@ public class PanelStatus {
       return this.armingModeLabels.get(modeID);
    }
 
-   public static enum connStatus {
+   public static enum panelConnStatus {
       CONNECTED,
       DISCONNECTING,
       DISCONNECTED;

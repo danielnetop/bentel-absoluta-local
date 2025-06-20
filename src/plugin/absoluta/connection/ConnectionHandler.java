@@ -1,7 +1,10 @@
 package plugin.absoluta.connection;
 
-import cms.device.api.Panel;
 import cms.device.spi.AlertCallback;
+
+import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
+import plugin.absoluta.connection.PanelStatus.panelConnStatus;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
 import protocol.dsc.Endpoint;
@@ -32,7 +35,7 @@ public class ConnectionHandler {
    private MessageHandler messageHandler;
    private StatusReader statusReader;
    private Commander commander;
-   private Panel.ConnStatus connectionStatus;
+   private providerConnStatus connectionStatus;
    private boolean loggedIn;
    private boolean closing;
 
@@ -50,7 +53,7 @@ public class ConnectionHandler {
       }
    }
 
-   public synchronized Panel.ConnStatus waitConnection() throws InterruptedException {
+   public synchronized providerConnStatus waitConnection() throws InterruptedException {
       while(this.connectionStatus == null) {
          this.wait();
       }
@@ -63,7 +66,7 @@ public class ConnectionHandler {
    }
 
    public void disconnect() {
-      this.panelStatus.setConnectionStatus(PanelStatus.connStatus.DISCONNECTING);
+      this.panelStatus.setConnectionStatus(panelConnStatus.DISCONNECTING);
       this.endpoint.close();
    }
 
@@ -88,8 +91,8 @@ public class ConnectionHandler {
 
    void disconnected() {
       this.stop();
-      this.panelStatus.setConnectionStatus(PanelStatus.connStatus.DISCONNECTED);
-      this.setConnectionStatus(Panel.ConnStatus.UNREACHABLE);
+      this.panelStatus.setConnectionStatus(panelConnStatus.DISCONNECTED);
+      this.setConnectionStatus(providerConnStatus.UNREACHABLE);
    }
 
    private void stop() {
@@ -103,7 +106,7 @@ public class ConnectionHandler {
       }
    }
 
-   private synchronized void setConnectionStatus(Panel.ConnStatus var1) {
+   private synchronized void setConnectionStatus(providerConnStatus var1) {
       if (this.connectionStatus == null) {
          this.connectionStatus = var1;
          this.notifyAll();
@@ -154,8 +157,8 @@ public class ConnectionHandler {
       public void newValue(NewValue var1) {
          if (var1.isFor(Message.ENTER_ACCESS_LEVEL) && !ConnectionHandler.this.loggedIn) {
             ConnectionHandler.this.loggedIn = true;
-            ConnectionHandler.this.panelStatus.setConnectionStatus(PanelStatus.connStatus.CONNECTED);
-            ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.SUCCESS);
+            ConnectionHandler.this.panelStatus.setConnectionStatus(panelConnStatus.CONNECTED);
+            ConnectionHandler.this.setConnectionStatus(providerConnStatus.SUCCESS);
             ConnectionHandler.this.statusReader.startWaitingForNotificationsAfterLogin();
             ConnectionHandler.this.endpoint.setSessionActive(true);
          }
@@ -164,9 +167,9 @@ public class ConnectionHandler {
       public void error(DscError var1) {
          if (var1.isFor(Message.ENTER_ACCESS_LEVEL)) {
             if (var1.getResponseCode() == INVALID_ACCESS_CODE) {
-               ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.UNAUTHORIZED);
+               ConnectionHandler.this.setConnectionStatus(providerConnStatus.UNAUTHORIZED);
             } else {
-               ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.INCOMPATIBLE);
+               ConnectionHandler.this.setConnectionStatus(providerConnStatus.INCOMPATIBLE);
             }
             ConnectionHandler.this.stop();
          }

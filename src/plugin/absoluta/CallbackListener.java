@@ -1,6 +1,7 @@
 package plugin.absoluta;
 
 import cms.device.spi.PanelProvider.PanelCallback;
+
 import plugin.absoluta.connection.CustomizedArmingModes;
 import plugin.absoluta.connection.PanelStatus;
 
@@ -63,7 +64,7 @@ class CallbackListener implements PropertyChangeListener {
             String propertyName = property.getPropertyName();
             switch(propertyName) {
                case "CONNECTION_STATUS":
-                  if (PanelStatus.connStatus.CONNECTED == property.getOldValue() && PanelStatus.connStatus.DISCONNECTED == property.getNewValue()) {
+                  if (PanelStatus.panelConnStatus.CONNECTED == property.getOldValue() && PanelStatus.panelConnStatus.DISCONNECTED == property.getNewValue()) {
                      this.callback.connectionLost();
                   }
                   break;
