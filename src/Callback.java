@@ -448,15 +448,22 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
+            safePublish(this.partitionTopics[idArray], "disarming", QOS, false, "transitorio partizione" + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.DISARMED);
             return;
          case "ARM_HOME":
+            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.STAY);
             return;
          case "ARM_AWAY":
+            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.AWAY);
             return;
          case "ARM_NIGHT":
+            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.NODELAY);
             return;
          default:
@@ -468,9 +475,11 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
+               safePublish(this.partitionTopics[0], "disarming", QOS, false, "transitorio globale"); 
                this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_DISARMED);
                return;
             case "ARM_AWAY":
+               safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale");
                this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_ARMED);
                return;
             default:
@@ -482,15 +491,19 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per modalità: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "MODE_A" :
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità A");
             this.provider.setModeArming('A');
             return;
          case "MODE_B" :
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità B");
             this.provider.setModeArming('B');
             return;
          case "MODE_C" :
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità C");
             this.provider.setModeArming('C');
             return;
          case "MODE_D" :
+            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità D");
             this.provider.setModeArming('D');
             return;
          default:
