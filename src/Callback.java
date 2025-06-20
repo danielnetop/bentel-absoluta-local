@@ -326,7 +326,6 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       } else {
          str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
       }
-            this.mqttDispatcher.publishString(this.partitionTopics[partitionID], str, QOS, false);
       safePublish(this.partitionTopics[partitionID], str, QOS, false, "stato partizione");
       logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
