@@ -1,4 +1,4 @@
-package cms.device.api;
+package absoluta.api;
 
 public interface AlertListener {
    void alertEventReceived(AlertEvent event);

@@ -1,6 +1,5 @@
-package plugin.absoluta.connection;
+package absoluta.connection;
 
-import cms.device.spi.AlertCallback;
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.MessageListener;
@@ -9,6 +8,8 @@ import protocol.dsc.NewValue;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.openide.util.NbBundle;
+
+import absoluta.spi.AlertCallback;
 
 import java.util.logging.Logger;
 

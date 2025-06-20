@@ -10,13 +10,7 @@ javac --release 21 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.t
 jar cf secured/protocol.jar -C build/protocol .
 rm protocol_sources.txt
 
-# 3. Compila e crea cms.jar
-find src/cms -name "*.java" > cms_sources.txt
-javac --release 21 -cp "lib/jars/*:secured/*" -d build @cms_sources.txt
-jar cf secured/cms.jar -C build/cms .
-rm cms_sources.txt
-
-# 4. Compila e crea plugin.jar
+# 3. Compila e crea plugin.jar
 find src/plugin -name "*.java" > plugin_sources.txt
 javac --release 21 -cp "lib/jars/*:secured/*:build" -d build @plugin_sources.txt
 jar cf secured/plugin.jar -C build/plugin .

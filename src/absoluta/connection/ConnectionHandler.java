@@ -1,7 +1,5 @@
-package plugin.absoluta.connection;
+package absoluta.connection;
 
-import cms.device.api.Panel;
-import cms.device.spi.AlertCallback;
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
 import protocol.dsc.Endpoint;
@@ -19,6 +17,10 @@ import java.util.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
 
+import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.connection.PanelStatus.PanelConnStatus;
+import absoluta.spi.AlertCallback;
+
 public class ConnectionHandler {
    private static final Logger logger = Logger.getLogger(ConnectionHandler.class.getName());
    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^[0-9]{1,6}$");
@@ -32,7 +34,7 @@ public class ConnectionHandler {
    private MessageHandler messageHandler;
    private StatusReader statusReader;
    private Commander commander;
-   private Panel.ConnStatus connectionStatus;
+   private providerConnStatus connectionStatus;
    private boolean loggedIn;
    private boolean closing;
 
@@ -50,7 +52,7 @@ public class ConnectionHandler {
       }
    }
 
-   public synchronized Panel.ConnStatus waitConnection() throws InterruptedException {
+   public synchronized providerConnStatus waitConnection() throws InterruptedException {
       while(this.connectionStatus == null) {
          this.wait();
       }
@@ -63,7 +65,7 @@ public class ConnectionHandler {
    }
 
    public void disconnect() {
-      this.panelStatus.setConnectionStatus(PanelStatus.ConnectionStatus.DISCONNECTING);
+      this.panelStatus.updateConnectionStatus(PanelConnStatus.DISCONNECTING);
       this.endpoint.close();
    }
 
@@ -88,8 +90,8 @@ public class ConnectionHandler {
 
    void disconnected() {
       this.stop();
-      this.panelStatus.setConnectionStatus(PanelStatus.ConnectionStatus.DISCONNECTED);
-      this.setConnectionStatus(Panel.ConnStatus.UNREACHABLE);
+      this.panelStatus.updateConnectionStatus(PanelConnStatus.DISCONNECTED);
+      this.setConnectionStatus(providerConnStatus.UNREACHABLE);
    }
 
    private void stop() {
@@ -103,7 +105,7 @@ public class ConnectionHandler {
       }
    }
 
-   private synchronized void setConnectionStatus(Panel.ConnStatus var1) {
+   private synchronized void setConnectionStatus(providerConnStatus var1) {
       if (this.connectionStatus == null) {
          this.connectionStatus = var1;
          this.notifyAll();
@@ -154,8 +156,8 @@ public class ConnectionHandler {
       public void newValue(NewValue var1) {
          if (var1.isFor(Message.ENTER_ACCESS_LEVEL) && !ConnectionHandler.this.loggedIn) {
             ConnectionHandler.this.loggedIn = true;
-            ConnectionHandler.this.panelStatus.setConnectionStatus(PanelStatus.ConnectionStatus.CONNECTED);
-            ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.SUCCESS);
+            ConnectionHandler.this.panelStatus.updateConnectionStatus(PanelConnStatus.CONNECTED);
+            ConnectionHandler.this.setConnectionStatus(providerConnStatus.SUCCESS);
             ConnectionHandler.this.statusReader.startWaitingForNotificationsAfterLogin();
             ConnectionHandler.this.endpoint.setSessionActive(true);
          }
@@ -164,9 +166,9 @@ public class ConnectionHandler {
       public void error(DscError var1) {
          if (var1.isFor(Message.ENTER_ACCESS_LEVEL)) {
             if (var1.getResponseCode() == INVALID_ACCESS_CODE) {
-               ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.UNAUTHORIZED);
+               ConnectionHandler.this.setConnectionStatus(providerConnStatus.UNAUTHORIZED);
             } else {
-               ConnectionHandler.this.setConnectionStatus(Panel.ConnStatus.INCOMPATIBLE);
+               ConnectionHandler.this.setConnectionStatus(providerConnStatus.INCOMPATIBLE);
             }
             ConnectionHandler.this.stop();
          }

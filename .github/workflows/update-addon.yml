@@ -28,19 +28,13 @@ jobs:
           javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.txt
           jar cf secured/protocol.jar -C build/protocol .
           rm protocol_sources.txt
-          
-          # Compila e crea cms.jar
-          find src/cms -name "*.java" > cms_sources.txt
-          javac --release 19 -cp "lib/jars/*:secured/*" -d build @cms_sources.txt
-          jar cf secured/cms.jar -C build/cms .
-          rm cms_sources.txt
-          
+
           # Compila e crea plugin.jar
           find src/plugin -name "*.java" > plugin_sources.txt
           javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @plugin_sources.txt
           jar cf secured/plugin.jar -C build/plugin .
           rm plugin_sources.txt
-          
+
       - name: Build app.jar
         run: |
           mkdir -p build
@@ -61,6 +55,17 @@ jobs:
         run: |
           cp secured/*.jar absoluta-local-addon/absoluta_local/secured/
           cp build/app.jar absoluta-local-addon/absoluta_local/app.jar
+
+      - name: Update config.yaml version
+        run: |
+          VERSION=$(grep 'VERSION = ' src/Application.java | sed -E 's/.*\"([^"]+)\".*/\1/')
+          CONFIG_FILE="absoluta-local-addon/absoluta_local/config.yaml"
+          if [ -f "$CONFIG_FILE" ]; then
+            # Aggiorna la chiave version nel file YAML
+            sed -i "s/^version: .*/version: '$VERSION'/" "$CONFIG_FILE"
+          else
+            echo "Attenzione: $CONFIG_FILE non trovato!"
+          fi
 
       - name: Commit and Push to Repo Addon
         run: |

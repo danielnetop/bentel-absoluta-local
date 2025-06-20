@@ -8,7 +8,7 @@ public class HomeAssistantManager {
             "\"model\": \"Absoluta\"" +
         "}";
 
-    public static String buildPartition(String partitionID, String partitionName) {
+    public static String buildPartition(int partitionID, String partitionName) {
         return "{" +
             "\"name\": \"" + partitionName + "\"," +
             "\"state_topic\": \"ABS/partition/" + partitionID + "\"," +
@@ -23,7 +23,7 @@ public class HomeAssistantManager {
         "}";
     }
 
-    public static String buildSensor(String sensorID, String sensorName) {
+    public static String buildSensor(int sensorID, String sensorName) {
         return "{" +
             "\"name\": \"" + sensorName + "\"," +
             "\"state_topic\": \"ABS/sensor/" + sensorID + "\"," +
@@ -33,7 +33,7 @@ public class HomeAssistantManager {
         "}";
     }
 
-    public static String buildSensorBypass(String sensorID, String sensorName) {
+    public static String buildSensorBypass(int sensorID, String sensorName) {
         return "{" +
             "\"name\": \"" + sensorName + " Bypass\"," +
             "\"state_topic\": \"ABS/sensor/" + sensorID + "_bypass\"," +
