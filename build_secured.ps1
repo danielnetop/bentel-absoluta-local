@@ -11,6 +11,5 @@ javac --release 19 -cp "lib/jars/*;secured/*" -d build $allJava
 
 # 3. Crea i JAR
 jar cf secured/protocol.jar -C build/protocol .
-jar cf secured/plugin.jar -C build/plugin .
 
 Write-Host "Compilazione e creazione dei JAR in secured/ completata."

@@ -6,13 +6,13 @@ mkdir -p build
 
 # 2. Compila e crea protocol.jar
 find src/protocol -name "*.java" > protocol_sources.txt
-javac --release 21 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.txt
+javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.txt
 jar cf secured/protocol.jar -C build/protocol .
 rm protocol_sources.txt
 
 # 3. Compila e crea plugin.jar
 find src/plugin -name "*.java" > plugin_sources.txt
-javac --release 21 -cp "lib/jars/*:secured/*:build" -d build @plugin_sources.txt
+javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @plugin_sources.txt
 jar cf secured/plugin.jar -C build/plugin .
 rm plugin_sources.txt
 
