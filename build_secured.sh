@@ -10,10 +10,10 @@ javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.t
 jar cf secured/protocol.jar -C build/protocol .
 rm protocol_sources.txt
 
-# 3. Compila e crea plugin.jar
-find src/plugin -name "*.java" > plugin_sources.txt
-javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @plugin_sources.txt
-jar cf secured/plugin.jar -C build/plugin .
-rm plugin_sources.txt
+# 3. Compila e crea absoluta.jar
+find src/absoluta -name "*.java" > absoluta_sources.txt
+javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @absoluta_sources.txt
+jar cf secured/absoluta.jar -C build/absoluta .
+rm absoluta_sources.txt
 
 echo "Compilazione e creazione dei JAR in secured/ completata."
