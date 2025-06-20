@@ -56,4 +56,15 @@ public class HomeAssistantManager {
             DEVICE_JSON +
         "}";
     }
+
+    public static String buildResetErrors() {
+        return "{" +
+            "\"name\": \"Resetta Guasti e Sabotaggi\"," +
+            "\"state_topic\": \"ABS/reset_errors\"," +
+            "\"unique_id\": \"absoluta_reset_errors\"," +
+            "\"command_topic\": \"ABS/reset_errors/set\"," +
+            "\"payload_press\": \"RESET_ERRORS\"," +
+            DEVICE_JSON +
+        "}";
+    }
 }

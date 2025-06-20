@@ -97,7 +97,7 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    // Pulisce le segnalazioni di guasto
-   void cleanTroubles() {
+   public void cleanTroubles() {
       this.connectionHandler.getCommander().cleanTroubles();
    }
 

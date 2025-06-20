@@ -113,6 +113,12 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          String payload = HomeAssistantManager.buildPartition(0, partitionNames[0]);
          safePublish(topic, payload, QOS, true, "discovery partizione globale");
          partitionDiscoverySent.add(0);
+
+         // Invia discovery per pulsante reset errors
+         topic = "homeassistant/button/absoluta_reset_errors/config";
+         payload = HomeAssistantManager.buildResetErrors();
+         safePublish(topic, payload, QOS, true, "discovery reset errors");
+
          // Subscribe al topic di homeassistant
          try {
             this.mqttClient.subscribe("homeassistant/status");
@@ -433,7 +439,14 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
             }
          } else if (parentTopic.contains("mode")) {
             this.commandMode(msg);
-         }
+         } else if (parentTopic.contains("reset_errors")) {
+            if (msg.toString().equals("RESET_ERRORS")) {
+               logger.info("Resetting errors...");
+               this.provider.cleanTroubles();
+            } else {
+               logger.warning("Comando " + msg.toString() + " non valido per il topic: " + topic);
+            }
+         }  
       } else if (topic.equals("homeassistant/status")) {
          if(msg.toString().equals("online")){
             commandOnline();
