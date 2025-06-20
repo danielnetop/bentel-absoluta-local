@@ -56,6 +56,17 @@ jobs:
           cp secured/*.jar absoluta-local-addon/absoluta_local/secured/
           cp build/app.jar absoluta-local-addon/absoluta_local/app.jar
 
+      - name: Update config.yaml version
+        run: |
+          VERSION=$(grep 'VERSION = ' src/Application.java | sed -E 's/.*\"([^"]+)\".*/\1/')
+          CONFIG_FILE="absoluta-local-addon/absoluta_local/config.yaml"
+          if [ -f "$CONFIG_FILE" ]; then
+            # Aggiorna la chiave version nel file YAML
+            sed -i "s/^version: .*/version: '$VERSION'/" "$CONFIG_FILE"
+          else
+            echo "Attenzione: $CONFIG_FILE non trovato!"
+          fi
+
       - name: Commit and Push to Repo Addon
         run: |
           cd absoluta-local-addon
