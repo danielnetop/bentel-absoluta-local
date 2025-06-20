@@ -38,8 +38,10 @@ class CallbackListener implements PropertyChangeListener {
                   this.callback.updatePartitionName(indexProperty, this.panelStatus.getPartitionLabel(indexProperty));
                   break;
                case "ZONE_STATUS":
-               case "ZONE_BYPASS":
                   this.callback.updateZoneStatus(indexProperty, this.panelStatus.getZoneStatus(indexProperty));
+                  break;
+               case "ZONE_BYPASS":
+                  this.callback.updateZoneBypass(indexProperty, this.panelStatus.getZoneBypass(indexProperty));
                   break;
                case "ZONE_LABEL":
                   this.callback.updateZoneName(indexProperty, this.panelStatus.getZoneLabel(indexProperty));

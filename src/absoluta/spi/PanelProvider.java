@@ -23,8 +23,6 @@ public interface PanelProvider {
 
    void setZoneBypass(int zoneID, boolean setBypassed);
 
-   boolean getZoneBypass(int zoneID);
-
    void setOutput(int outputId, OutputAction action);
 
    boolean armingSupport(char presetMode);
@@ -49,6 +47,8 @@ public interface PanelProvider {
       void updateZoneName(int zoneId, String name);
 
       void updateZoneStatus(int zoneId, InputStatus status);
+
+      void updateZoneBypass(int zoneId, boolean bypass);
 
       void tagZoneIntoPartition(int partitionId, List<Integer> zones);
 

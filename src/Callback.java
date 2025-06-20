@@ -200,7 +200,16 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          this.sensorStatuses[zoneId] = "On";
       }
 
-      if (this.provider.getZoneBypass(zoneId)) {
+      this.sendMessageOnUpdateZoneStatus(zoneId);
+   }
+
+   public void updateZoneBypass(int zoneId, boolean bypass) {
+      if (zoneId < 0 || zoneId >= sensorStatuses.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
+         return;
+      }
+
+      if (bypass) {
          this.sensorBypass[zoneId] = "ON";
       } else {
          this.sensorBypass[zoneId] = "OFF";

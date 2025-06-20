@@ -83,11 +83,6 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public boolean getZoneBypass(int zoneId) {
-      return this.panelStatus.getZoneBypass(zoneId);
-   }
-
-   @Override
    public void setOutput(int outputId, PanelStatus.OutputAction action) {
       switch (action) {
          case DO_CLOSE:
