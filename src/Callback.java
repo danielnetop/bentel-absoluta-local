@@ -17,9 +17,9 @@ import java.util.logging.Logger;
 class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private static final Logger logger = Logger.getLogger(Callback.class.getName());
    private MqttClient mqttClient;
-   private int[] sensorIDs;
+   private int[] zoneIds;
    private int[] partitionIDs;
-   private String[] sensorNames;
+   private String[] zoneNames;
    private String[] partitionNames;
    private String[] sensorStatuses;
    private String[] sensorBypass;
@@ -70,25 +70,25 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    public void alert(String var1) {
    }
 
-   public void changeInputs(List<Integer> inputs) {
-      this.sensorIDs = new int[inputs.size()];
+   public void getAllZones(List<Integer> zones) {
+      this.zoneIds = new int[zones.size()];
       int maxId = 0;
-      for (int i = 0; i < inputs.size(); i++) {
-         int id = inputs.get(i);
-         this.sensorIDs[i] = id;
+      for (int i = 0; i < zones.size(); i++) {
+         int id = zones.get(i);
+         this.zoneIds[i] = id;
          if (id > maxId) maxId = id;
       }
-      this.sensorNames = new String[maxId + 1];
+      this.zoneNames = new String[maxId + 1];
       this.sensorTopics = new String[maxId + 1];
       this.sensorStatuses = new String[maxId + 1];
       this.sensorBypass = new String[maxId + 1];
-      logger.fine("Sensore ID: " + inputs);
+      logger.fine("Sensore ID: " + zones);
    }
 
-   public void changeOutputs(List<Integer> outputs) {
+   public void getAllOutputs(List<Integer> outputs) {
    }
 
-   public void changePartitions(List<Integer> partitions) {
+   public void getAllPartitions(List<Integer> partitions) {
       /*
       Riceve come informazione quante partizioni ha il sistema
       e crea gli array per i nomi, i topic e gli stati delle partizioni.
@@ -135,7 +135,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partizione ID: " + String.valueOf(partitions));
    }
 
-   public void setArming(PanelStatus.GlobalArming actArming) {
+   public void updateGlobalArming(PanelStatus.GlobalArming actArming) {
       if (actArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
          this.partitionArmStatuses[0] = "disarmed";
       } else if (actArming == PanelStatus.GlobalArming.GLOBALLY_ARMED) {
@@ -143,10 +143,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       } else if (actArming == PanelStatus.GlobalArming.PARTIALLY_ARMED) {
          this.partitionArmStatuses[0] = "armed_custom_bypass";
       }
-      this.sendMessageOnsetArming();
+      this.sendMessageOnUpdateGlobalArming();
    }
 
-   public void sendMessageOnsetArming() {
+   public void sendMessageOnUpdateGlobalArming() {
       String str = "";
       if(discoveryEnabled){
          if (this.partitionArmStatuses[0] == null) {
@@ -161,77 +161,77 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0]);
    }
 
-   public void setInputRemoteName(int sensorID, String sensorName) {
-      if (sensorID < 0 || sensorID >= sensorNames.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + sensorID);
+   public void updateZoneName(int zoneId, String zoneName) {
+      if (zoneId < 0 || zoneId >= zoneNames.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
          return;
       }
-      this.sensorNames[sensorID] = sensorName;
-      this.sensorTopics[sensorID] = "ABS/sensor/" + sensorID;
+      this.zoneNames[zoneId] = zoneName;
+      this.sensorTopics[zoneId] = "ABS/sensor/" + zoneId;
       // Invia discovery solo la prima volta per ogni sensore
-      if (discoveryEnabled && !sensorDiscoverySent.contains(sensorID)) {
-         String topic = "homeassistant/binary_sensor/absoluta_sensor_" + sensorID + "/config";
-         String payload = HomeAssistantManager.buildSensor(sensorID, sensorNames[sensorID]);
+      if (discoveryEnabled && !sensorDiscoverySent.contains(zoneId)) {
+         String topic = "homeassistant/binary_sensor/absoluta_sensor_" + zoneId + "/config";
+         String payload = HomeAssistantManager.buildSensor(zoneId, zoneNames[zoneId]);
          safePublish(topic, payload, QOS, true, "discovery sensore");
-         sensorDiscoverySent.add(sensorID);
+         sensorDiscoverySent.add(zoneId);
 
-         topic = "homeassistant/switch/absoluta_sensor_" + sensorID + "_bypass/config";
-         payload = HomeAssistantManager.buildSensorBypass(sensorID, sensorNames[sensorID]);
+         topic = "homeassistant/switch/absoluta_sensor_" + zoneId + "_bypass/config";
+         payload = HomeAssistantManager.buildSensorBypass(zoneId, zoneNames[zoneId]);
          safePublish(topic, payload, QOS, true, "discovery sensore Bypass");
       }
       String str = "";
       if(discoveryEnabled){
-         str = (this.sensorStatuses[sensorID] == null) ? "OFF" : this.sensorStatuses[sensorID].toUpperCase();
+         str = (this.sensorStatuses[zoneId] == null) ? "OFF" : this.sensorStatuses[zoneId].toUpperCase();
       } else {
-         str = "Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID];
+         str = "Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId];
       }
-      safePublish(this.sensorTopics[sensorID], str, QOS, false, "stato sensore");
-      logger.fine("Sensor Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID]);
+      safePublish(this.sensorTopics[zoneId], str, QOS, false, "stato sensore");
+      logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
    }
 
-   public void setInputStatus(int sensorID, PanelStatus.InputStatus sensorStatus) {
-      if (sensorID < 0 || sensorID >= sensorStatuses.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + sensorID);
+   public void updateZoneStatus(int zoneId, PanelStatus.InputStatus zoneStatus) {
+      if (zoneId < 0 || zoneId >= sensorStatuses.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
          return;
       }
-      if (sensorStatus != PanelStatus.InputStatus.ACTIVE && sensorStatus != PanelStatus.InputStatus.ALARM) {
-         this.sensorStatuses[sensorID] = "Off";
+      if (zoneStatus != PanelStatus.InputStatus.ACTIVE && zoneStatus != PanelStatus.InputStatus.ALARM) {
+         this.sensorStatuses[zoneId] = "Off";
       } else {
-         this.sensorStatuses[sensorID] = "On";
+         this.sensorStatuses[zoneId] = "On";
       }
 
-      if (this.provider.getBypassed(sensorID)) {
-         this.sensorBypass[sensorID] = "ON";
+      if (this.provider.getZoneBypass(zoneId)) {
+         this.sensorBypass[zoneId] = "ON";
       } else {
-         this.sensorBypass[sensorID] = "OFF";
+         this.sensorBypass[zoneId] = "OFF";
       }
 
-      this.sendMessageOnsetInputStatus(sensorID);
+      this.sendMessageOnUpdateZoneStatus(zoneId);
    }
 
-   public void sendMessageOnsetInputStatus(int sensorID) {
-      if (sensorID < 0 || sensorID >= sensorNames.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + sensorID);
+   public void sendMessageOnUpdateZoneStatus(int zoneId) {
+      if (zoneId < 0 || zoneId >= zoneNames.length) {
+         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
          return;
       }
-      if (this.sensorNames[sensorID] == null) {
-         logger.fine("Nome sensore nullo: " + sensorID + ", non invio stato.");
+      if (this.zoneNames[zoneId] == null) {
+         logger.fine("Nome sensore nullo: " + zoneId + ", non invio stato.");
          return;
       }
       String str = "";
       if(discoveryEnabled){
-         String topic = "ABS/sensor/" + sensorID + "_bypass";
-         str = (this.sensorBypass[sensorID] == null) ? "OFF" : this.sensorBypass[sensorID].toUpperCase();
+         String topic = "ABS/sensor/" + zoneId + "_bypass";
+         str = (this.sensorBypass[zoneId] == null) ? "OFF" : this.sensorBypass[zoneId].toUpperCase();
          safePublish(topic, str, QOS, false, "bypass sensore");
-         str = (this.sensorStatuses[sensorID] == null) ? "OFF" : this.sensorStatuses[sensorID].toUpperCase();
+         str = (this.sensorStatuses[zoneId] == null) ? "OFF" : this.sensorStatuses[zoneId].toUpperCase();
       } else {
-         str = "Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID];
+         str = "Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId];
       }
-      safePublish(this.sensorTopics[sensorID], str, QOS, false, "stato sensore");
-      logger.fine("Sensor Name: " + this.sensorNames[sensorID] + " Status: " + this.sensorStatuses[sensorID] + " Bypass: " + this.sensorBypass[sensorID]);
+      safePublish(this.sensorTopics[zoneId], str, QOS, false, "stato sensore");
+      logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
    }
 
-   public void setLabelArming(char modeChar, String modeLabel) {
+   public void updateModeLabel(char modeChar, String modeLabel) {
       int modeIDInt = -1;
       switch (modeChar) {
          case 'A':
@@ -276,13 +276,13 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       }
    }
 
-   public void setOutputRemoteName(int outputID, String outputName) {
+   public void updateOutputName(int outputID, String name) {
    }
 
-   public void setOutputStatus(int outputID, PanelStatus.OutputStatus status) {
+   public void updateOutputStatus(int outputID, PanelStatus.OutputStatus status) {
    }
 
-   public void setPartitionArming(int partitionID, PanelStatus.PartitionArming actArming) {
+   public void updatePartitionArming(int partitionID, PanelStatus.PartitionArming actArming) {
       if (partitionID < 0 || partitionID >= partitionArmStatuses.length) {
          logger.warning("Indice partizione fuori dai limiti: " + partitionID);
          return;
@@ -299,10 +299,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          this.partitionArmStatuses[partitionID] = "triggered";
       }
 
-      this.sendMessageOnsetPartitionArming(partitionID);
+      this.sendMessageOnUpdatePartitionArming(partitionID);
    }
 
-   public void sendMessageOnsetPartitionArming(int partitionID) {
+   public void sendMessageOnUpdatePartitionArming(int partitionID) {
       if (partitionID < 0 || partitionID >= partitionNames.length || this.partitionNames[partitionID] == null) {
          logger.warning("Indice partizione fuori dai limiti o nome nullo: " + partitionID);
          return;
@@ -322,7 +322,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
 
-   public void setPartitionRemoteName(int partitionID, String partitionName) {
+   public void updatePartitionName(int partitionID, String name) {
       // Controlla se l'array è sufficientemente grande per contenere la partizione
       if (partitionID >= partitionNames.length) {
          int newSize = partitionID + 1;
@@ -331,12 +331,12 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          partitionArmStatuses = java.util.Arrays.copyOf(partitionArmStatuses, newSize);
          partitionStatuses = java.util.Arrays.copyOf(partitionStatuses, newSize);
       }
-      this.partitionNames[partitionID] = partitionName;
+      this.partitionNames[partitionID] = name;
       this.partitionTopics[partitionID] = "ABS/partition/" + partitionID;
       // Invia discovery solo la prima volta per ogni partizione
       if (discoveryEnabled && !partitionDiscoverySent.contains(partitionID)  && partitionID > 0) {
          String topic = "homeassistant/alarm_control_panel/absoluta_partition_" + partitionID + "/config";
-         String payload = HomeAssistantManager.buildPartition(partitionID, partitionName);
+         String payload = HomeAssistantManager.buildPartition(partitionID, name);
          safePublish(topic, payload, QOS, true, "discovery partizione");
          partitionDiscoverySent.add(partitionID);
       }
@@ -355,7 +355,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
 
-   public void setPartitionStatus(int partitionID, PanelStatus.PartitionStatus actStatus) {
+   public void updatePartitionStatus(int partitionID, PanelStatus.PartitionStatus actStatus) {
       if (partitionID < 0 || partitionID >= partitionStatuses.length) {
          logger.warning("Indice partizione fuori dai limiti: " + partitionID);
          return;
@@ -393,7 +393,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
    }
 
-   public void tagInputIntoPartition(int input, List<Integer> partitions) {
+   public void tagZoneIntoPartition(int partitionId, List<Integer> zones) {
    }
 
    // Smistamento dei comandi ricevuti via MQTT
@@ -415,8 +415,8 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
             }
          } else if (ArrayUtils.contains(this.sensorTopics, parentTopic)) {
             int idSensor = ArrayUtils.indexOf(this.sensorTopics, parentTopic);
-            int idArray = ArrayUtils.indexOf(this.sensorIDs, idSensor);
-            if (idArray >= 0 && idArray < this.sensorIDs.length) {
+            int idArray = ArrayUtils.indexOf(this.zoneIds, idSensor);
+            if (idArray >= 0 && idArray < this.zoneIds.length) {
                // Se sensore
                this.commandSensor(idArray, msg);
             } else {
@@ -440,16 +440,16 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
-            this.provider.PartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.DISARMED);
+            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.DISARMED);
             return;
          case "ARM_HOME":
-            this.provider.PartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.STAY);
+            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.STAY);
             return;
          case "ARM_AWAY":
-            this.provider.PartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.AWAY);
+            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.AWAY);
             return;
          case "ARM_NIGHT":
-            this.provider.PartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.NODELAY);
+            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.NODELAY);
             return;
          default:
             logger.warning("Comando " + msg.toString() + " non valido");
@@ -460,10 +460,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
-               this.provider.arming(PanelStatus.GlobalArming.GLOBALLY_DISARMED);
+               this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_DISARMED);
                return;
             case "ARM_AWAY":
-               this.provider.arming(PanelStatus.GlobalArming.GLOBALLY_ARMED);
+               this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_ARMED);
                return;
             default:
                logger.warning("Comando " + msg.toString() + " non valido");
@@ -474,16 +474,16 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per modalità: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "MODE_A" :
-            this.provider.armingSet('A');
+            this.provider.setModeArming('A');
             return;
          case "MODE_B" :
-            this.provider.armingSet('B');
+            this.provider.setModeArming('B');
             return;
          case "MODE_C" :
-            this.provider.armingSet('C');
+            this.provider.setModeArming('C');
             return;
          case "MODE_D" :
-            this.provider.armingSet('D');
+            this.provider.setModeArming('D');
             return;
          default:
             logger.warning("Comando " + msg.toString() + " non valido");
@@ -492,9 +492,9 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
 
    private void commandSensor(int idArray, MqttMessage msg) {
       if(msg.toString().equals("ON")) {
-         this.provider.setBypassed(this.sensorIDs[idArray], true);
+         this.provider.setZoneBypass(this.zoneIds[idArray], true);
       } else if(msg.toString().equals("OFF")){
-         this.provider.setBypassed(this.sensorIDs[idArray], false);
+         this.provider.setZoneBypass(this.zoneIds[idArray], false);
       } else {
          logger.warning("Comando " + msg.toString() + " non valido per il sensore ID: " + idArray);
       }
@@ -507,21 +507,21 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per Home Assistant online");
       // Stato globale (centrale)
       if (this.partitionArmStatuses != null && this.partitionArmStatuses.length > 0) {
-         this.sendMessageOnsetArming();
+         this.sendMessageOnUpdateGlobalArming();
       }
       // Stati partizioni
       if (this.partitionIDs != null) {
          for (int i = 1; i < this.partitionIDs.length; i++) {
             if (this.partitionArmStatuses != null && this.partitionArmStatuses[i] != null) {
-               this.sendMessageOnsetPartitionArming(this.partitionIDs[i]);
+               this.sendMessageOnUpdatePartitionArming(this.partitionIDs[i]);
             }
          }
       }
       // Stati sensori
-      if (this.sensorIDs != null) {
-         for (int i = 0; i < this.sensorIDs.length; i++) {
-            if (this.sensorStatuses != null && this.sensorStatuses[this.sensorIDs[i]] != null) {
-               this.sendMessageOnsetInputStatus(this.sensorIDs[i]);
+      if (this.zoneIds != null) {
+         for (int i = 0; i < this.zoneIds.length; i++) {
+            if (this.sensorStatuses != null && this.sensorStatuses[this.zoneIds[i]] != null) {
+               this.sendMessageOnUpdateZoneStatus(this.zoneIds[i]);
             }
          }
       }

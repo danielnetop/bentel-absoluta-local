@@ -77,7 +77,7 @@ public class Commander {
       Boolean currentBypassed = panelStatus.getZoneBypass(zoneID);
       if (currentBypassed == null || currentBypassed != setBypassed) {
          logger.fine("Setting zone " + zoneID + " bypass to " + setBypassed);
-         panelStatus.setZoneBypass(zoneID, setBypassed);
+         panelStatus.updateZoneBypass(zoneID, setBypassed);
          this.messageHandler.sendCommand(Message.SINGLE_ZONE_BYPASS_WRITE, Triplet.with((Integer)null, zoneID, setBypassed));
       } else {
          logger.fine("Zone " + zoneID + " bypass already " + setBypassed + ", skipping command.");

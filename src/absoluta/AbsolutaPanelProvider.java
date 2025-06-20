@@ -58,12 +58,12 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public void arming(PanelStatus.GlobalArming armingMode) {
+   public void setGlobalArming(PanelStatus.GlobalArming armingMode) {
       this.connectionHandler.getCommander().arming(armingMode);
    }
 
    @Override
-   public void PartitionArming(int partitionId, PanelStatus.PartitionArming armingMode) {
+   public void setPartitionArming(int partitionId, PanelStatus.PartitionArming armingMode) {
       this.connectionHandler.getCommander().partitionArming(partitionId, armingMode);
    }
 
@@ -73,22 +73,22 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public void armingSet(char presetMode) {
+   public void setModeArming(char presetMode) {
       this.connectionHandler.getCommander().armingSet(presetMode);
    }
 
    @Override
-   public void setBypassed(int zoneId, boolean setBypassed) {
+   public void setZoneBypass(int zoneId, boolean setBypassed) {
       this.connectionHandler.getCommander().setBypassed(zoneId, setBypassed);
    }
 
    @Override
-   public boolean getBypassed(int zoneId) {
+   public boolean getZoneBypass(int zoneId) {
       return this.panelStatus.getZoneBypass(zoneId);
    }
 
    @Override
-   public void doOutputAction(int outputId, PanelStatus.OutputAction action) {
+   public void setOutput(int outputId, PanelStatus.OutputAction action) {
       switch (action) {
          case DO_CLOSE:
                this.connectionHandler.getCommander().setOutput(outputId, true);

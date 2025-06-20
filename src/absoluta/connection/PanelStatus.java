@@ -68,7 +68,7 @@ public class PanelStatus {
    }
 
    // Stato connessione pannello
-   void setConnectionStatus(PanelConnStatus newStatus) {
+   void updateConnectionStatus(PanelConnStatus newStatus) {
       PanelConnStatus oldStatus;
       synchronized (this) {
          oldStatus = this.connectionStatus;
@@ -82,7 +82,7 @@ public class PanelStatus {
    }
 
    // Stato armamento globale
-   void setGlobalArming(GlobalArming newMode) {
+   void updateGlobalArming(GlobalArming newMode) {
       GlobalArming oldMode = this.globalArming;
       this.globalArming = newMode;
       this.changeSupport.firePropertyChange(GLOBAL_ARMING, oldMode, newMode);
@@ -92,7 +92,7 @@ public class PanelStatus {
       return this.globalArming;
    }
 
-   void setSystemLabel(String newLabel) {
+   void updateSystemLabel(String newLabel) {
       String oldLabel = this.systemLabel;
       this.systemLabel = newLabel;
       this.changeSupport.firePropertyChange(SYSTEM_LABEL, oldLabel, newLabel);
@@ -102,7 +102,7 @@ public class PanelStatus {
       return this.systemLabel;
    }
 
-   void setPartitions(ImmutableList<Integer> partitions) {
+   void updatePartitions(ImmutableList<Integer> partitions) {
       ImmutableList<Integer> oldPartitions = this.partitions;
       this.partitions = partitions;
       this.changeSupport.firePropertyChange(PARTITIONS, oldPartitions, partitions);
@@ -112,7 +112,7 @@ public class PanelStatus {
       return this.partitions;
    }
 
-   void setZones(ImmutableList<Integer> zones) {
+   void updateZones(ImmutableList<Integer> zones) {
       ImmutableList<Integer> oldZones = this.zones;
       this.zones = zones;
       this.changeSupport.firePropertyChange(ZONES, oldZones, zones);
@@ -122,7 +122,7 @@ public class PanelStatus {
       return this.zones;
    }
 
-   void setOutputs(ImmutableList<Integer> outputs) {
+   void updateOutputs(ImmutableList<Integer> outputs) {
       ImmutableList<Integer> oldOutputs = this.outputs;
       this.outputs = outputs;
       this.changeSupport.firePropertyChange(OUTPUTS, oldOutputs, outputs);
@@ -133,7 +133,7 @@ public class PanelStatus {
    }
 
    // Stato armamento partizione
-   void setPartitionArming(int partitionId, PartitionArming newMode) {
+   void updatePartitionArming(int partitionId, PartitionArming newMode) {
       if (this.partitions != null && this.partitions.contains(partitionId)) {
          PartitionArming oldMode = this.partitionArmings.get(partitionId);
          this.partitionArmings.put(partitionId, newMode);
@@ -146,7 +146,7 @@ public class PanelStatus {
    }
 
    // Stato partizione
-   void setPartitionStatus(int partitionId, PartitionStatus newStatus) {
+   void updatePartitionStatus(int partitionId, PartitionStatus newStatus) {
       if (this.partitions != null && this.partitions.contains(partitionId)) {
          PartitionStatus oldStatus = this.partitionStatuses.get(partitionId);
          this.partitionStatuses.put(partitionId, newStatus);
@@ -159,7 +159,7 @@ public class PanelStatus {
    }
 
    // Label partizione
-   void setPartitionLabel(int partitionId, String newLabel) {
+   void updatePartitionLabel(int partitionId, String newLabel) {
       if (this.partitions != null && this.partitions.contains(partitionId)) {
          String oldLabel = this.partitionLabels.get(partitionId);
          this.partitionLabels.put(partitionId, newLabel);
@@ -172,7 +172,7 @@ public class PanelStatus {
    }
 
    // Stato zona
-   void setZoneStatus(int zoneId, InputStatus newStatus) {
+   void updateZoneStatus(int zoneId, InputStatus newStatus) {
       if (this.zones != null && this.zones.contains(zoneId)) {
          InputStatus oldStatus = this.zoneStatuses.get(zoneId);
          this.zoneStatuses.put(zoneId, newStatus);
@@ -185,7 +185,7 @@ public class PanelStatus {
    }
 
    // Bypass zona
-   void setZoneBypass(int zoneId, Boolean newSet) {
+   void updateZoneBypass(int zoneId, Boolean newSet) {
       if (this.zones != null && this.zones.contains(zoneId)) {
          Boolean oldSet = this.zoneBypass.get(zoneId);
          this.zoneBypass.put(zoneId, newSet);
@@ -198,7 +198,7 @@ public class PanelStatus {
    }
 
    // Label zona
-   void setZoneLabel(int zoneId, String newLabel) {
+   void updateZoneLabel(int zoneId, String newLabel) {
       if (this.zones != null && this.zones.contains(zoneId)) {
          String oldLabel = this.zoneLabels.get(zoneId);
          this.zoneLabels.put(zoneId, newLabel);
@@ -211,7 +211,7 @@ public class PanelStatus {
    }
 
    // Stato uscita
-   void setOutputStatus(int outputId, OutputStatus newStatus) {
+   void updateOutputStatus(int outputId, OutputStatus newStatus) {
       if (this.outputs != null && this.outputs.contains(outputId)) {
          OutputStatus oldStatus = this.outputStatuses.get(outputId);
          this.outputStatuses.put(outputId, newStatus);
@@ -224,7 +224,7 @@ public class PanelStatus {
    }
 
    // Label uscita
-   void setOutputLabel(int outputId, String newLabel) {
+   void updateOutputLabel(int outputId, String newLabel) {
       if (this.outputs != null && this.outputs.contains(outputId)) {
          String oldLabel = this.outputLabels.get(outputId);
          this.outputLabels.put(outputId, newLabel);
@@ -237,7 +237,7 @@ public class PanelStatus {
    }
 
    // Label modalità armamento
-   void setArmingModeLabel(int modeId, String newLabel) {
+   void updateArmingModeLabel(int modeId, String newLabel) {
       String oldLabel = this.armingModeLabels.get(modeId);
       this.armingModeLabels.put(modeId, newLabel);
       this.changeSupport.fireIndexedPropertyChange(ARMING_MODE_LABEL, modeId, oldLabel, newLabel);

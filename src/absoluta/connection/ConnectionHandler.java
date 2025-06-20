@@ -65,7 +65,7 @@ public class ConnectionHandler {
    }
 
    public void disconnect() {
-      this.panelStatus.setConnectionStatus(PanelConnStatus.DISCONNECTING);
+      this.panelStatus.updateConnectionStatus(PanelConnStatus.DISCONNECTING);
       this.endpoint.close();
    }
 
@@ -90,7 +90,7 @@ public class ConnectionHandler {
 
    void disconnected() {
       this.stop();
-      this.panelStatus.setConnectionStatus(PanelConnStatus.DISCONNECTED);
+      this.panelStatus.updateConnectionStatus(PanelConnStatus.DISCONNECTED);
       this.setConnectionStatus(providerConnStatus.UNREACHABLE);
    }
 
@@ -156,7 +156,7 @@ public class ConnectionHandler {
       public void newValue(NewValue var1) {
          if (var1.isFor(Message.ENTER_ACCESS_LEVEL) && !ConnectionHandler.this.loggedIn) {
             ConnectionHandler.this.loggedIn = true;
-            ConnectionHandler.this.panelStatus.setConnectionStatus(PanelConnStatus.CONNECTED);
+            ConnectionHandler.this.panelStatus.updateConnectionStatus(PanelConnStatus.CONNECTED);
             ConnectionHandler.this.setConnectionStatus(providerConnStatus.SUCCESS);
             ConnectionHandler.this.statusReader.startWaitingForNotificationsAfterLogin();
             ConnectionHandler.this.endpoint.setSessionActive(true);

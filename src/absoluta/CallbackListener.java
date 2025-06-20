@@ -29,31 +29,31 @@ class CallbackListener implements PropertyChangeListener {
             String propertyName = property.getPropertyName();
             switch(propertyName) {
                case "PARTITION_ARMING":
-                  this.callback.setPartitionArming(indexProperty, this.panelStatus.getPartitionArming(indexProperty));
+                  this.callback.updatePartitionArming(indexProperty, this.panelStatus.getPartitionArming(indexProperty));
                   break;
                case "PARTITION_STATUS":
-                  this.callback.setPartitionStatus(indexProperty, this.panelStatus.getPartitionStatus(indexProperty));
+                  this.callback.updatePartitionStatus(indexProperty, this.panelStatus.getPartitionStatus(indexProperty));
                   break;
                case "PARTITION_LABEL":
-                  this.callback.setPartitionRemoteName(indexProperty, this.panelStatus.getPartitionLabel(indexProperty));
+                  this.callback.updatePartitionName(indexProperty, this.panelStatus.getPartitionLabel(indexProperty));
                   break;
                case "ZONE_STATUS":
                case "ZONE_BYPASS":
-                  this.callback.setInputStatus(indexProperty, this.panelStatus.getZoneStatus(indexProperty));
+                  this.callback.updateZoneStatus(indexProperty, this.panelStatus.getZoneStatus(indexProperty));
                   break;
                case "ZONE_LABEL":
-                  this.callback.setInputRemoteName(indexProperty, this.panelStatus.getZoneLabel(indexProperty));
+                  this.callback.updateZoneName(indexProperty, this.panelStatus.getZoneLabel(indexProperty));
                   break;
                case "OUTPUT_STATUS":
-                  this.callback.setOutputStatus(indexProperty, this.panelStatus.getOutputStatus(indexProperty));
+                  this.callback.updateOutputStatus(indexProperty, this.panelStatus.getOutputStatus(indexProperty));
                   break;
                case "OUTPUT_LABEL":
-                  this.callback.setOutputRemoteName(indexProperty, this.panelStatus.getOutputLabel(indexProperty));
+                  this.callback.updateOutputName(indexProperty, this.panelStatus.getOutputLabel(indexProperty));
                   break;
                case "ARMING_MODE_LABEL":
                   Character charMode = (Character)CustomizedArmingModes.ARMING_MODE_LABELS.get(indexProperty);
                   if (charMode != null) {
-                     this.callback.setLabelArming(charMode, this.panelStatus.getArmingModeLabel(indexProperty));
+                     this.callback.updateModeLabel(charMode, this.panelStatus.getArmingModeLabel(indexProperty));
                   }
                   break;
             }
@@ -67,23 +67,23 @@ class CallbackListener implements PropertyChangeListener {
                   }
                   break;
                case "GLOBAL_ARMING":
-                  this.callback.setArming(this.panelStatus.getGlobalArming());
+                  this.callback.updateGlobalArming(this.panelStatus.getGlobalArming());
                   break;
                case "SYSTEM_LABEL":
                   break;
                case "PARTITIONS":
-                  this.callback.changePartitions(this.panelStatus.getPartitions());
+                  this.callback.getAllPartitions(this.panelStatus.getPartitions());
                   break;
                case "ZONES":
                   List<Integer> zones = this.panelStatus.getZones();
-                  this.callback.changeInputs(zones);
+                  this.callback.getAllZones(zones);
                   List<Integer> partitions = this.panelStatus.getPartitions();
                   for (int partitionId : partitions) {
-                     this.callback.tagInputIntoPartition(partitionId, zones);
+                     this.callback.tagZoneIntoPartition(partitionId, zones);
                   }
                   return;
                case "OUTPUTS":
-                  this.callback.changeOutputs(this.panelStatus.getOutputs());
+                  this.callback.getAllOutputs(this.panelStatus.getOutputs());
                   break;
                case "TROUBLES":
                   break;

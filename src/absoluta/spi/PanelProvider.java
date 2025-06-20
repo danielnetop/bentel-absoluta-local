@@ -17,47 +17,47 @@ public interface PanelProvider {
 
    void disconnect();
 
-   void arming(GlobalArming armingMode);
+   void setGlobalArming(GlobalArming armingMode);
 
-   void PartitionArming(int partitionId, PartitionArming armingMode);
+   void setPartitionArming(int partitionId, PartitionArming armingMode);
 
-   void setBypassed(int zoneID, boolean setBypassed);
+   void setZoneBypass(int zoneID, boolean setBypassed);
 
-   boolean getBypassed(int zoneID);
+   boolean getZoneBypass(int zoneID);
 
-   void doOutputAction(int outputId, OutputAction action);
+   void setOutput(int outputId, OutputAction action);
 
    boolean armingSupport(char presetMode);
 
-   void armingSet(char mode);
+   void setModeArming(char mode);
 
    public interface PanelCallback extends AlertCallback {
       void connectionLost();
 
-      void setArming(GlobalArming armingMode);
+      void updateGlobalArming(GlobalArming arming);
 
-      void changePartitions(List<Integer> partitionIds);
+      void getAllPartitions(List<Integer> partitions);
 
-      void setPartitionRemoteName(int partitionId, String remoteName);
+      void updatePartitionName(int partitionId, String name);
 
-      void setPartitionArming(int partitionId, PartitionArming armingMode);
+      void updatePartitionArming(int partitionId, PartitionArming arming);
 
-      void setPartitionStatus(int partitionId, PartitionStatus status);
+      void updatePartitionStatus(int partitionId, PartitionStatus status);
 
-      void changeInputs(List<Integer> inputIds);
+      void getAllZones(List<Integer> zones);
 
-      void setInputRemoteName(int inputId, String remoteName);
+      void updateZoneName(int zoneId, String name);
 
-      void setInputStatus(int inputId, InputStatus status);
+      void updateZoneStatus(int zoneId, InputStatus status);
 
-      void tagInputIntoPartition(int inputId, List<Integer> partitionIds);
+      void tagZoneIntoPartition(int partitionId, List<Integer> zones);
 
-      void changeOutputs(List<Integer> outputIds);
+      void getAllOutputs(List<Integer> outputs);
 
-      void setOutputRemoteName(int outputId, String remoteName);
+      void updateOutputName(int outputId, String name);
 
-      void setOutputStatus(int outputId, OutputStatus status);
+      void updateOutputStatus(int outputId, OutputStatus status);
 
-      void setLabelArming(char presetMode, String label);
+      void updateModeLabel(char mode, String label);
    }
 }

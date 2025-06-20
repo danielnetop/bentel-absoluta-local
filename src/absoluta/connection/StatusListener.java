@@ -49,18 +49,18 @@ class StatusListener implements MessageListener {
    public void newValue(NewValue msg) {
       if (msg.isFor(Message.PARTITION_ASSIGNMENT_CONFIGURATION)) {
          List<Integer> partitions = (List<Integer>) msg.getValue(Message.PARTITION_ASSIGNMENT_CONFIGURATION);
-         panelStatus.setPartitions(ImmutableList.copyOf(partitions));
+         panelStatus.updatePartitions(ImmutableList.copyOf(partitions));
       } else if (msg.isFor(Message.PARTITION_ZONES)) {
          Integer partitionNumber = (Integer) msg.getParam(Message.PARTITION_ZONES);
          if (partitionNumber == null) {
                List<Integer> zones = (List<Integer>) msg.getValue(Message.PARTITION_ZONES);
-               panelStatus.setZones(ImmutableList.copyOf(zones));
+               panelStatus.updateZones(ImmutableList.copyOf(zones));
          } else {
             logger.warning("Unexpected partition number for partition zones: " + partitionNumber);
          }
       } else if (msg.isFor(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)) {
          List<Integer> outputs = (List<Integer>) ((Pair<?, ?>) msg.getValue(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)).getValue0();
-         panelStatus.setOutputs(ImmutableList.copyOf(outputs));
+         panelStatus.updateOutputs(ImmutableList.copyOf(outputs));
       } else if (msg.isFor(Message.PARTITION_STATUSES)) {
          List<Integer> partitionIds = (List<Integer>) msg.getParam(Message.PARTITION_STATUSES);
          List<List<Boolean>> partitionStatuses = (List<List<Boolean>>) msg.getValue(Message.PARTITION_STATUSES);
@@ -87,27 +87,27 @@ class StatusListener implements MessageListener {
          List<Integer> activeOutputs = (List<Integer>) msg.getValue(Message.ABSOLUTA_COMMAND_OUTPUT_ACTIVATION);
          for (Integer outputId : panelStatus.getOutputs()) {
                PanelStatus.OutputStatus outputStatus = activeOutputs.contains(outputId) ? PanelStatus.OutputStatus.CLOSED : PanelStatus.OutputStatus.OPEN;
-               panelStatus.setOutputStatus(outputId, outputStatus);
+               panelStatus.updateOutputStatus(outputId, outputStatus);
          }
       } else if (msg.isFor(Message.ABSOLUTA_SYSTEM_LABEL)) {
          String systemLabel = ((String) msg.getValue(Message.ABSOLUTA_SYSTEM_LABEL)).trim();
-         panelStatus.setSystemLabel(systemLabel);
+         panelStatus.updateSystemLabel(systemLabel);
       } else if (msg.isFor(Message.ABSOLUTA_PARTITION_LABEL)) {
          int partitionId = (Integer) msg.getParam(Message.ABSOLUTA_PARTITION_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_PARTITION_LABEL)).trim();
-         panelStatus.setPartitionLabel(partitionId, label);
+         panelStatus.updatePartitionLabel(partitionId, label);
       } else if (msg.isFor(Message.ABSOLUTA_ZONE_LABEL)) {
          int zoneId = (Integer) msg.getParam(Message.ABSOLUTA_ZONE_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_ZONE_LABEL)).trim();
-         panelStatus.setZoneLabel(zoneId, label);
+         panelStatus.updateZoneLabel(zoneId, label);
       } else if (msg.isFor(Message.ABSOLUTA_OUTPUT_LABEL)) {
          int outputId = (Integer) msg.getParam(Message.ABSOLUTA_OUTPUT_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_OUTPUT_LABEL)).trim();
-         panelStatus.setOutputLabel(outputId, label);
+         panelStatus.updateOutputLabel(outputId, label);
       } else if (msg.isFor(Message.ABSOLUTA_ARMING_MODE_LABEL)) {
          int armingModeId = (Integer) msg.getParam(Message.ABSOLUTA_ARMING_MODE_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_ARMING_MODE_LABEL)).trim();
-         panelStatus.setArmingModeLabel(armingModeId, label);
+         panelStatus.updateArmingModeLabel(armingModeId, label);
       }
    }
 
@@ -148,14 +148,14 @@ class StatusListener implements MessageListener {
          partitionStatus = PanelStatus.PartitionStatus.ALARMS;
       }
 
-      panelStatus.setPartitionStatus(partitionId, partitionStatus);
+      panelStatus.updatePartitionStatus(partitionId, partitionStatus);
 
       // If partition is in alarm, set TRIGGERED
       if (partitionStatus == PanelStatus.PartitionStatus.ALARMS) {
          armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
 
-      panelStatus.setPartitionArming(partitionId, armingMode);
+      panelStatus.updatePartitionArming(partitionId, armingMode);
 
       boolean anyPartitionArmed = false;
       boolean anyPartitionDisarmed = false;
@@ -188,7 +188,7 @@ class StatusListener implements MessageListener {
          globalArming = PanelStatus.GlobalArming.GLOBALLY_DISARMED;
       }
 
-      panelStatus.setGlobalArming(globalArming);
+      panelStatus.updateGlobalArming(globalArming);
    }
 
    private void updateZoneStatus(int zoneId, List<Boolean> statusMask) {
@@ -209,7 +209,7 @@ class StatusListener implements MessageListener {
          zoneStatus = PanelStatus.InputStatus.TAMPER;
       }
 
-      panelStatus.setZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));
-      panelStatus.setZoneStatus(zoneId, zoneStatus);
+      panelStatus.updateZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));
+      panelStatus.updateZoneStatus(zoneId, zoneStatus);
    }
 }
