@@ -1,4 +1,4 @@
-package cms.device.api;
+package absoluta.api;
 
 import java.util.EventObject;
 

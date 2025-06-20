@@ -8,9 +8,9 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import plugin.absoluta.AbsolutaPanelProvider;
-import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
-import plugin.absoluta.connection.PanelStatus;
+import absoluta.AbsolutaPanelProvider;
+import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.connection.PanelStatus;
 
 import java.util.logging.Logger;
 

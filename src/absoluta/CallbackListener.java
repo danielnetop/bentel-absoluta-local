@@ -1,9 +1,4 @@
-package plugin.absoluta;
-
-import cms.device.spi.PanelProvider.PanelCallback;
-
-import plugin.absoluta.connection.CustomizedArmingModes;
-import plugin.absoluta.connection.PanelStatus;
+package absoluta;
 
 import java.beans.IndexedPropertyChangeEvent;
 import java.beans.PropertyChangeEvent;
@@ -11,6 +6,10 @@ import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import absoluta.connection.CustomizedArmingModes;
+import absoluta.connection.PanelStatus;
+import absoluta.spi.PanelProvider.PanelCallback;
 
 class CallbackListener implements PropertyChangeListener {
    private final PanelCallback callback;

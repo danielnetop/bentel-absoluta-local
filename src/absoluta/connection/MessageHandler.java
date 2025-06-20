@@ -1,4 +1,4 @@
-package plugin.absoluta.connection;
+package absoluta.connection;
 
 import java.util.ArrayDeque;
 import java.util.Comparator;

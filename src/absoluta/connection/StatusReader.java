@@ -1,4 +1,4 @@
-package plugin.absoluta.connection;
+package absoluta.connection;
 
 import com.google.common.base.Joiner;
 

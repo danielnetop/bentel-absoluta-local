@@ -6,7 +6,7 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-import plugin.absoluta.AbsolutaPanelProvider;
+import absoluta.AbsolutaPanelProvider;
 
 import java.util.logging.Logger;
 import java.util.logging.Level;

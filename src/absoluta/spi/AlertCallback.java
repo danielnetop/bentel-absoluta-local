@@ -1,4 +1,4 @@
-package cms.device.spi;
+package absoluta.spi;
 
 public interface AlertCallback {
    void alert(String message);

@@ -1,11 +1,11 @@
-package plugin.absoluta;
+package absoluta;
 
 import com.google.common.collect.ImmutableMap;
 
-import cms.device.spi.PanelProvider;
-import plugin.absoluta.connection.ConnectionHandler;
-import plugin.absoluta.connection.ConnectionThread;
-import plugin.absoluta.connection.PanelStatus;
+import absoluta.connection.ConnectionHandler;
+import absoluta.connection.ConnectionThread;
+import absoluta.connection.PanelStatus;
+import absoluta.spi.PanelProvider;
 
 import java.util.Map;
 import java.util.logging.Logger;

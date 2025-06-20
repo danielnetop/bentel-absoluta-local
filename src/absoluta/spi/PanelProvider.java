@@ -1,15 +1,15 @@
-package cms.device.spi;
+package absoluta.spi;
 
 import java.util.List;
 import java.util.Map;
 
-import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
-import plugin.absoluta.connection.PanelStatus.globalArming;
-import plugin.absoluta.connection.PanelStatus.partitionArming;
-import plugin.absoluta.connection.PanelStatus.partitionStatus;
-import plugin.absoluta.connection.PanelStatus.inputStatus;
-import plugin.absoluta.connection.PanelStatus.outputAction;
-import plugin.absoluta.connection.PanelStatus.outputStatus;
+import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.connection.PanelStatus.globalArming;
+import absoluta.connection.PanelStatus.inputStatus;
+import absoluta.connection.PanelStatus.outputAction;
+import absoluta.connection.PanelStatus.outputStatus;
+import absoluta.connection.PanelStatus.partitionArming;
+import absoluta.connection.PanelStatus.partitionStatus;
 
 public interface PanelProvider {
    void initialize(PanelProvider.PanelCallback callback);

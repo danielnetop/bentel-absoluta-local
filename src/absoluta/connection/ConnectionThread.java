@@ -1,5 +1,5 @@
 
-package plugin.absoluta.connection;
+package absoluta.connection;
 
 import java.util.Objects;
 import java.util.logging.Logger;

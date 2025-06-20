@@ -1,9 +1,4 @@
-package plugin.absoluta.connection;
-
-import cms.device.spi.AlertCallback;
-
-import plugin.absoluta.AbsolutaPanelProvider.providerConnStatus;
-import plugin.absoluta.connection.PanelStatus.panelConnStatus;
+package absoluta.connection;
 
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
@@ -21,6 +16,10 @@ import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.javatuples.Pair;
+
+import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.connection.PanelStatus.panelConnStatus;
+import absoluta.spi.AlertCallback;
 
 public class ConnectionHandler {
    private static final Logger logger = Logger.getLogger(ConnectionHandler.class.getName());
