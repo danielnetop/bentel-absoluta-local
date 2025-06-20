@@ -68,6 +68,11 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    }
 
    public void alert(String var1) {
+      //TODO: @Stefano: è questa la callback per gli errori? Leggendo AlertListener mi sembra di sì.
+      String topic = "ABS/errors";
+      //TODO: sarebbe meglio diversificare per tipo di errore, e anche evitare di sovrascrivere il messaggio di errore precedente.
+      String payload = "Error: " + var1; 
+      safePublish(topic, payload, QOS, false, "errore centrale");
    }
 
    public void getAllZones(List<Integer> zones) {
@@ -114,10 +119,15 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          safePublish(topic, payload, QOS, true, "discovery partizione globale");
          partitionDiscoverySent.add(0);
 
-         // Invia discovery per pulsante reset errors
-         topic = "homeassistant/button/absoluta_reset_errors/config";
+         // Invia discovery per pulsante reset errori
+         topic = "homeassistant/button/absoluta_errors_reset/config";
          payload = HomeAssistantManager.buildResetErrors();
          safePublish(topic, payload, QOS, true, "discovery reset errors");
+
+         // Invia discovery per i messaggi di errore 
+         topic = "homeassistant/sensor/absoluta_errors/config";
+         payload = HomeAssistantManager.buildErrorSensor();
+         safePublish(topic, payload, QOS, true, "discovery errori");
 
          // Subscribe al topic di homeassistant
          try {
@@ -439,7 +449,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
             }
          } else if (parentTopic.contains("mode")) {
             this.commandMode(msg);
-         } else if (parentTopic.contains("reset_errors")) {
+         } else if (parentTopic.contains("absoluta_errors")) {
             if (msg.toString().equals("RESET_ERRORS")) {
                logger.info("Resetting errors...");
                this.provider.cleanTroubles();

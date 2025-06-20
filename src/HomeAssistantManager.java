@@ -62,8 +62,18 @@ public class HomeAssistantManager {
             "\"name\": \"Resetta Guasti e Sabotaggi\"," +
             "\"state_topic\": \"ABS/reset_errors\"," +
             "\"unique_id\": \"absoluta_reset_errors\"," +
-            "\"command_topic\": \"ABS/reset_errors/set\"," +
+            "\"command_topic\": \"ABS/absoluta_errors/set\"," +
             "\"payload_press\": \"RESET_ERRORS\"," +
+            DEVICE_JSON +
+        "}";
+    }
+
+    public static String buildErrorSensor() {
+        return "{" +
+            "\"name\": \"Guasti e Sabotaggi\"," +
+            "\"state_topic\": \"ABS/errors\"," +
+            "\"unique_id\": \"absoluta_errors\"," +
+            "\"json_attributes_topic\": \"ABS/errors/attributes\"," +
             DEVICE_JSON +
         "}";
     }
