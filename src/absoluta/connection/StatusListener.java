@@ -86,7 +86,7 @@ class StatusListener implements MessageListener {
       } else if (msg.isFor(Message.ABSOLUTA_COMMAND_OUTPUT_ACTIVATION)) {
          List<Integer> activeOutputs = (List<Integer>) msg.getValue(Message.ABSOLUTA_COMMAND_OUTPUT_ACTIVATION);
          for (Integer outputId : panelStatus.getOutputs()) {
-               PanelStatus.outputStatus outputStatus = activeOutputs.contains(outputId) ? PanelStatus.outputStatus.CLOSED : PanelStatus.outputStatus.OPEN;
+               PanelStatus.OutputStatus outputStatus = activeOutputs.contains(outputId) ? PanelStatus.OutputStatus.CLOSED : PanelStatus.OutputStatus.OPEN;
                panelStatus.setOutputStatus(outputId, outputStatus);
          }
       } else if (msg.isFor(Message.ABSOLUTA_SYSTEM_LABEL)) {
@@ -122,37 +122,37 @@ class StatusListener implements MessageListener {
          return;
       }
 
-      PanelStatus.partitionArming armingMode;
+      PanelStatus.PartitionArming armingMode;
       if (!statusMask.get(PARTITION_ARMED)) {
-         armingMode = PanelStatus.partitionArming.DISARMED;
+         armingMode = PanelStatus.PartitionArming.DISARMED;
       } else if (statusMask.get(PARTITION_AWAY)) {
-         armingMode = PanelStatus.partitionArming.AWAY;
+         armingMode = PanelStatus.PartitionArming.AWAY;
       } else if (statusMask.get(PARTITION_STAY)) {
-         armingMode = PanelStatus.partitionArming.STAY;
+         armingMode = PanelStatus.PartitionArming.STAY;
       } else if (!statusMask.get(PARTITION_NODELAY) && !statusMask.get(PARTITION_NIGHT)) {
          logger.warning("Arming status ambiguous for partition " + partitionId);
-         armingMode = PanelStatus.partitionArming.AWAY;
+         armingMode = PanelStatus.PartitionArming.AWAY;
       } else {
-         armingMode = PanelStatus.partitionArming.NODELAY;
+         armingMode = PanelStatus.PartitionArming.NODELAY;
       }
 
       // Partition status detection
-      PanelStatus.partitionStatus partitionStatus;
+      PanelStatus.PartitionStatus partitionStatus;
       if (statusMask.get(PARTITION_FIRE)) {
-         partitionStatus = PanelStatus.partitionStatus.FIRE;
+         partitionStatus = PanelStatus.PartitionStatus.FIRE;
       } else if (statusMask.get(PARTITION_TROUBLES)) {
-         partitionStatus = PanelStatus.partitionStatus.FAULTS;
+         partitionStatus = PanelStatus.PartitionStatus.FAULTS;
       } else if (!statusMask.get(PARTITION_ALARM) && !statusMask.get(PARTITION_ALARM_IN_MEMORY)) {
-         partitionStatus = PanelStatus.partitionStatus.OK;
+         partitionStatus = PanelStatus.PartitionStatus.OK;
       } else {
-         partitionStatus = PanelStatus.partitionStatus.ALARMS;
+         partitionStatus = PanelStatus.PartitionStatus.ALARMS;
       }
 
       panelStatus.setPartitionStatus(partitionId, partitionStatus);
 
       // If partition is in alarm, set TRIGGERED
-      if (partitionStatus == PanelStatus.partitionStatus.ALARMS) {
-         armingMode = PanelStatus.partitionArming.TRIGGERED;
+      if (partitionStatus == PanelStatus.PartitionStatus.ALARMS) {
+         armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
 
       panelStatus.setPartitionArming(partitionId, armingMode);
@@ -163,50 +163,50 @@ class StatusListener implements MessageListener {
       boolean anyPartitionTriggered = false;
 
       for (Integer id : panelStatus.getPartitions()) {
-         PanelStatus.partitionArming mode = panelStatus.getPartitionArming(id);
+         PanelStatus.PartitionArming mode = panelStatus.getPartitionArming(id);
          if (mode == null) {
             missingData = true;
-         } else if (mode == PanelStatus.partitionArming.TRIGGERED){
+         } else if (mode == PanelStatus.PartitionArming.TRIGGERED){
             anyPartitionTriggered = true;
-         }else if (mode == PanelStatus.partitionArming.DISARMED) {
+         }else if (mode == PanelStatus.PartitionArming.DISARMED) {
             anyPartitionDisarmed = true;
          } else {
             anyPartitionArmed = true;
          }
       }
 
-      PanelStatus.globalArming globalArming;
+      PanelStatus.GlobalArming globalArming;
       if (missingData) {
          globalArming = null;
       } else if (anyPartitionTriggered) {
-         globalArming = PanelStatus.globalArming.TRIGGERED;
+         globalArming = PanelStatus.GlobalArming.TRIGGERED;
       } else if (anyPartitionArmed && anyPartitionDisarmed) {
-         globalArming = PanelStatus.globalArming.PARTIALLY_ARMED;
+         globalArming = PanelStatus.GlobalArming.PARTIALLY_ARMED;
       } else if (anyPartitionArmed) {
-         globalArming = PanelStatus.globalArming.GLOBALLY_ARMED;
+         globalArming = PanelStatus.GlobalArming.GLOBALLY_ARMED;
       } else {
-         globalArming = PanelStatus.globalArming.GLOBALLY_DISARMED;
+         globalArming = PanelStatus.GlobalArming.GLOBALLY_DISARMED;
       }
 
       panelStatus.setGlobalArming(globalArming);
    }
 
    private void updateZoneStatus(int zoneId, List<Boolean> statusMask) {
-      PanelStatus.inputStatus zoneStatus;
+      PanelStatus.InputStatus zoneStatus;
       if (statusMask.get(ZONE_BYPASSED)) {
-         zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.inputStatus.ACTIVE : PanelStatus.inputStatus.OK;
+         zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.InputStatus.ACTIVE : PanelStatus.InputStatus.OK;
       } else if (!statusMask.get(ZONE_TAMPER) && !statusMask.get(ZONE_DELINQUENCY)) {
          if (!statusMask.get(ZONE_FAULT) && !statusMask.get(ZONE_LOW_BATTERY)) {
                if (!statusMask.get(ZONE_ALARM) && !statusMask.get(ZONE_ALARM_IN_MEMORY)) {
-                  zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.inputStatus.ACTIVE : PanelStatus.inputStatus.OK;
+                  zoneStatus = statusMask.get(ZONE_OPEN) ? PanelStatus.InputStatus.ACTIVE : PanelStatus.InputStatus.OK;
                } else {
-                  zoneStatus = PanelStatus.inputStatus.ALARM;
+                  zoneStatus = PanelStatus.InputStatus.ALARM;
                }
          } else {
-               zoneStatus = PanelStatus.inputStatus.FAULT;
+               zoneStatus = PanelStatus.InputStatus.FAULT;
          }
       } else {
-         zoneStatus = PanelStatus.inputStatus.TAMPER;
+         zoneStatus = PanelStatus.InputStatus.TAMPER;
       }
 
       panelStatus.setZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));

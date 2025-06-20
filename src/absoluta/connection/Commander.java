@@ -25,7 +25,7 @@ public class Commander {
       this.panelStatus = Objects.requireNonNull(panelStatus);
    }
 
-   public void arming(PanelStatus.globalArming newArmingStatus) {
+   public void arming(PanelStatus.GlobalArming newArmingStatus) {
       logger.fine("Setting global arming to: " + newArmingStatus);
       switch(newArmingStatus) {
       case GLOBALLY_DISARMED:
@@ -40,21 +40,20 @@ public class Commander {
 
    }
 
-   public void partitionArming(String partitionID, PanelStatus.partitionArming newArmingStatus) {
+   public void partitionArming(int partitionID, PanelStatus.PartitionArming newArmingStatus) {
       logger.fine("Setting partition " + partitionID + " arming to: " + newArmingStatus);
-      Integer partitionIDInteger = Integer.valueOf(partitionID);
       switch(newArmingStatus) {
       case DISARMED:
-         this.messageHandler.sendCommand(Message.DISARM, partitionIDInteger);
+         this.messageHandler.sendCommand(Message.DISARM, partitionID);
          break;
       case AWAY:
-         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionIDInteger, AWAY_ARM));
+         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, AWAY_ARM));
          break;
       case STAY:
-         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionIDInteger, STAY_ARM));
+         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, STAY_ARM));
          break;
       case NODELAY:
-         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionIDInteger, INSTANT_STAY_ARM));
+         this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, INSTANT_STAY_ARM));
          break;
       default:
          break;
@@ -74,23 +73,21 @@ public class Commander {
       }
    }
 
-   public void setBypassed(String zoneID, boolean setBypassed) {
-      Integer zoneIDInteger = Integer.valueOf(zoneID);
-      Boolean currentBypassed = panelStatus.getZoneBypass(zoneIDInteger);
+   public void setBypassed(int zoneID, boolean setBypassed) {
+      Boolean currentBypassed = panelStatus.getZoneBypass(zoneID);
       if (currentBypassed == null || currentBypassed != setBypassed) {
          logger.fine("Setting zone " + zoneID + " bypass to " + setBypassed);
-         panelStatus.setZoneBypass(zoneIDInteger, setBypassed);
-         this.messageHandler.sendCommand(Message.SINGLE_ZONE_BYPASS_WRITE, Triplet.with((Integer)null, zoneIDInteger, setBypassed));
+         panelStatus.setZoneBypass(zoneID, setBypassed);
+         this.messageHandler.sendCommand(Message.SINGLE_ZONE_BYPASS_WRITE, Triplet.with((Integer)null, zoneID, setBypassed));
       } else {
          logger.fine("Zone " + zoneID + " bypass already " + setBypassed + ", skipping command.");
       }
    }
 
-   public void setOutput(String outputID, boolean setStatus) {
+   public void setOutput(int outputID, boolean setStatus) {
       logger.fine((setStatus ? "closing" : "opening") + " output  " + outputID);
-      Integer outputIDInteger = Integer.valueOf(outputID);
       Integer statusInteger = setStatus ? 1 : 2;
-      this.messageHandler.sendCommand(Message.SET_OUTPUT, Triplet.with((Integer)null, outputIDInteger, statusInteger));
+      this.messageHandler.sendCommand(Message.SET_OUTPUT, Triplet.with((Integer)null, outputID, statusInteger));
    }
 
    public void cleanTroubles() {

@@ -3,12 +3,12 @@ package absoluta.spi;
 import java.util.List;
 
 import absoluta.AbsolutaPanelProvider.providerConnStatus;
-import absoluta.connection.PanelStatus.globalArming;
-import absoluta.connection.PanelStatus.inputStatus;
-import absoluta.connection.PanelStatus.outputAction;
-import absoluta.connection.PanelStatus.outputStatus;
-import absoluta.connection.PanelStatus.partitionArming;
-import absoluta.connection.PanelStatus.partitionStatus;
+import absoluta.connection.PanelStatus.GlobalArming;
+import absoluta.connection.PanelStatus.InputStatus;
+import absoluta.connection.PanelStatus.OutputAction;
+import absoluta.connection.PanelStatus.OutputStatus;
+import absoluta.connection.PanelStatus.PartitionArming;
+import absoluta.connection.PanelStatus.PartitionStatus;
 
 public interface PanelProvider {
    void initialize(PanelProvider.PanelCallback callback);
@@ -17,15 +17,15 @@ public interface PanelProvider {
 
    void disconnect();
 
-   void arming(globalArming armingMode);
+   void arming(GlobalArming armingMode);
 
-   void partitionArming(String partitionId, partitionArming armingMode);
+   void PartitionArming(int partitionId, PartitionArming armingMode);
 
-   void setBypassed(String zoneID, boolean setBypassed);
+   void setBypassed(int zoneID, boolean setBypassed);
 
-   boolean getBypassed(String zoneID);
+   boolean getBypassed(int zoneID);
 
-   void doOutputAction(String outputId, outputAction action);
+   void doOutputAction(int outputId, OutputAction action);
 
    boolean armingSupport(char presetMode);
 
@@ -34,29 +34,29 @@ public interface PanelProvider {
    public interface PanelCallback extends AlertCallback {
       void connectionLost();
 
-      void setArming(globalArming armingMode);
+      void setArming(GlobalArming armingMode);
 
-      void changePartitions(List<String> partitionIds);
+      void changePartitions(List<Integer> partitionIds);
 
-      void setPartitionRemoteName(String partitionId, String remoteName);
+      void setPartitionRemoteName(int partitionId, String remoteName);
 
-      void setPartitionArming(String partitionId, partitionArming armingMode);
+      void setPartitionArming(int partitionId, PartitionArming armingMode);
 
-      void setPartitionStatus(String partitionId, partitionStatus status);
+      void setPartitionStatus(int partitionId, PartitionStatus status);
 
-      void changeInputs(List<String> inputIds);
+      void changeInputs(List<Integer> inputIds);
 
-      void setInputRemoteName(String inputId, String remoteName);
+      void setInputRemoteName(int inputId, String remoteName);
 
-      void setInputStatus(String inputId, inputStatus status);
+      void setInputStatus(int inputId, InputStatus status);
 
-      void tagInputIntoPartition(String inputId, List<String> partitionIds);
+      void tagInputIntoPartition(int inputId, List<Integer> partitionIds);
 
-      void changeOutputs(List<String> outputIds);
+      void changeOutputs(List<Integer> outputIds);
 
-      void setOutputRemoteName(String outputId, String remoteName);
+      void setOutputRemoteName(int outputId, String remoteName);
 
-      void setOutputStatus(String outputId, outputStatus status);
+      void setOutputStatus(int outputId, OutputStatus status);
 
       void setLabelArming(char presetMode, String label);
    }
