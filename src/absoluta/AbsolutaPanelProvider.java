@@ -1,13 +1,10 @@
 package absoluta;
 
-import com.google.common.collect.ImmutableMap;
-
 import absoluta.connection.ConnectionHandler;
 import absoluta.connection.ConnectionThread;
 import absoluta.connection.PanelStatus;
 import absoluta.spi.PanelProvider;
 
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class AbsolutaPanelProvider implements PanelProvider {
@@ -24,15 +21,6 @@ public class AbsolutaPanelProvider implements PanelProvider {
       this.port = Integer.parseInt(port);
       this.pin = pin;
       this.panelStatus = new PanelStatus();
-   }
-
-   @Override
-   public Map<String, String> getSettings() {
-      return ImmutableMap.<String, String>builder()
-         .put("address", this.address)
-         .put("port", Integer.toString(this.port))
-         .put("pin", this.pin)
-         .build();
    }
 
    @Override

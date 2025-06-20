@@ -1,7 +1,6 @@
 package absoluta.spi;
 
 import java.util.List;
-import java.util.Map;
 
 import absoluta.AbsolutaPanelProvider.providerConnStatus;
 import absoluta.connection.PanelStatus.globalArming;
@@ -31,8 +30,6 @@ public interface PanelProvider {
    boolean armingSupport(char presetMode);
 
    void armingSet(char mode);
-
-   Map<String, String> getSettings();
 
    public interface PanelCallback extends AlertCallback {
       void connectionLost();
