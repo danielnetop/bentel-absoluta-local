@@ -40,6 +40,9 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private Boolean discoveryEnabled;
    private MqttMessageDispatcher mqttDispatcher;
 
+   private String errorMessages = "[]"; // JSON array of error notifications
+   private boolean hasError = false;
+
    public Callback(MqttClient mqttClient, AbsolutaPanelProvider provider, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
       this.mqttClient = mqttClient;
       this.provider = provider;
@@ -64,16 +67,43 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
 
    public void connectionLost() {
       logger.warning("Connessione persa con la centrale! Riconnessione...");
+      notifyError("Connessione persa con la centrale! Riconnessione...");
       this.reconnectWithDelay("centrale");
    }
 
    public void alert(String var1) {
       //TODO: @Stefano: è questa la callback per gli errori? Leggendo AlertListener mi sembra di sì.
       String topic = "ABS/errors";
-      //TODO: sarebbe meglio diversificare per tipo di errore, e anche evitare di sovrascrivere il messaggio di errore precedente.
-      String payload = "Error: " + var1; 
-      safePublish(topic, payload, QOS, false, "errore centrale");
+      //TODO: sarebbe meglio diversificare per tipo di errore.
+      notifyError(var1);
    }
+
+   public void notifyError(String errorMessage) {
+      // Build new error notification as a JSON object with required field names
+      String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+      String newError = String.format("{\"Time\":\"%s\",\"Message\":\"%s\"}", timestamp, errorMessage);
+
+      // Add to errorMessages JSON array
+      if (errorMessages == null || errorMessages.isEmpty()) {
+         errorMessages = "[" + newError + "]";
+      } else {
+         String trimmed = errorMessages.trim();
+         if (trimmed.equals("[]")) {
+            errorMessages = "[" + newError + "]";
+         } else if (trimmed.endsWith("]")) {
+            errorMessages = trimmed.substring(0, trimmed.length() - 1) + "," + newError + "]";
+         } else {
+            errorMessages = "[" + newError + "]";
+         }
+      }
+
+      // Publish as an object with 'errors' key for Home Assistant attributes
+      String attributesPayload = "{\"errors\":" + errorMessages + "}";
+      safePublish("ABS/errors/attributes", attributesPayload, QOS, true, "errore centrale");
+      hasError = true;
+      safePublish("ABS/errors", "Errore!", QOS, true, "errore centrale");
+   }
+
 
    public void getAllZones(List<Integer> zones) {
       this.zoneIds = new int[zones.size()];
@@ -453,6 +483,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
             if (msg.toString().equals("RESET_ERRORS")) {
                logger.info("Resetting errors...");
                this.provider.cleanTroubles();
+               this.errorMessages = "[]";
+               this.hasError = false;
+               safePublish("ABS/errors/attributes", "{\"errors\":[]}", QOS, true, "reset errori");
+               safePublish("ABS/errors", "Funzionamento Regolare", QOS, true, "reset errori");
             } else {
                logger.warning("Comando " + msg.toString() + " non valido per il topic: " + topic);
             }

@@ -70,8 +70,9 @@ public class HomeAssistantManager {
 
     public static String buildErrorSensor() {
         return "{" +
-            "\"name\": \"Guasti e Sabotaggi\"," +
+            "\"name\": \"Allarmi, Guasti e Sabotaggi\"," +
             "\"state_topic\": \"ABS/errors\"," +
+            "\"icon\": \"mdi:alert\"," +
             "\"unique_id\": \"absoluta_errors\"," +
             "\"json_attributes_topic\": \"ABS/errors/attributes\"," +
             DEVICE_JSON +
