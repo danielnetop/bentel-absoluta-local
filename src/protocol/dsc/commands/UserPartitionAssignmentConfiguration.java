@@ -27,13 +27,13 @@ public class UserPartitionAssignmentConfiguration extends DscAbstractCommand imp
    }
 
    public Map<Integer, List<Integer>> getPartitionAssignments() {
-      Map<Integer, List<Integer>> var1 = new HashMap<Integer, List<Integer>>();
-      int var2 = this.userNumberStart.toPositiveInt();
-      for (DscBitMask bitMask : this.partitionAssignments) {
-         var1.put(var2++, bitMask.getTrueIndexes());
+      Map<Integer, List<Integer>> result = new HashMap<>();
+      int userNum = this.userNumberStart.toPositiveInt();
+      for (int i = 0; i < this.partitionAssignments.size(); i++) {
+         DscBitMask bitMask = this.partitionAssignments.get(i);
+         result.put(userNum++, bitMask.getTrueIndexes());
       }
-
-      return var1;
+      return result;
    }
 
    public int numberOfElements() {

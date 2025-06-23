@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableSet;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelHandler.Sharable;
-
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.commands.AbstractPartitionReqCommand;
@@ -19,7 +18,6 @@ import protocol.dsc.commands.MiscellaneousPreAlertNotification;
 import protocol.dsc.commands.PartitionAlarmMemoryNotification;
 import protocol.dsc.commands.PartitionQuickExitNotification;
 import protocol.dsc.commands.PartitionReadyStatusNotification;
-import protocol.dsc.commands.TimeDateBroadcastNotification;
 
 import java.util.Set;
 import java.util.logging.Logger;
@@ -29,64 +27,32 @@ import org.javatuples.Quartet;
 @Sharable
 public class MiscNotificationHandler extends ChannelInboundHandlerAdapter {
    private static final Logger logger = Logger.getLogger(MiscNotificationHandler.class.getName());
+   private static final Set<Class<? extends AbstractPartitionReqCommand>> PARTITION_STATUS_NOTIFICATIONS = ImmutableSet.of(ArmingDisarmingNotification.class, ArmingPreAlertNotification.class, EntryDelayNotification.class, ExitDelayNotification.class, MiscellaneousPreAlertNotification.class, PartitionAlarmMemoryNotification.class, new Class[]{PartitionQuickExitNotification.class, PartitionReadyStatusNotification.class});
 
-   // Set di classi che rappresentano le notifiche di stato partizione
-   private static final Set<Class<? extends AbstractPartitionReqCommand>> PARTITION_STATUS_NOTIFICATIONS =
-      ImmutableSet.of(
-         ArmingDisarmingNotification.class,
-         ArmingPreAlertNotification.class,
-         EntryDelayNotification.class,
-         ExitDelayNotification.class,
-         MiscellaneousPreAlertNotification.class,
-         PartitionAlarmMemoryNotification.class,
-         PartitionQuickExitNotification.class,
-         PartitionReadyStatusNotification.class
-      );
-
-   @Override
-   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      // Notifiche di stato partizione
-      if (PARTITION_STATUS_NOTIFICATIONS.contains(msg.getClass())) {
-         AbstractPartitionReqCommand partitionCommand = (AbstractPartitionReqCommand) msg;
-         Integer partitionNumber = partitionCommand.getPartitionNumber();
-         if (partitionNumber != null) {
-            ctx.fireChannelRead(new NewValue(Message.PARTITION_STATUS_CHANGED, partitionNumber));
-            // Notifica specifica per memoria allarme partizione
-            if (partitionCommand instanceof PartitionAlarmMemoryNotification) {
-               ctx.fireChannelRead(new NewValue(Message.PARTITION_ALARM_MEMORY_CHANGED, partitionNumber));
+   public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
+      if (PARTITION_STATUS_NOTIFICATIONS.contains(var2.getClass())) {
+         AbstractPartitionReqCommand var3 = (AbstractPartitionReqCommand)var2;
+         Integer var4 = var3.getPartitionNumber();
+         if (var4 != null) {
+            var1.fireChannelRead(new NewValue(Message.PARTITION_STATUS_CHANGED, var4));
+            if (var3 instanceof PartitionAlarmMemoryNotification) {
+               var1.fireChannelRead(new NewValue(Message.PARTITION_ALARM_MEMORY_CHANGED, var4));
             }
          }
-      }
-      // Notifica di stato zona stile di vita
-      else if (msg instanceof LifeStyleZoneStatus) {
-         LifeStyleZoneStatus zoneStatus = (LifeStyleZoneStatus) msg;
-         int zoneNumber = zoneStatus.getZoneNumber();
-         ctx.fireChannelRead(new NewValue(Message.ZONE_STATUS_CHANGED, zoneNumber));
-      }
-      // Notifica di accesso livello utente (senza partizione)
-      else if (msg instanceof AccessLevelLeadInOut) {
-         AccessLevelLeadInOut accessLevel = (AccessLevelLeadInOut) msg;
-         if (accessLevel.getPartitionNumber() == null) {
-            ctx.fireChannelRead(new NewValue(
-               Message.ACCESS_LEVEL_LEAD_IN_OUT,
-               Quartet.with(
-                  accessLevel.getType(),
-                  accessLevel.getUser(),
-                  accessLevel.getAccess(),
-                  accessLevel.getMode()
-               )
-            ));
+      } else if (var2 instanceof LifeStyleZoneStatus) {
+         LifeStyleZoneStatus var5 = (LifeStyleZoneStatus)var2;
+         int var7 = var5.getZoneNumber();
+         var1.fireChannelRead(new NewValue(Message.ZONE_STATUS_CHANGED, var7));
+      } else if (var2 instanceof AccessLevelLeadInOut) {
+         AccessLevelLeadInOut var6 = (AccessLevelLeadInOut)var2;
+         if (var6.getPartitionNumber() == null) {
+            var1.fireChannelRead(new NewValue(Message.ACCESS_LEVEL_LEAD_IN_OUT, Quartet.with(var6.getType(), var6.getUser(), var6.getAccess(), var6.getMode())));
          } else {
-            logger.warning("Unexpected partition for AccessLevelLeadInOut: " + accessLevel.getPartitionNumber());
+            logger.warning("unexpected partition for AccessLevelLeadInOut: {} " + var6.getPartitionNumber());
          }
+      } else {
+         super.channelRead(var1, var2);
       }
-      // Notifica broadcast di data/ora
-      else if (msg instanceof TimeDateBroadcastNotification) {
-         logger.fine("Time and date received: " + msg.toString());
-      }
-      // Altri messaggi non gestiti: passa al prossimo handler
-      else {
-         super.channelRead(ctx, msg);
-      }
+
    }
 }

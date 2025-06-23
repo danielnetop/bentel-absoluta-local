@@ -3,7 +3,6 @@ package protocol.dsc.transport.command_handlers;
 import com.google.common.base.Preconditions;
 
 import io.netty.handler.codec.DecoderException;
-
 import protocol.dsc.base.DscVariableBytes;
 import protocol.dsc.commands.RequestAccess;
 import protocol.dsc.util.DscUtils;
@@ -12,82 +11,79 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
-
 import java.util.logging.Logger;
 
 public class RequestAccessAESHelper {
-   private static final Logger logger = Logger.getLogger(RequestAccessAESHelper.class.getName());
-   public static final int INIT_KEY_LENGTH = 8; // lunghezza chiave inizializzazione (in caratteri esadecimali)
-   private static final int SESSION_KEY_LENGTH = 16; // lunghezza chiave di sessione AES (byte)
-   private static final int IDENTIFIER_TOTAL_LENGTH = 48; // lunghezza totale campo identifier
-   private final DscVariableBytes identifierField;
+   private static final Logger logger = Logger.getLogger(RequestAccess.class.getName());
+   public static final int INIT_KEY_LENGTH = 8;
+   private static final int KEY_LENGTH = 16;
+   private static final int IDENTIFIER_LENGTH = 48;
+   private final DscVariableBytes identifier;
    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
 
-   public RequestAccessAESHelper(RequestAccess requestAccess) {
-      this.identifierField = requestAccess.identifier();
-      assert this.identifierField != null;
+   public RequestAccessAESHelper(RequestAccess var1) {
+      this.identifier = var1.identifier();
+
+      assert this.identifier != null;
+
    }
 
-   // Cifra la chiave di sessione e la inserisce nell'identifier (usando chiave di inizializzazione)
-   public void encryptKey(String initKeyHex, byte[] sessionKey) {
-      this.encryptKey(initKeyHex, sessionKey, getRandomBytes());
+   public void encryptKey(String var1, byte[] var2) {
+      this.encryptKey(var1, var2, getRandomBytes());
    }
 
-   // Cifra la chiave di sessione usando un vettore casuale (nonce)
-   public void encryptKey(String initKeyHex, byte[] sessionKey, byte[] randomVector) {
-      Preconditions.checkArgument(sessionKey.length == SESSION_KEY_LENGTH);
-      Preconditions.checkArgument(randomVector.length == SESSION_KEY_LENGTH);
-      this.identifierField.setLength(IDENTIFIER_TOTAL_LENGTH);
-      byte[] identifierBytes = this.identifierField.bytes();
+   public void encryptKey(String var1, byte[] var2, byte[] var3) {
+      Preconditions.checkArgument(var2.length == KEY_LENGTH);
+      Preconditions.checkArgument(var3.length == KEY_LENGTH);
+      this.identifier.setLength(IDENTIFIER_LENGTH);
+      byte[] var4 = this.identifier.bytes();
 
-      // Inserisce randomVector e sessionKey in identifierBytes secondo protocollo
-      for(int i = 0; i < SESSION_KEY_LENGTH; ++i) {
-         identifierBytes[i] = randomVector[i];
-         identifierBytes[SESSION_KEY_LENGTH + 2 * i] = randomVector[i];
-         identifierBytes[SESSION_KEY_LENGTH + 2 * i + 1] = sessionKey[i];
+      for(int var5 = 0; var5 < 16; ++var5) {
+         var4[var5] = var3[var5];
+         var4[16 + 2 * var5] = var3[var5];
+         var4[16 + 2 * var5 + 1] = var2[var5];
       }
 
-      Cipher cipher = getCipher(Cipher.ENCRYPT_MODE, initKeyHex);
+      Cipher var8 = getCipher(1, var1);
 
       try {
-         // Cifra solo la parte finale dell'identifier (32 byte)
-         cipher.doFinal(identifierBytes, SESSION_KEY_LENGTH, 32, identifierBytes, SESSION_KEY_LENGTH);
-      } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException ex) {
-         throw new RuntimeException("Eccezione inattesa durante cifratura", ex);
+         var8.doFinal(var4, 16, 32, var4, 16);
+      } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException var7) {
+         throw new RuntimeException("unexpected exception", var7);
       }
    }
 
-   // Decifra la chiave di sessione dall'identifier usando la chiave di inizializzazione
-   public byte[] decryptKey(String initKeyHex) {
+   public byte[] decryptKey(String var1) {
       try {
-         if (this.identifierField.length() != IDENTIFIER_TOTAL_LENGTH) {
-            throw new DecoderException(String.format("lunghezza identifier inattesa (%d invece di %d)", this.identifierField.length(), IDENTIFIER_TOTAL_LENGTH));
-         }
-         byte[] identifierBytes = this.identifierField.bytes();
-         Cipher cipher = getCipher(Cipher.DECRYPT_MODE, initKeyHex);
-         cipher.doFinal(identifierBytes, SESSION_KEY_LENGTH, 32, identifierBytes, SESSION_KEY_LENGTH);
+         if (this.identifier.length() != 48) {
+            throw new DecoderException(String.format("unexpected identifier length (%d istead of %d)", this.identifier.length(), 48));
+         } else {
+            byte[] var2 = this.identifier.bytes();
+            Cipher var3 = getCipher(2, var1);
+            var3.doFinal(var2, 16, 32, var2, 16);
+            byte[] var4 = new byte[16];
 
-         byte[] sessionKey = new byte[SESSION_KEY_LENGTH];
-         // Verifica coerenza e ricostruisce la chiave di sessione
-         for(int i = 0; i < SESSION_KEY_LENGTH; ++i) {
-            byte randomByte = identifierBytes[i];
-            byte randomByteCheck = identifierBytes[SESSION_KEY_LENGTH + 2 * i];
-            if (randomByte != randomByteCheck) {
-               throw new DecoderException(String.format("byte inatteso (0x%02X invece di 0x%02X)", randomByteCheck, randomByte));
+            for(int var5 = 0; var5 < 16; ++var5) {
+               byte var6 = var2[var5];
+               byte var7 = var2[16 + 2 * var5];
+               if (var6 != var7) {
+                  throw new DecoderException(String.format("unexpected byte (0x%02X istead of 0x%02X)", var7, var6));
+               }
+
+               var4[var5] = var2[16 + 2 * var5 + 1];
             }
-            sessionKey[i] = identifierBytes[SESSION_KEY_LENGTH + 2 * i + 1];
+
+            return var4;
          }
-         return sessionKey;
-      } catch (RuntimeException ex) {
-         logger.severe("Richiesta di accesso non valida: " + ex);
+      } catch (RuntimeException var8) {
+         logger.warning("invalid access request: " + var8);
          return null;
-      } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException ex) {
-         throw new RuntimeException("Eccezione inattesa durante decifratura", ex);
+      } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException var9) {
+         throw new RuntimeException("unexpected exception", var9);
       }
    }
 
-   // Costruisce la chiave AES a partire dalla chiave di inizializzazione esadecimale
-   private static Cipher getCipher(int cipherMode, String initKeyHex) {
+   private static Cipher getCipher(int var0, String initKeyHex) {
       long initKeyLong;
       try {
          initKeyLong = DscUtils.validateUInt(Long.parseLong(initKeyHex.substring(0, 8), 16));
@@ -95,18 +91,19 @@ public class RequestAccessAESHelper {
          throw new IllegalArgumentException(String.format("init key non valida '%s': %s", initKeyHex, ex.getMessage()), ex);
       }
 
-      byte[] aesKey = new byte[16];
-      // Espande la chiave a 16 byte secondo schema protocollo
-      for(int i = 0; i < 4; ++i) {
-         byte keyByte = (byte)((int)(initKeyLong >> 8 * (3 - i)));
-         for(int j = 0; j < 4; ++j) {
-            aesKey[4 * j + i] = keyByte;
+      byte[] var4 = new byte[16];
+
+      for(int var5 = 0; var5 < 4; ++var5) {
+         byte var6 = (byte)((int)(initKeyLong >> 8 * (3 - var5)));
+
+         for(int var7 = 0; var7 < 4; ++var7) {
+            var4[4 * var7 + var5] = var6;
          }
       }
-      return DscUtils.getAESCipher(aesKey, cipherMode);
+
+      return DscUtils.getAESCipher(var4, var0);
    }
 
-   // Genera 16 byte casuali (per chiave di sessione)
    public static byte[] getRandomBytes() {
       byte[] bytes = new byte[16];
       SECURE_RANDOM.nextBytes(bytes);

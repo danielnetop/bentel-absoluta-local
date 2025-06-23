@@ -17,32 +17,31 @@ import java.util.logging.Logger;
 public class FallbackHandler extends ChannelInboundHandlerAdapter {
    private static final Logger logger = Logger.getLogger(FallbackHandler.class.getName());
 
-   // Gestione delle eccezioni: invia errore fatale e chiude il canale
-   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-      ctx.fireChannelRead(DscError.newFatalError(cause));
-      ctx.fireUserEventTriggered(SimpleMessage.CLOSING_CHANNEL_EVENT);
-      if (cause instanceof DscProtocolException) {
-            logger.severe("Protocol exception received (sending an error message and closing the channel): " + cause);
-            CommandError err = new CommandError((DscProtocolException) cause);
-            err.setPriority((Priority) null);
-            ctx.write(err).addListener(ChannelFutureListener.CLOSE).addListener(LogOnFailure.INSTANCE);
+   public void exceptionCaught(ChannelHandlerContext var1, Throwable var2) throws Exception {
+      var1.fireChannelRead(DscError.newFatalError(var2));
+      var1.fireUserEventTriggered(SimpleMessage.CLOSING_CHANNEL_EVENT);
+      if (var2 instanceof DscProtocolException) {
+         logger.warning("protocol exception received (sending an error message and closing the channel): " + var2);
+         CommandError var3 = new CommandError((DscProtocolException)var2);
+         var3.setPriority((Priority)null);
+         var1.write(var3).addListener(ChannelFutureListener.CLOSE).addListener(LogOnFailure.INSTANCE);
       } else {
-            logger.severe("Exception received (closing the channel) " + cause);
-            ctx.close().addListener(LogOnFailure.INSTANCE);
+         logger.warning("exception received (closing the channel) " + var2);
+         var1.close().addListener(LogOnFailure.INSTANCE);
       }
+
    }
 
-   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      // Propaga comando ricevuto se è il marker COMMAND_RECEIVED
-      if (msg == SimpleMessage.COMMAND_RECEIVED) {
-            ctx.write(msg);
+   public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
+      if (var2 == SimpleMessage.COMMAND_RECEIVED) {
+         var1.write(var2);
       }
 
-      // Logga comandi non gestiti
-      if (msg instanceof DscCommand) {
-            logger.fine("Command received, but not handled: " + msg);
+      if (var2 instanceof DscCommand) {
+         logger.finer("command received, but not handled: " + var2);
       } else {
-            super.channelRead(ctx, msg);
+         super.channelRead(var1, var2);
       }
+
    }
 }

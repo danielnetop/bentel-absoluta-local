@@ -30,15 +30,14 @@ public abstract class Reading<P, V, C extends DscResponse> extends MessageWithRe
    public static void tryToParse(ChannelHandlerContext var0, Object var1, List<Message.Response> var2) {
       if (var1 instanceof DscResponse) {
          DscResponse var3 = (DscResponse)var1;
-         for (Reading<?, ?, ?> reading : readingMap.get(var3.getClass())) {
+         for (Reading<?, ?, ? extends DscResponse> var5 : readingMap.get(var3.getClass())) {
             try {
-               reading.doParse(var0, var3, var2);
+               var5.doParse(var0, var3, var2);
             } catch (RuntimeException var7) {
-               var2.add(DscError.newMessageError(reading, null, var7));
+               var2.add(DscError.newMessageError(var5, null, var7));
             }
          }
       }
-
    }
 
    Reading(Class<C> var1) {

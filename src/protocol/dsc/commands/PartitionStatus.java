@@ -39,11 +39,10 @@ public class PartitionStatus extends DscRequestableCommand implements DscArray.E
 
    public void setPartitions(List<Integer> var1) {
       this.partitions.reset();
-      this.partitions.setMinNumberOfBits(var1.isEmpty() ? 0 : (Integer)Collections.max(var1));
-      for (Integer partition : var1) {
-         this.partitions.set(partition, true);
+      this.partitions.setMinNumberOfBits(var1.isEmpty() ? 0 : Collections.max(var1));
+      for (Integer var3 : var1) {
+         this.partitions.set(var3, true);
       }
-
    }
 
    public List<? extends List<Boolean>> getStatuses() {

@@ -35,12 +35,11 @@ public class PartitionAssignmentsResponse extends DscCommandWithResponse.Respons
    }
 
    public List<List<Integer>> getPartitionAssignments() {
-      List<List<Integer>> var1 = new ArrayList<List<Integer>>(this.partitionAssignments.size());
+      List<List<Integer>> result = new ArrayList<>(this.partitionAssignments.size());
       for (DscBitMask bitMask : this.partitionAssignments) {
-         var1.add(bitMask.getTrueIndexes());
+         result.add(bitMask.getTrueIndexes());
       }
-
-      return var1;
+      return result;
    }
 
    public int numberOfElements() {

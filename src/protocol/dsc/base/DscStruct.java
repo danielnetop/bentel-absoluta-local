@@ -2,41 +2,46 @@ package protocol.dsc.base;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
+
 import java.util.List;
 
 public abstract class DscStruct implements DscSerializable {
    protected abstract List<DscSerializable> getFields();
 
-   @Override
-   public void readFrom(ByteBuf buffer) throws DecoderException, IndexOutOfBoundsException {
-      for (DscSerializable field : this.getFields()) {
-         field.readFrom(buffer);
+   public void readFrom(ByteBuf var1) throws DecoderException, IndexOutOfBoundsException {
+      List<DscSerializable> fields = this.getFields();
+      for (int i = 0; i < fields.size(); i++) {
+         DscSerializable field = fields.get(i);
+         field.readFrom(var1);
       }
    }
 
-   @Override
-   public void writeTo(ByteBuf buffer) {
-      for (DscSerializable field : this.getFields()) {
-         field.writeTo(buffer);
+   public void writeTo(ByteBuf var1) {
+      List<DscSerializable> fields = this.getFields();
+      for (int i = 0; i < fields.size(); i++) {
+         DscSerializable field = fields.get(i);
+         field.writeTo(var1);
       }
    }
 
-   @Override
-   public boolean isEquivalent(DscSerializable other) {
-      if (this.getClass() == other.getClass()) {
-         List<DscSerializable> fieldsThis = this.getFields();
-         List<DscSerializable> fieldsOther = ((DscStruct) other).getFields();
-         int size = fieldsThis.size();
-         if (size != fieldsOther.size()) {
-               return false;
-         }
-         for (int i = 0; i < size; ++i) {
-               if (!fieldsThis.get(i).isEquivalent(fieldsOther.get(i))) {
+   public boolean isEquivalent(DscSerializable var1) {
+      if (this.getClass() == var1.getClass()) {
+         List<DscSerializable> var2 = this.getFields();
+         List<DscSerializable> var3 = ((DscStruct)var1).getFields();
+         int var4 = var2.size();
+         if (var4 != var3.size()) {
+            return false;
+         } else {
+            for(int var5 = 0; var5 < var4; ++var5) {
+               if (!((DscSerializable)var2.get(var5)).isEquivalent((DscSerializable)var3.get(var5))) {
                   return false;
                }
+            }
+
+            return true;
          }
-         return true;
+      } else {
+         return false;
       }
-      return false;
    }
 }

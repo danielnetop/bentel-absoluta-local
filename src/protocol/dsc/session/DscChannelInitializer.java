@@ -1,27 +1,58 @@
 package protocol.dsc.session;
 
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
-
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.Poll;
-import protocol.dsc.transport.*;
-import protocol.dsc.transport.command_handlers.*;
+import protocol.dsc.transport.ACKHandler;
+import protocol.dsc.transport.AESDecoder;
+import protocol.dsc.transport.AESEncoder;
+import protocol.dsc.transport.CommandDecoder;
+import protocol.dsc.transport.CommandEncoder;
+import protocol.dsc.transport.CommandQueueHandler;
+import protocol.dsc.transport.DataDecoder;
+import protocol.dsc.transport.DataEncoder;
+import protocol.dsc.transport.EndpointHandler;
+import protocol.dsc.transport.FallbackHandler;
+import protocol.dsc.transport.FlushCommandHandler;
+import protocol.dsc.transport.FrameDecoder;
+import protocol.dsc.transport.FrameEncoder;
+import protocol.dsc.transport.MultiplePacketsDecoder;
+import protocol.dsc.transport.PipelineHandler;
+import protocol.dsc.transport.ResponseHandler;
+import protocol.dsc.transport.TransportLayerDecoder;
+import protocol.dsc.transport.TransportLayerEncoder;
+import protocol.dsc.transport.command_handlers.EndSessionHandler;
+import protocol.dsc.transport.command_handlers.HandshakeHandler;
+import protocol.dsc.transport.command_handlers.MiscNotificationHandler;
+import protocol.dsc.transport.command_handlers.OpenSessionHandler;
+import protocol.dsc.transport.command_handlers.PollHandler;
+import protocol.dsc.transport.command_handlers.RequestAccessHandler;
+import protocol.dsc.transport.command_handlers.RequestedReadingHandler;
+import protocol.dsc.transport.command_handlers.TextNotificationHandler;
+import protocol.dsc.transport.command_handlers.TroubleDetailNotificationHandler;
+import protocol.dsc.transport.command_handlers.UserPartitionAssignmentConfigurationHandler;
+import protocol.dsc.transport.command_handlers.WritingHandler;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public abstract class DscChannelInitializer extends ChannelInitializer<SocketChannel> {
-   private static final Logger LOGGER = Logger.getLogger(DscChannelInitializer.class.getName());
-
-   // Handler statici riutilizzabili
+   private static final Logger logger = Logger.getLogger(DscChannelInitializer.class.getName());
    private static final FrameEncoder FRAME_ENCODER = new FrameEncoder();
    private static final AESDecoder AES_DECODER = new AESDecoder();
    private static final AESEncoder AES_ENCODER = new AESEncoder();
@@ -37,129 +68,82 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    private static final EndSessionHandler END_SESSION_HANDLER = new EndSessionHandler();
    private static final FallbackHandler FALLBACK_HANDLER = new FallbackHandler();
    private static final TextNotificationHandler TEXT_NOTIFICATION_HANDLER = new TextNotificationHandler();
-   private static final UserPartitionAssignmentConfigurationHandler USER_PARTITION_ASSIGNMENT_HANDLER = new UserPartitionAssignmentConfigurationHandler();
-   private static final TroubleDetailNotificationHandler TROUBLE_DETAIL_HANDLER = new TroubleDetailNotificationHandler();
+   private static final UserPartitionAssignmentConfigurationHandler USER_PARTITION_ASSIGNMENT_CONFIGURATION_HANDLER = new UserPartitionAssignmentConfigurationHandler();
+   private static final TroubleDetailNotificationHandler TROUBLE_DETAIL_NOTIFICATION_HANDLER = new TroubleDetailNotificationHandler();
    private static final MiscNotificationHandler MISC_NOTIFICATION_HANDLER = new MiscNotificationHandler();
    private static final WritingHandler WRITING_HANDLER = new WritingHandler();
-
-   private static final AtomicInteger CONNECTION_COUNTER = new AtomicInteger();
-   private final int connectionId;
+   private static final AtomicInteger counter = new AtomicInteger();
+   private final int num;
 
    public DscChannelInitializer() {
-      this.connectionId = CONNECTION_COUNTER.getAndIncrement();
+      this.num = counter.getAndIncrement();
    }
 
-   // Info di sessione predefinite per il proprio endpoint
-   protected SessionInfo buildOwnSessionInfo() {
-      SessionInfo info = new SessionInfo();
-      info.setClient(false);
-      info.setDeviceTypeOrVendorID(143);
-      info.setDeviceId(0);
-      info.setSoftwareVersion("0100");
-      info.setProtocolVersion("0211");
-      info.setTxSize(65535);
-      info.setRxSize(65535);
-      info.setEncryptionType(1);
-      info.setIdentifierOrInitKey("12345678");
-      return info;
+   protected SessionInfo getOwnInfo() {
+      SessionInfo var1 = new SessionInfo();
+      var1.setClient(false);
+      var1.setDeviceTypeOrVendorID(143);
+      var1.setDeviceId(0);
+      var1.setSoftwareVersion("0100");
+      var1.setProtocolVersion("0211");
+      var1.setTxSize(65535);
+      var1.setRxSize(65535);
+      var1.setEncryptionType(1);
+      var1.setIdentifierOrInitKey("12345678");
+      return var1;
    }
 
-   // Costruisce la sequenza di handler per handshake iniziale
    protected Queue<HandshakeHandler<?>> buildHandshakeHandlers() {
-      Queue<HandshakeHandler<?>> handshakeHandlers = new ArrayDeque<>(2);
-      handshakeHandlers.add(new OpenSessionHandler());
-      handshakeHandlers.add(new RequestAccessHandler());
-      return handshakeHandlers;
+      Queue<HandshakeHandler<?>> var1 = new ArrayDeque<>(2);
+      var1.add(new OpenSessionHandler());
+      var1.add(new RequestAccessHandler());
+      return var1;
    }
 
-   // Costruisce la lista di handler per la modalità operativa normale
    protected List<ChannelHandler> buildNormalModeHandlers() {
-      List<ChannelHandler> handlers = new ArrayList<>(6);
-      handlers.add(new RequestedReadingHandler());
-      handlers.add(WRITING_HANDLER);
-      handlers.add(TEXT_NOTIFICATION_HANDLER);
-      handlers.add(USER_PARTITION_ASSIGNMENT_HANDLER);
-      handlers.add(TROUBLE_DETAIL_HANDLER);
-      handlers.add(MISC_NOTIFICATION_HANDLER);
-      return handlers;
+      List<ChannelHandler> var1 = new ArrayList<>(6);
+      var1.add(new RequestedReadingHandler());
+      var1.add(WRITING_HANDLER);
+      var1.add(TEXT_NOTIFICATION_HANDLER);
+      var1.add(USER_PARTITION_ASSIGNMENT_CONFIGURATION_HANDLER);
+      var1.add(TROUBLE_DETAIL_NOTIFICATION_HANDLER);
+      var1.add(MISC_NOTIFICATION_HANDLER);
+      return var1;
    }
 
-   // Timeout di idle per il writer (poll)
-   protected int getWriterIdleTimeSeconds() {
-      return Consts.DEFAULT_POLL_TIMEOUT;
+   protected int writerIdleTimeSeconds() {
+      return 30;
    }
 
-   // Factory per la creazione dei comandi di Poll
    protected PollHandler.PollFactory pollFactory() {
       return new PollHandler.PollFactory() {
          public DscCommand createPoll() {
-               return new Poll();
+            return new Poll();
          }
       };
    }
 
-   // Da implementare: chiamato quando la pipeline è pronta
-   protected abstract void onInitialized(DscEndpoint endpoint, SocketChannel channel);
+   protected abstract void inizialized(DscEndpoint var1, SocketChannel var2);
 
-   @Override
-   protected final void initChannel(SocketChannel channel) throws Exception {
-      LOGGER.fine("Initializing channel for connection number " + this.connectionId + " ...");
-
-      final DscEndpoint endpoint = new DscEndpoint(channel);
-
-      // Listener per chiusura canale: aggiorna lo stato endpoint
-      channel.closeFuture().addListener(new ChannelFutureListener() {
-         public void operationComplete(ChannelFuture future) {
-               endpoint.setState(DscEndpointState.CLOSED);
+   protected final void initChannel(SocketChannel var1) throws Exception {
+      logger.fine("initializing channel for connection number " + this.num);
+      final DscEndpoint var2 = new DscEndpoint(var1);
+      var1.closeFuture().addListener(new ChannelFutureListener() {
+         public void operationComplete(ChannelFuture var1) throws Exception {
+            var2.setState(DscEndpointState.CLOSED);
          }
       });
-
-      // Inizializza le info di sessione associate al canale
-      SessionInfo.initInfo(channel, this.buildOwnSessionInfo());
-
-      int logHandlerIndex = 0;
-      ChannelPipeline pipeline = channel.pipeline();
-
-      // Costruzione pipeline Netty
-      pipeline
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(new ReadTimeoutHandler(Consts.IDLE_TIMEOUT))
-         .addLast(new WriteTimeoutHandler(Consts.IDLE_TIMEOUT))
-         .addLast(new IdleStateHandler(0, getWriterIdleTimeSeconds(), 0))
-         .addLast(new FrameDecoder())
-         .addLast(FRAME_ENCODER)
-         .addLast(AES_DECODER)
-         .addLast(AES_ENCODER)
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(DATA_DECODER)
-         .addLast(DATA_ENCODER)
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(TRANSPORT_LAYER_DECODER)
-         .addLast(TRANSPORT_LAYER_ENCODER)
-         .addLast(MULTIPLE_PACKETS_DECODER)
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(COMMAND_DECODER)
-         .addLast(COMMAND_ENCODER)
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(FLUSH_COMMAND_HANDLER)
-         .addLast(ACK_HANDLER)
-         .addLast(new ResponseHandler())
-         .addLast(new CommandQueueHandler())
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(END_SESSION_HANDLER)
-         .addLast(new PollHandler(this.pollFactory()))
-         .addLast(new PipelineHandler(this.buildHandshakeHandlers(), this.buildNormalModeHandlers()))
-         .addLast(newLoggingHandler(logHandlerIndex++))
-         .addLast(FALLBACK_HANDLER)
-         .addLast(new EndpointHandler(endpoint))
-         .addLast(newLoggingHandler(logHandlerIndex++));
-
-      // Hook per personalizzazioni post-inizializzazione
-      this.onInitialized(endpoint, channel);
+      SessionInfo.initInfo(var1, this.getOwnInfo());
+      byte var3 = 0;
+      ChannelPipeline var10000 = var1.pipeline();
+      ChannelHandler[] var10001 = new ChannelHandler[1];
+      int var4 = var3 + 1;
+      var10001[0] = this.newLoggingHandler(var3);
+      var10000.addLast(var10001).addLast(new ChannelHandler[]{new ReadTimeoutHandler(45)}).addLast(new ChannelHandler[]{new WriteTimeoutHandler(45)}).addLast(new ChannelHandler[]{new IdleStateHandler(0, this.writerIdleTimeSeconds(), 0)}).addLast(new ChannelHandler[]{new FrameDecoder()}).addLast(new ChannelHandler[]{FRAME_ENCODER}).addLast(new ChannelHandler[]{AES_DECODER}).addLast(new ChannelHandler[]{AES_ENCODER}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{DATA_DECODER}).addLast(new ChannelHandler[]{DATA_ENCODER}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{TRANSPORT_LAYER_DECODER}).addLast(new ChannelHandler[]{TRANSPORT_LAYER_ENCODER}).addLast(new ChannelHandler[]{MULTIPLE_PACKETS_DECODER}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{COMMAND_DECODER}).addLast(new ChannelHandler[]{COMMAND_ENCODER}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{FLUSH_COMMAND_HANDLER}).addLast(new ChannelHandler[]{ACK_HANDLER}).addLast(new ChannelHandler[]{new ResponseHandler()}).addLast(new ChannelHandler[]{new CommandQueueHandler()}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{END_SESSION_HANDLER}).addLast(new ChannelHandler[]{new PollHandler(this.pollFactory())}).addLast(new ChannelHandler[]{new PipelineHandler(this.buildHandshakeHandlers(), this.buildNormalModeHandlers())}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)}).addLast(new ChannelHandler[]{FALLBACK_HANDLER}).addLast(new ChannelHandler[]{new EndpointHandler(var2)}).addLast(new ChannelHandler[]{this.newLoggingHandler(var4++)});
+      this.inizialized(var2, var1);
    }
 
-   // Handler di logging con nome identificativo per debugging
-   private LoggingHandler newLoggingHandler(int index) {
-      return new LoggingHandler("DEBUG: .LoggingHandler_" + index + ".connection_" + this.connectionId, LogLevel.TRACE);
+   private LoggingHandler newLoggingHandler(int var1) {
+      return new LoggingHandler(logger.getName() + ".LoggingHandler_" + var1 + ".connection_" + this.num, LogLevel.TRACE);
    }
 }

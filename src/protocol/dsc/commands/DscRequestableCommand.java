@@ -14,10 +14,7 @@ public abstract class DscRequestableCommand extends DscAbstractCommand implement
    protected abstract List<DscSerializable> getOtherFields();
 
    protected final List<DscSerializable> getFields() {
-      return ImmutableList.<DscSerializable>builder()
-         .addAll(this.getRequestFields())
-         .addAll(this.getOtherFields())
-         .build();
+      return ImmutableList.<DscSerializable>builder().addAll(this.getRequestFields()).addAll(this.getOtherFields()).build();
    }
 
    public final void readFrom(ByteBuf var1) throws DecoderException, IndexOutOfBoundsException {
@@ -27,7 +24,8 @@ public abstract class DscRequestableCommand extends DscAbstractCommand implement
    public final void readRequestDataFrom(ByteBuf var1) throws DecoderException, IndexOutOfBoundsException {
       List<DscSerializable> requestFields = this.getRequestFields();
       for (int i = 0; i < requestFields.size(); i++) {
-         requestFields.get(i).readFrom(var1);
+         DscSerializable field = requestFields.get(i);
+         field.readFrom(var1);
       }
    }
 
@@ -38,7 +36,8 @@ public abstract class DscRequestableCommand extends DscAbstractCommand implement
    public final void writeRequestDataTo(ByteBuf var1) {
       List<DscSerializable> requestFields = this.getRequestFields();
       for (int i = 0; i < requestFields.size(); i++) {
-         requestFields.get(i).writeTo(var1);
+         DscSerializable field = requestFields.get(i);
+         field.writeTo(var1);
       }
    }
 

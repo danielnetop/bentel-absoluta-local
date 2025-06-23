@@ -11,18 +11,18 @@ import io.netty.util.AttributeKey;
 public class AESEncoder extends MessageToByteEncoder<ByteBuf> {
    private static final AttributeKey<AESHelper> HELPER_KEY = AttributeKey.valueOf("AESEncoder.helper");
 
-   protected void encode(ChannelHandlerContext ctx, ByteBuf in, ByteBuf out) {
-      AESHelper helper = ctx.channel().attr(HELPER_KEY).get();
-      if (helper != null) {
-         helper.process(in, out); // Cifra se helper presente
+   protected void encode(ChannelHandlerContext var1, ByteBuf var2, ByteBuf var3) {
+      AESHelper var4 = (AESHelper)var1.channel().attr(HELPER_KEY).get();
+      if (var4 != null) {
+         var4.process(var2, var3);
       } else {
-         out.writeBytes(in); // Passa dati in chiaro se nessuna chiave impostata
+         var3.writeBytes(var2);
       }
+
    }
 
-   // Imposta la chiave AES sul canale
-   public static void setKey(Channel ch, byte[] key) {
-      AESHelper helper = AESHelper.getInstance(key, 1);
-      ch.attr(HELPER_KEY).set(helper);
+   public static void setKey(Channel var0, byte[] var1) {
+      AESHelper var2 = AESHelper.getInstance(var1, 1);
+      var0.attr(HELPER_KEY).set(var2);
    }
 }

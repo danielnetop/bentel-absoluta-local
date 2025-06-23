@@ -15,46 +15,40 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DscITv2Server implements DscServer {
    private final int port;
-   private final List<IncomingConnectionListener> incomingConnectionListeners = new CopyOnWriteArrayList<>();
-   private EventLoopGroup bossEventLoopGroup;
-   private EventLoopGroup workerEventLoopGroup;
+   private final List<IncomingConnectionListener> listeners = new CopyOnWriteArrayList<>();
+   private EventLoopGroup bossGroup;
+   private EventLoopGroup workerGroup;
 
-   public DscITv2Server(int port) {
-      this.port = port;
+   public DscITv2Server(int var1) {
+      this.port = var1;
    }
 
    @SuppressWarnings("deprecation")
    public void start() {
-      // Avvia solo se non già avviato
-      if (this.bossEventLoopGroup == null && this.workerEventLoopGroup == null) {
+      if (this.bossGroup == null && this.workerGroup == null) {
          try {
-               this.bossEventLoopGroup = new NioEventLoopGroup();
-               this.workerEventLoopGroup = new NioEventLoopGroup();
-               ServerBootstrap serverBootstrap = new ServerBootstrap();
-               serverBootstrap.group(this.bossEventLoopGroup, this.workerEventLoopGroup)
-                     .channel(NioServerSocketChannel.class)
-                     .childHandler(new DscChannelInitializer() {
-                           @Override
-                           protected void onInitialized(DscEndpoint endpoint, SocketChannel channel) {
-                              // Notifica tutti i listener della nuova connessione
-                              for (IncomingConnectionListener listener : incomingConnectionListeners) {
-                                 listener.deviceConnected(endpoint);
-                              }
-                           }
-                     })
-                     .option(ChannelOption.SO_BACKLOG, 128)
-                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-               serverBootstrap.bind(this.port);
-         } catch (RuntimeException ex) {
-               try {
-                  this.stop(false);
-               } catch (InterruptedException ie) {
-                  throw new AssertionError(ie);
+            this.bossGroup = new NioEventLoopGroup();
+            this.workerGroup = new NioEventLoopGroup();
+            ServerBootstrap var1 = new ServerBootstrap();
+            ((ServerBootstrap)((ServerBootstrap)var1.group(this.bossGroup, this.workerGroup).channel(NioServerSocketChannel.class)).childHandler(new DscChannelInitializer() {
+               protected void inizialized(DscEndpoint var1, SocketChannel var2) {
+                  for (IncomingConnectionListener listener : DscITv2Server.this.listeners) {
+                     listener.deviceConnected(var1);
+                  }
                }
-               throw ex;
+            }).option(ChannelOption.SO_BACKLOG, 128)).childOption(ChannelOption.SO_KEEPALIVE, true);
+            var1.bind(this.port);
+         } catch (RuntimeException var4) {
+            try {
+               this.stop(false);
+            } catch (InterruptedException var3) {
+               throw new AssertionError(var3);
+            }
+
+            throw var4;
          }
       } else {
-         throw new IllegalStateException("Server is already running");
+         throw new IllegalStateException("already running");
       }
    }
 
@@ -62,33 +56,36 @@ public class DscITv2Server implements DscServer {
       this.stop(true);
    }
 
-   // Gestisce la chiusura dei gruppi di thread, opzionalmente attende la terminazione
-   private void stop(boolean wait) throws InterruptedException {
-      Future<?> workerShutdownFuture = null;
-      Future<?> bossShutdownFuture = null;
-      if (this.workerEventLoopGroup != null) {
-         workerShutdownFuture = this.workerEventLoopGroup.shutdownGracefully();
-         this.workerEventLoopGroup = null;
+   private void stop(boolean var1) throws InterruptedException {
+      Future<?> var2 = null;
+      Future<?> var3 = null;
+      if (this.workerGroup != null) {
+         var2 = this.workerGroup.shutdownGracefully();
+         this.workerGroup = null;
       }
-      if (this.bossEventLoopGroup != null) {
-         bossShutdownFuture = this.bossEventLoopGroup.shutdownGracefully();
-         this.bossEventLoopGroup = null;
+
+      if (this.bossGroup != null) {
+         var3 = this.bossGroup.shutdownGracefully();
+         this.bossGroup = null;
       }
-      if (wait) {
-         if (workerShutdownFuture != null) {
-               workerShutdownFuture.sync();
+
+      if (var1) {
+         if (var2 != null) {
+            var2.sync();
          }
-         if (bossShutdownFuture != null) {
-               bossShutdownFuture.sync();
+
+         if (var3 != null) {
+            var3.sync();
          }
       }
+
    }
 
-   public void addIncomingConnectionListener(IncomingConnectionListener listener) {
-      this.incomingConnectionListeners.add(listener);
+   public void addIncomingConnectionListener(IncomingConnectionListener var1) {
+      this.listeners.add(var1);
    }
 
-   public void removeIncomingConnectionListener(IncomingConnectionListener listener) {
-      this.incomingConnectionListeners.remove(listener);
+   public void removeIncomingConnectionListener(IncomingConnectionListener var1) {
+      this.listeners.remove(var1);
    }
 }

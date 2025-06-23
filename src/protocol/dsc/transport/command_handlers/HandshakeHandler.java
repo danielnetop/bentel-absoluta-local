@@ -7,7 +7,6 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
 import protocol.dsc.commands.CommandResponse;
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.DscCommandWithAppSeq;
@@ -21,140 +20,144 @@ import java.util.logging.Logger;
 
 public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInboundHandlerAdapter {
    private static final Logger logger = Logger.getLogger(HandshakeHandler.class.getName());
-   private final Class<C> commandClass;
-   private ChannelHandlerContext context;
-   private boolean commandSent;
-   private boolean commandReceived;
+   private final Class<C> cmdClass;
+   private ChannelHandlerContext ctx;
+   private boolean sent;
+   private boolean received;
 
-   protected HandshakeHandler(Class<C> commandClass) {
+   protected HandshakeHandler(Class<C> var1) {
       if (this.isSharable()) {
          throw new IllegalStateException("@Sharable annotation is not allowed");
+      } else {
+         this.cmdClass = Preconditions.checkNotNull(var1);
       }
-      this.commandClass = Preconditions.checkNotNull(commandClass);
    }
 
-   public abstract boolean validateOwnInfo(SessionInfo sessionInfo);
+   public abstract boolean validateOwnInfo(SessionInfo var1);
 
-   protected abstract C getCommand(Channel channel);
+   protected abstract C getCommand(Channel var1);
 
-   protected int onCommandReceived(Channel channel, C command) {
+   protected int commandReceived(Channel var1, C var2) {
       return 0;
    }
-   protected void onCommandSent(Channel channel) {
+
+   protected void commandSent(Channel var1) {
    }
 
    public void startHandshakeStage() {
-      if (this.context == null) {
-         throw new IllegalStateException("No context available");
+      if (this.ctx == null) {
+         throw new IllegalStateException("no context");
+      } else {
+         this.sendCommand(this.ctx);
       }
-      sendCommand(this.context);
    }
 
-   @Override
-   public final void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-      this.context = ctx;
-      super.handlerAdded(ctx);
+   public final void handlerAdded(ChannelHandlerContext var1) throws Exception {
+      this.ctx = var1;
+      super.handlerAdded(var1);
    }
 
-   @Override
-   public final void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-      this.context = null;
-      super.handlerRemoved(ctx);
+   public final void handlerRemoved(ChannelHandlerContext var1) throws Exception {
+      this.ctx = null;
+      super.handlerRemoved(var1);
    }
 
-   @Override
-   public final void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      if (commandClass.isInstance(msg)) {
-         this.commandReceived = true;
-         C command = commandClass.cast(msg);
-         int responseCode = this.onCommandReceived(ctx.channel(), command);
-
-         // Risposta automatica se il comando prevede sequenza applicativa
-         if (command instanceof DscCommandWithAppSeq) {
-            DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
-            CommandResponse response = new CommandResponse();
-            response.setCommandSeq(withSeq.getAppSeq());
-            response.setResponseCode(responseCode);
-            ctx.write(response).addListener(LogOnFailure.INSTANCE);
+   public final void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
+      if (this.cmdClass.isInstance(var2)) {
+         this.received = true;
+         C var3 = this.cmdClass.cast(var2);
+         int var4 = this.commandReceived(var1.channel(), var3);
+         if (var3 instanceof DscCommandWithAppSeq) {
+            DscCommandWithAppSeq var5 = (DscCommandWithAppSeq)var3;
+            CommandResponse var6 = new CommandResponse();
+            var6.setCommandSeq(var5.getAppSeq());
+            var6.setResponseCode(var4);
+            var1.write(var6).addListener(LogOnFailure.INSTANCE);
          }
 
-         if (responseCode == 0) {
-            onReceptionSuccess(ctx);
+         if (var4 == 0) {
+            this.receptionSuccessfullyCompleted(var1);
          } else {
-            onFailure(ctx);
+            this.failure(var1);
          }
       } else {
-         super.channelRead(ctx, msg);
+         super.channelRead(var1, var2);
       }
+
    }
 
-   private void onSendSuccess(ChannelHandlerContext ctx) {
-      this.commandSent = true;
-      if (this.commandReceived) {
-         onSuccess(ctx);
+   private void sendingSuccessfullyCompleted(ChannelHandlerContext var1) {
+      this.sent = true;
+      if (this.received) {
+         this.success(var1);
       }
+
    }
 
-   private void onReceptionSuccess(ChannelHandlerContext ctx) {
-      this.commandReceived = true;
-      if (this.commandSent) {
-         onSuccess(ctx);
+   private void receptionSuccessfullyCompleted(ChannelHandlerContext var1) {
+      this.received = true;
+      if (this.sent) {
+         this.success(var1);
       } else {
-         sendCommand(ctx);
-      }
-   }
-
-   private void onSuccess(ChannelHandlerContext ctx) {
-      logger.fine("Handshake stage completed for " + this.commandClass.getSimpleName());
-      ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_STAGE_COMPLETED_EVENT);
-   }
-
-   private void onFailure(ChannelHandlerContext ctx) {
-      ctx.write(new EndSession()).addListener(LogOnFailure.INSTANCE);
-   }
-
-   private void sendCommand(ChannelHandlerContext ctx) {
-      C command = this.getCommand(ctx.channel());
-      boolean hasAppSeqCallback = false;
-
-      if (command instanceof DscCommandWithAppSeq) {
-         DscCommandWithAppSeq withSeq = (DscCommandWithAppSeq) command;
-         if (withSeq.hasResponseCallback()) {
-            throw new IllegalStateException("Response callback already set");
-         }
-         withSeq.setResponseCallback(new ResponseReceivedCallback());
-         hasAppSeqCallback = true;
+         this.sendCommand(var1);
       }
 
-      ctx.write(command)
-         .addListener(new CommandSentCallback())
-         .addListener(LogOnFailure.INSTANCE);
+   }
 
-      if (!hasAppSeqCallback) {
-         onSendSuccess(ctx);
+   private void success(ChannelHandlerContext var1) {
+      logger.fine("handshake stage completed for " + this.cmdClass.getSimpleName());
+      var1.fireUserEventTriggered(SimpleMessage.HANDSHAKE_STAGE_COMPLETED_EVENT);
+   }
+
+   private void failure(ChannelHandlerContext var1) {
+      var1.write(new EndSession()).addListener(LogOnFailure.INSTANCE);
+   }
+
+   private void sendCommand(ChannelHandlerContext var1) {
+      C var2 = this.getCommand(var1.channel());
+      boolean var3;
+      if (var2 instanceof DscCommandWithAppSeq) {
+         DscCommandWithAppSeq var4 = (DscCommandWithAppSeq)var2;
+
+         assert !var4.hasResponseCallback();
+
+         var4.setResponseCallback(new ResponseReceivedCallback());
+         var3 = true;
+      } else {
+         var3 = false;
       }
+
+      var1.write(var2).addListener(new CommandSentCallback()).addListener(LogOnFailure.INSTANCE);
+      if (!var3) {
+         this.sendingSuccessfullyCompleted(var1);
+      }
+
    }
 
    private class CommandSentCallback implements ChannelFutureListener {
-      @Override
-      public void operationComplete(ChannelFuture future) {
-         if (future.isSuccess()) {
-            onCommandSent(future.channel());
+      private CommandSentCallback() {
+      }
+
+      public void operationComplete(ChannelFuture var1) throws Exception {
+         if (var1.isSuccess()) {
+            HandshakeHandler.this.commandSent(var1.channel());
          } else {
-            logger.warning("Sending failed for " + commandClass.getSimpleName() + ": " + future.cause());
+            HandshakeHandler.logger.warning("sending failed for " + HandshakeHandler.this.cmdClass.getSimpleName() + " " + var1.cause());
          }
       }
    }
 
    private class ResponseReceivedCallback implements DscCommandWithAppSeq.ResponseCallback {
-      @Override
-      public void generalResponseReceived(Channel channel, DscGeneralResponse response) {
-         ChannelHandlerContext ctx = channel.pipeline().context(HandshakeHandler.this);
-         if (response.isSuccess()) {
-            onSendSuccess(ctx);
+      private ResponseReceivedCallback() {
+      }
+
+      public void generalResponseReceived(Channel var1, DscGeneralResponse var2) {
+         ChannelHandlerContext var3 = var1.pipeline().context(HandshakeHandler.this);
+         if (var2.isSuccess()) {
+            HandshakeHandler.this.sendingSuccessfullyCompleted(var3);
          } else {
-            logger.warning("Negative response for " + commandClass.getSimpleName() + ": " + response);
-            onFailure(ctx);
+            HandshakeHandler.logger.warning("negative response for " + HandshakeHandler.this.cmdClass.getSimpleName() + ": " + var2);
+            HandshakeHandler.this.failure(var3);
          }
       }
    }

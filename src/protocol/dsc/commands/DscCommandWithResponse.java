@@ -27,10 +27,7 @@ public abstract class DscCommandWithResponse extends DscCommandWithAppSeq {
       protected abstract List<DscSerializable> getResponseFields();
 
       protected final List<DscSerializable> getFields() {
-         return ImmutableList.<DscSerializable>builder()
-            .addAll(this.requestInstance.getFields())
-            .addAll(this.getResponseFields())
-            .build();
+         return ImmutableList.<DscSerializable>builder().addAll(this.requestInstance.getFields()).addAll(this.getResponseFields()).build();
       }
    }
 }

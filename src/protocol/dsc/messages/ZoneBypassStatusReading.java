@@ -24,7 +24,7 @@ public class ZoneBypassStatusReading extends RequestableCommandReading<Void, Lis
          List<Integer> var4 = var2.getBypassedZones();
          var3.add(new NewValue(this, var4));
       } else {
-         var3.add(DscError.newMessageError(this, null, (Integer)null, "unexpected zone bypass status for specific partition " + var2.getPartitionNumber()));
+         var3.add(DscError.newMessageError(this, null, null, "unexpected zone bypass status for specific partition " + var2.getPartitionNumber()));
       }
 
    }

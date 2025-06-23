@@ -5,52 +5,35 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.MessageToByteEncoder;
 
-import java.util.logging.Logger;
+import java.util.logging.Logger ;
 
 @Sharable
 public class TransportLayerEncoder extends MessageToByteEncoder<ByteBuf> {
    private static final Logger logger = Logger.getLogger(TransportLayerEncoder.class.getName());
 
-   @Override
-   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
-      // Verifica se il messaggio è un ACK basso (ACK di livello basso)
-      boolean isLowAck = SequenceHandlersHelper.isLowACK(msg);
-
-      // Ottiene i contatori di sequenza associati al canale
-      SequenceHandlersHelper.Counters counters = SequenceHandlersHelper.getCounters(ctx);
-
-      // Se non è un ACK basso e non si è pronti per un nuovo comando, logga un warning
-      if (!isLowAck && !counters.isReadyForANewCommand()) {
-         logger.fine("Command sent before confirmation of the previous");
+   protected void encode(ChannelHandlerContext var1, ByteBuf var2, ByteBuf var3) {
+      boolean var4 = SequenceHandlersHelper.isLowACK(var2);
+      SequenceHandlersHelper.Counters var5 = SequenceHandlersHelper.getCounters(var1);
+      if (!var4 && !var5.isReadyForANewCommand()) {
+         logger.warning("command sent before confirmation of the previous");
       }
 
-      // Aggiorna il prossimo numero di sequenza in base al tipo di messaggio
-      counters.setNextSequenceNumber(isLowAck);
-
-      // Ottiene il numero di sequenza locale e remoto
-      int localSeq = counters.sequenceNumber();
-      int remoteSeq = counters.remoteSequenceNumber();
-
-      // Scrive i numeri di sequenza nel buffer di output
-      out.writeByte(localSeq);
-      out.writeByte(remoteSeq);
-
-      // Scrive il payload originale nel buffer di output
-      out.writeBytes(msg);
-
-      // Aggiorna il numero di sequenza remoto inviato
-      counters.setSentRemoteSequenceNumber(remoteSeq);
+      var5.setNextSequenceNumber(var4);
+      int var6 = var5.sequenceNumber();
+      int var7 = var5.remoteSequenceNumber();
+      var3.writeByte(var6);
+      var3.writeByte(var7);
+      var3.writeBytes(var2);
+      var5.setSentRemoteSequenceNumber(var7);
    }
 
-   // Ritorna true se si può inviare un nuovo comando (conferma ricevuta)
-   public static boolean isReadyForANewCommand(ChannelHandlerContext ctx) {
-      SequenceHandlersHelper.Counters counters = SequenceHandlersHelper.getCounters(ctx);
-      return counters.isReadyForANewCommand();
+   public static boolean isReadyForANewCommand(ChannelHandlerContext var0) {
+      SequenceHandlersHelper.Counters var1 = SequenceHandlersHelper.getCounters(var0);
+      return var1.isReadyForANewCommand();
    }
 
-   // Ritorna true se è richiesto l'invio di un ACK in uscita
-   public static boolean isOutgoingACKRequired(ChannelHandlerContext ctx) {
-      SequenceHandlersHelper.Counters counters = SequenceHandlersHelper.getCounters(ctx);
-      return counters.isOutgoingACKRequired();
+   public static boolean isOutgoingACKRequired(ChannelHandlerContext var0) {
+      SequenceHandlersHelper.Counters var1 = SequenceHandlersHelper.getCounters(var0);
+      return var1.isOutgoingACKRequired();
    }
 }

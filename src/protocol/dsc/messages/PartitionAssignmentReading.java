@@ -16,10 +16,11 @@ public class PartitionAssignmentReading extends Reading<Integer, List<Integer>, 
 
    protected void parseResponse(ChannelHandlerContext var1, PartitionAssignmentsResponse var2, List<Message.Response> var3) {
       int var4 = var2.getUserNumberStart();
-      for (List<Integer> var6 : var2.getPartitionAssignments()) {
+      List<List<Integer>> assignments = var2.getPartitionAssignments();
+
+      for (List<Integer> var6 : assignments) {
          var3.add(new NewValue(this, var4++, var6));
       }
-
    }
 
    protected DscCommandWithAppSeq prepareCommand(ChannelHandlerContext var1, Integer var2) throws Exception {

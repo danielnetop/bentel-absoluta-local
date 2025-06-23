@@ -3,7 +3,6 @@ package protocol.dsc.transport;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-
 import protocol.dsc.DscError;
 import protocol.dsc.commands.DscCommandWithAppSeq;
 import protocol.dsc.commands.DscGeneralResponse;
@@ -16,62 +15,60 @@ import java.util.logging.Logger;
 public class ResponseHandler extends ChannelDuplexHandler {
    private static final Logger logger = Logger.getLogger(ResponseHandler.class.getName());
    private static final int MAX_WAITING_CMDS = 32;
-   // Coda dei comandi in attesa di risposta
    private final Queue<DscCommandWithAppSeq> waitingCmds = new LinkedList<DscCommandWithAppSeq>();
 
-   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+   public void channelInactive(ChannelHandlerContext var1) throws Exception {
       if (!this.waitingCmds.isEmpty()) {
-         logger.fine("Removing " + this.waitingCmds.size() + " waiting commands");
+         logger.warning("removing " + this.waitingCmds.size() + " waiting commands");
          this.waitingCmds.clear();
       }
-      super.channelInactive(ctx);
+
+      super.channelInactive(var1);
    }
 
-   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-      // Solo i comandi con appSeq vengono messi in coda
-      if (msg instanceof DscCommandWithAppSeq) {
-         DscCommandWithAppSeq cmd = (DscCommandWithAppSeq) msg;
-         // Limita la coda a MAX_WAITING_CMDS elementi
+   public void write(ChannelHandlerContext var1, Object var2, ChannelPromise var3) throws Exception {
+      if (var2 instanceof DscCommandWithAppSeq) {
+         DscCommandWithAppSeq var4 = (DscCommandWithAppSeq)var2;
          if (this.waitingCmds.size() == MAX_WAITING_CMDS) {
-               DscCommandWithAppSeq removed = this.waitingCmds.remove();
-               logger.fine("Waiting command removed to limit the queue size: " + removed);
+            DscCommandWithAppSeq var5 = (DscCommandWithAppSeq)this.waitingCmds.remove();
+            logger.warning("waiting command removed to limit the queue size: " + var5);
          }
-         this.waitingCmds.add(cmd);
+
+         this.waitingCmds.add(var4);
       }
-      super.write(ctx, msg, promise);
+
+      super.write(var1, var2, var3);
    }
 
-   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      boolean matched = false;
-      if (msg instanceof DscResponse) {
-         DscResponse resp = (DscResponse) msg;
-         // Cerca il comando in attesa che corrisponde alla risposta
-         for (DscCommandWithAppSeq cmd : waitingCmds) {
-               if (cmd.matchAsResponse(resp)) {
-                  logger.finer("Response " + resp + " received for " + cmd);
-                  waitingCmds.remove(cmd);
-                  matched = true;
-                  // Notifica il comando se è una risposta generale
-                  if (resp instanceof DscGeneralResponse) {
-                     DscGeneralResponse genResp = (DscGeneralResponse) resp;
-                     cmd.generalResponseReceived(ctx.channel(), genResp);
-                  }
-                  break;
-               }
+   public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
+      boolean var3 = false;
+      if (var2 instanceof DscResponse) {
+         DscResponse var4 = (DscResponse)var2;
+         for (DscCommandWithAppSeq var6 : new LinkedList<>(this.waitingCmds)) {
+         if (var6.matchAsResponse(var4)) {
+            logger.fine("responde " + var4 + " received for " + var6);
+            this.waitingCmds.remove(var6);
+            var3 = true;
+            if (var4 instanceof DscGeneralResponse) {
+            DscGeneralResponse var7 = (DscGeneralResponse)var4;
+            var6.generalResponseReceived(var1.channel(), var7);
+            }
+            break;
+         }
          }
       }
 
-      if (msg instanceof DscGeneralResponse) {
-         if (!matched) {
-               DscGeneralResponse genResp = (DscGeneralResponse) msg;
-               logger.fine("Unmatched general response " + genResp);
-               // Propaga errore se la risposta generale non è di successo
-               if (!genResp.isSuccess()) {
-                  ctx.fireChannelRead(DscError.newGenericError(genResp.getDescription()));
-               }
+      if (var2 instanceof DscGeneralResponse) {
+         if (!var3) {
+            DscGeneralResponse var8 = (DscGeneralResponse)var2;
+            logger.warning("unmatched general responde: " + var8);
+            if (!var8.isSuccess()) {
+               var1.fireChannelRead(DscError.newGenericError(var8.getDescription()));
+            }
          }
       } else {
-         super.channelRead(ctx, msg);
+         super.channelRead(var1, var2);
       }
+
    }
 }

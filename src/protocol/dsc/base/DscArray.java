@@ -6,32 +6,31 @@ import io.netty.handler.codec.DecoderException;
 import java.util.ArrayList;
 
 public final class DscArray<T extends DscSerializable> extends ArrayList<T> implements DscSerializable {
-   private final ElementProvider<T> elementProvider;
+   private final DscArray.ElementProvider<T> elementProvider;
 
-   public DscArray(ElementProvider<T> elementProvider) {
-      this.elementProvider = Preconditions.checkNotNull(elementProvider);
+   public DscArray(DscArray.ElementProvider<T> var1) {
+      this.elementProvider = Preconditions.checkNotNull(var1);
    }
 
-   @Override
-   public void readFrom(ByteBuf buffer) throws IndexOutOfBoundsException, DecoderException {
-      int expectedElements = this.elementProvider.numberOfElements();
+   public void readFrom(ByteBuf var1) throws IndexOutOfBoundsException, DecoderException {
+      int var2 = this.elementProvider.numberOfElements();
       this.clear();
-      if (expectedElements >= 0) {
-         this.ensureCapacity(expectedElements);
+      if (var2 >= 0) {
+         this.ensureCapacity(var2);
 
-         for (int i = 0; i < expectedElements; ++i) {
-               T element = this.elementProvider.newElement();
-               element.readFrom(buffer);
-               this.add(element);
+         for(int var5 = 0; var5 < var2; ++var5) {
+            T var4 = this.elementProvider.newElement();
+            var4.readFrom(var1);
+            this.add(var4);
          }
       } else {
-         // Se il numero di elementi non è noto, si legge fino a esaurimento buffer
-         while (buffer.isReadable()) {
-               T element = this.elementProvider.newElement();
-               element.readFrom(buffer);
-               this.add(element);
+         while(var1.isReadable()) {
+            T var3 = this.elementProvider.newElement();
+            var3.readFrom(var1);
+            this.add(var3);
          }
       }
+
    }
 
    @Override
@@ -41,22 +40,24 @@ public final class DscArray<T extends DscSerializable> extends ArrayList<T> impl
       }
    }
 
-   @Override
-   public boolean isEquivalent(DscSerializable other) {
-      if (other instanceof DscArray) {
-         DscArray<?> otherArray = (DscArray<?>) other;
-         if (this.size() != otherArray.size()) {
-               return false;
-         }
-         // Confronto elemento per elemento tramite isEquivalent (non equals)
-         for (int i = 0; i < this.size(); ++i) {
-               if (!this.get(i).isEquivalent((DscSerializable) otherArray.get(i))) {
+   public boolean isEquivalent(DscSerializable var1) {
+      if (var1 instanceof DscArray) {
+         int var2 = this.size();
+         DscArray<?> var3 = (DscArray<?>)var1;
+         if (var2 != var3.size()) {
+            return false;
+         } else {
+            for(int var4 = 0; var4 < var2; ++var4) {
+               if (!((DscSerializable)this.get(var4)).isEquivalent((DscSerializable)var3.get(var4))) {
                   return false;
                }
+            }
+
+            return true;
          }
-         return true;
+      } else {
+         return false;
       }
-      return false;
    }
 
    public int getExpectedNumberOfElements() {
@@ -64,13 +65,14 @@ public final class DscArray<T extends DscSerializable> extends ArrayList<T> impl
    }
 
    public T addNewElement() {
-      T element = this.elementProvider.newElement();
-      this.add(element);
-      return element;
+      T var1 = this.elementProvider.newElement();
+      this.add(var1);
+      return var1;
    }
 
    public interface ElementProvider<T> {
-      int numberOfElements(); // -1 se il numero non è noto a priori
+      int numberOfElements();
+
       T newElement();
    }
 }

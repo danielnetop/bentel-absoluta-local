@@ -3,5 +3,5 @@ package protocol.dsc;
 import java.util.EventListener;
 
 public interface IncomingConnectionListener extends EventListener {
-   void deviceConnected(Endpoint endpoint);
+   void deviceConnected(Endpoint var1);
 }

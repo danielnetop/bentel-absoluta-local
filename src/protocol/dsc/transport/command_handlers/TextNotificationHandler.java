@@ -10,17 +10,19 @@ import protocol.dsc.commands.TextNotification;
 
 @Sharable
 public class TextNotificationHandler extends ChannelInboundHandlerAdapter {
-   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-      if (msg instanceof TextNotification) {
-         TextNotification notif = (TextNotification) msg;
+   public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
+      if (var2 instanceof TextNotification) {
+         TextNotification var3 = (TextNotification)var2;
+
          try {
-               String text = notif.getMessage();
-               ctx.fireChannelRead(new NewValue(Message.TEXT_NOTIFICATION, text));
-         } catch (UnsupportedOperationException ex) {
-               ctx.fireChannelRead(DscError.newMessageError(Message.TEXT_NOTIFICATION, null, ex));
+            String var4 = var3.getMessage();
+            var1.fireChannelRead(new NewValue(Message.TEXT_NOTIFICATION, var4));
+         } catch (UnsupportedOperationException var5) {
+            var1.fireChannelRead(DscError.newMessageError(Message.TEXT_NOTIFICATION, null, var5));
          }
       } else {
-         super.channelRead(ctx, msg);
+         super.channelRead(var1, var2);
       }
+
    }
 }

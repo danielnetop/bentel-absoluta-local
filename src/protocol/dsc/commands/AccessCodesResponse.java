@@ -1,6 +1,7 @@
 package protocol.dsc.commands;
 
 import com.google.common.collect.ImmutableList;
+
 import protocol.dsc.base.DscArray;
 import protocol.dsc.base.DscNumber;
 import protocol.dsc.base.DscSerializable;
@@ -17,38 +18,35 @@ public class AccessCodesResponse extends DscCommandWithResponse.Response<AccessC
       super(new AccessCodes());
    }
 
-   @Override
    protected List<DscSerializable> getResponseFields() {
       return ImmutableList.of(this.accessCodeLength, this.codes);
    }
 
-   @Override
    public int getCommandNumber() {
       return 18230;
    }
 
    public int getUserNumberStart() {
-      return this.requestInstance.getUserNumberStart();
+      return ((AccessCodes)this.requestInstance).getUserNumberStart();
    }
 
    public int getNumberOfUsers() {
-      return this.requestInstance.getNumberOfUsers();
+      return ((AccessCodes)this.requestInstance).getNumberOfUsers();
    }
 
    public List<String> getCodes() {
-      List<String> codeList = new ArrayList<>(this.codes.size());
-      for (DscString code : this.codes) {
-         codeList.add(code.toString());
+      List<String> result = new ArrayList<>(this.codes.size());
+      for (int i = 0; i < this.codes.size(); i++) {
+         DscString code = this.codes.get(i);
+         result.add(code.toString());
       }
-      return codeList;
+      return result;
    }
 
-   @Override
    public int numberOfElements() {
       return this.getNumberOfUsers();
    }
 
-   @Override
    public DscString newElement() {
       return DscString.newBCDString(this.accessCodeLength.toInt());
    }
