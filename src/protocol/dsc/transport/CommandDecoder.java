@@ -84,10 +84,11 @@ public class CommandDecoder extends MessageToMessageDecoder<ByteBuf> {
    private static final Map<Integer, Class<? extends DscCommand>> COMMANDS = initCommandsWith(AccessCodeLengthNotification.class, AccessCodes.class, AccessCodesResponse.class, AccessLevelLeadInOut.class, AlarmMemoryInformation.class, ArmingDisarmingNotification.class, ArmingPreAlertNotification.class, CommandError.class, CommandOutput.class, CommandOutputActivation.class, CommandRequest.class, CommandResponse.class, Configuration.class, EncapsulatedCommandForMultiplePackets.class, EndSession.class, EnterAccessLevel.class, EnterConfigurationMode.class, EntryDelayNotification.class, EventBufferRead.class, EventBufferReadResponse.class, EventReportingConfigurationRead.class, EventReportingConfigurationReadResponse.class, EventReportingConfigurationWrite.class, ExitConfigurationMode.class, ExitDelayNotification.class, LifeStyleZoneStatus.class, MiscellaneousPreAlertNotification.class, OpenSession.class, PartitionAlarmMemoryNotification.class, PartitionArmControl.class, PartitionAssignmentConfiguration.class, PartitionAssignments.class, PartitionAssignmentsResponse.class, PartitionDisarmControl.class, PartitionQuickExitNotification.class, PartitionReadyStatusNotification.class, PartitionStatus.class, Poll.class, RequestAccess.class, SectionRead.class, SectionReadResponse.class, SingleZoneBypassStatus.class, SingleZoneBypassWrite.class, SoftwareVersion.class, SystemCapabilities.class, SystemTroubleStatus.class, TextNotification.class, TimeDateBroadcastNotification.class, TroubleDetail.class, TroubleDetailNotification.class, UserActivity.class, UserPartitionAssignmentConfiguration.class, ZoneAlarmStatus.class, ZoneAssignmentConfiguration.class, ZoneBypassStatus.class, ZoneStatus.class);
 
    @SafeVarargs
+   @SuppressWarnings("deprecation")
    private static Map<Integer, Class<? extends DscCommand>> initCommandsWith(Class<? extends DscCommand>... var0) {
       try {
-         Map<Integer, Class<? extends DscCommand>> var1 = new HashMap();
-         Class[] var2 = var0;
+         Map<Integer, Class<? extends DscCommand>> var1 = new HashMap<>();
+         Class<? extends DscCommand>[] var2 = var0;
          int var3 = var0.length;
 
          for(int var4 = 0; var4 < var3; ++var4) {
@@ -145,9 +146,10 @@ public class CommandDecoder extends MessageToMessageDecoder<ByteBuf> {
 
    }
 
+   @SuppressWarnings("deprecation")
    private DscCommand newCommand(int var1) {
       try {
-         Class<? extends DscCommand> var2 = (Class)COMMANDS.get(var1);
+         Class<? extends DscCommand> var2 = (Class<? extends DscCommand>)COMMANDS.get(var1);
          return (DscCommand)(var2 != null ? (DscCommand)var2.newInstance() : new UnknownCommand(var1));
       } catch (IllegalAccessException | InstantiationException var3) {
          throw new AssertionError("unexpected error", var3);

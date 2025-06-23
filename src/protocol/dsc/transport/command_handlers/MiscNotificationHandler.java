@@ -27,7 +27,16 @@ import org.javatuples.Quartet;
 @Sharable
 public class MiscNotificationHandler extends ChannelInboundHandlerAdapter {
    private static final Logger logger = Logger.getLogger(MiscNotificationHandler.class.getName());
-   private static final Set<Class<? extends AbstractPartitionReqCommand>> PARTITION_STATUS_NOTIFICATIONS = ImmutableSet.of(ArmingDisarmingNotification.class, ArmingPreAlertNotification.class, EntryDelayNotification.class, ExitDelayNotification.class, MiscellaneousPreAlertNotification.class, PartitionAlarmMemoryNotification.class, new Class[]{PartitionQuickExitNotification.class, PartitionReadyStatusNotification.class});
+   private static final Set<Class<? extends AbstractPartitionReqCommand>> PARTITION_STATUS_NOTIFICATIONS = ImmutableSet.of(
+      ArmingDisarmingNotification.class,
+      ArmingPreAlertNotification.class,
+      EntryDelayNotification.class,
+      ExitDelayNotification.class,
+      MiscellaneousPreAlertNotification.class,
+      PartitionAlarmMemoryNotification.class,
+      PartitionQuickExitNotification.class,
+      PartitionReadyStatusNotification.class
+   );
 
    public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
       if (PARTITION_STATUS_NOTIFICATIONS.contains(var2.getClass())) {
