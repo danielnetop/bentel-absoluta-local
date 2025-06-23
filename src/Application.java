@@ -18,7 +18,7 @@ public class Application {
    // Major: Cambiamenti significativi, API breaking
    // Minor: Nuove funzionalità, compatibilità con le versioni precedenti
    // Patch: Correzioni di bug, miglioramenti minori
-   private static final String VERSION = "1.1.3-beta";
+   private static final String VERSION = "1.1.4-beta";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
