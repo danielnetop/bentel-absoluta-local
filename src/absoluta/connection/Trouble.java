@@ -1,0 +1,97 @@
+package absoluta.connection;
+
+import java.util.MissingResourceException;
+import org.openide.util.NbBundle;
+
+public class Trouble {
+   static final int ZONE_DEVICE = 1;
+   static final int TROUBLE_RESTORE = 0;
+   static final int TROUBLE = 1;
+   static final int TROUBLE_IN_MEMORY = 2;
+
+   private final int deviceType;      // Tipo di dispositivo (es. zona, sensore, ecc.)
+   private final int troubleType;     // Tipo di guasto (restore, trouble, in memory)
+   private final int deviceNumber;    // Numero identificativo del dispositivo
+   private final boolean inMemory;    // True se il guasto è solo in memoria
+
+   Trouble(int deviceType, int troubleType, int deviceNumber, boolean inMemory) {
+      this.deviceType = deviceType;
+      this.troubleType = troubleType;
+      this.deviceNumber = deviceNumber;
+      this.inMemory = inMemory;
+   }
+
+   int getDeviceType() {
+      return this.deviceType;
+   }
+
+   int getTroubleType() {
+      return this.troubleType;
+   }
+
+   int getDeviceNumber() {
+      return this.deviceNumber;
+   }
+
+   public boolean isInMemory() {
+      return this.inMemory;
+   }
+
+   public String toLocalizedString(PanelStatus panelStatus) {
+      StringBuilder sb = new StringBuilder();
+
+      try {
+         sb.append(NbBundle.getMessage(Trouble.class, String.format("Trouble.deviceType.0x%02X", this.deviceType)));
+      } catch (MissingResourceException ex) {
+         // Se la risorsa non esiste, mostra tipo generico + valore esadecimale
+         sb.append(String.format("%s 0x%02X", NbBundle.getMessage(Trouble.class, "Trouble.deviceType"), this.deviceType));
+      }
+
+      // Se è una zona e c'è un'etichetta, aggiungila; altrimenti mostra solo il numero
+      if (this.deviceType == ZONE_DEVICE && panelStatus.getZoneLabel(this.deviceNumber) != null) {
+         sb.append(" ").append(panelStatus.getZoneLabel(this.deviceNumber));
+      } else if (this.deviceNumber != 0) {
+         sb.append(" #").append(this.deviceNumber);
+      }
+
+      sb.append(": ");
+
+      try {
+         sb.append(NbBundle.getMessage(Trouble.class, String.format("Trouble.troubleType.0x%02X", this.troubleType)));
+      } catch (MissingResourceException ex) {
+         sb.append(String.format("%s 0x%02X", NbBundle.getMessage(Trouble.class, "Trouble.troubleType"), this.troubleType));
+      }
+
+      if (this.inMemory) {
+         sb.append(" (").append(NbBundle.getMessage(Trouble.class, "Trouble.inMemory")).append(")");
+      }
+
+      return sb.toString();
+   }
+
+   @Override
+   public String toString() {
+      return "Trouble{deviceType=" + this.deviceType + ", troubleType=" + this.troubleType + ", deviceNumber=" + this.deviceNumber + ", inMemory=" + this.inMemory + '}';
+   }
+
+   @Override
+   public boolean equals(Object obj) {
+      if (this == obj) return true;
+      if (obj == null || getClass() != obj.getClass()) return false;
+      Trouble other = (Trouble) obj;
+      return deviceType == other.deviceType &&
+            troubleType == other.troubleType &&
+            deviceNumber == other.deviceNumber &&
+            inMemory == other.inMemory;
+   }
+
+   @Override
+   public int hashCode() {
+      int hash = 5;
+      hash = 89 * hash + deviceType;
+      hash = 89 * hash + troubleType;
+      hash = 89 * hash + deviceNumber;
+      hash = 89 * hash + (inMemory ? 1 : 0);
+      return hash;
+   }
+}
