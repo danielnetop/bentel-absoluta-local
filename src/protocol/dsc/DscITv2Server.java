@@ -34,7 +34,7 @@ public class DscITv2Server implements DscServer {
                      .channel(NioServerSocketChannel.class)
                      .childHandler(new DscChannelInitializer() {
                            @Override
-                           protected void inizialized(DscEndpoint endpoint, SocketChannel channel) {
+                           protected void onInitialized(DscEndpoint endpoint, SocketChannel channel) {
                               for (IncomingConnectionListener listener : listeners) {
                                  listener.deviceConnected(endpoint);
                               }

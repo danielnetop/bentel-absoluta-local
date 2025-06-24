@@ -66,7 +66,7 @@ public class AbsolutaClient implements ITv2Client {
          this.callback = var2;
       }
 
-      protected SessionInfo getOwnInfo() {
+      protected SessionInfo buildOwnSessionInfo() {
          SessionInfo var1 = new SessionInfo();
          var1.setClient(true);
          var1.setDeviceTypeOrVendorID(143);
@@ -89,7 +89,7 @@ public class AbsolutaClient implements ITv2Client {
          return var1;
       }
 
-      protected int writerIdleTimeSeconds() {
+      protected int getWriterIdleTimeSeconds() {
          return 5;
       }
 
@@ -104,7 +104,7 @@ public class AbsolutaClient implements ITv2Client {
          };
       }
 
-      protected void inizialized(DscEndpoint var1, SocketChannel var2) {
+      protected void onInitialized(DscEndpoint var1, SocketChannel var2) {
          this.callback.connected(var1);
       }
    }
