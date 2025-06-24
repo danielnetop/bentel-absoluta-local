@@ -18,7 +18,7 @@ public class Application {
    // Major: Cambiamenti significativi, API breaking
    // Minor: Nuove funzionalità, compatibilità con le versioni precedenti
    // Patch: Correzioni di bug, miglioramenti minori
-   private static final String VERSION = "1.1.4-beta";
+   private static final String VERSION = "1.1.5-beta";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
@@ -72,18 +72,20 @@ public class Application {
       boolean discoveryEnabled = HOME_ASSISTANT_DISCOVERY == null ? true : HOME_ASSISTANT_DISCOVERY.equalsIgnoreCase("true");
 
       Level logLevel = parseLogLevel(LOG_LEVEL);
-      logger.setLevel(logLevel);
-      // Disabilita la propagazione al root logger per evitare log doppi
-      logger.setUseParentHandlers(false);
-      // Rimuovi tutti gli handler esistenti per evitare log doppi
-      java.util.logging.Handler[] handlers = logger.getHandlers();
-      for (java.util.logging.Handler h : handlers) {
-         logger.removeHandler(h);
+
+      // Imposta il livello sul root logger
+      Logger rootLogger = Logger.getLogger("");
+      rootLogger.setLevel(logLevel);
+
+      // Rimuovi tutti gli handler esistenti dal root logger
+      for (java.util.logging.Handler h : rootLogger.getHandlers()) {
+         rootLogger.removeHandler(h);
       }
-      // Aggiungi ConsoleHandler
+
+      // Aggiungi un solo ConsoleHandler configurato al root logger
       java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler();
       handler.setLevel(logLevel);
-      logger.addHandler(handler);
+      rootLogger.addHandler(handler);
 
       logger.info("Avvio Bentel Absoluta MQTT Bridge - Versione " + VERSION);
 
