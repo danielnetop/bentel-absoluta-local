@@ -18,7 +18,7 @@ public class CommandEncoder extends MessageToByteEncoder<DscCommand> {
    protected void encode(ChannelHandlerContext ctx, DscCommand cmd, ByteBuf buffer) throws Exception {
 
       if (cmd instanceof LowACK) {
-         logger.finer("Low ACK encoded");
+         logger.finest("Low ACK encoded");
       } else {
          buffer.writeShort(cmd.getCommandNumber());
          if (cmd instanceof DscCommandWithAppSeq) {

@@ -72,7 +72,7 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
    private void enqueue(ChannelHandlerContext var1, DscCommand var2, ChannelPromise var3) throws IllegalStateException {
       Priority var4 = var2.getPriority();
       Queue<CommandQueueHandler.WaitingMsg> var5 = this.queues.get(var4);
-      logger.finer("Enqueuing a command with priority " + var4 + ": " + var2);
+      logger.finest("Enqueuing a command with priority " + var4 + ": " + var2);
       if (var5.size() < 4096) {
          var5.add(new CommandQueueHandler.WaitingMsg(var2, var3));
       } else {
@@ -92,7 +92,7 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
             Priority var5 = var2[var4];
             CommandQueueHandler.WaitingMsg var6 = this.queues.get(var5).poll();
             if (var6 != null) {
-               logger.finer("Sending enqueued command with priority " + var5 + ": " + var6.cmd);
+               logger.finest("Sending enqueued command with priority " + var5 + ": " + var6.cmd);
                var1.write(var6.cmd, var6.promise);
                break;
             }

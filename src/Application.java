@@ -116,7 +116,7 @@ public class Application {
             Callback callback = new Callback(mqttClient, provider, mqttOption, discoveryEnabled);
             mqttClient.setCallback(callback);
             mqttClient.connect(mqttOption);
-            logger.info("Connesso");
+            logger.info("Broker connesso");
             provider.initialize(callback);
 
             int maxAttempts = 5;
@@ -126,12 +126,12 @@ public class Application {
                attempt++;
                connStatus = provider.connect();
                if (connStatus != AbsolutaPanelProvider.providerConnStatus.SUCCESS) {
-                  logger.warning("Connessione fallita: " + connStatus + ". Riprovo tra 90 secondi...");
+                  logger.warning("Connessione con la centrale fallita: " + connStatus + ". Riprovo tra 90 secondi...");
                   try {
                      Thread.sleep(90000L);
                      logger.info("Tentativo di connessione alla centrale n° " + attempt);
                   } catch (InterruptedException e) {
-                     logger.severe("Interrotto durante l'attesa di riconnessione: " + e.getMessage());
+                     logger.severe("Interrotto durante l'attesa di ricollegamento alla centrale: " + e.getMessage());
                      break;
                   }
                }
@@ -143,12 +143,12 @@ public class Application {
             connected = true;
          } catch (MqttException ex) {
             logger.warning("Exception: " + ex.getReasonCode());
-            logger.warning("Attendo 15 secondi prima del prossimo tentativo...");
+            logger.warning("Attendo 15 secondi prima del prossimo tentativo per il collegamento al broker...");
             try {
                Thread.sleep(15000L);
-               logger.info("Tentativo di connessione numero: " + (i + 1));
+               logger.info("Tentativo di connessione al broker numero: " + (i + 1));
             } catch (InterruptedException e) {
-               logger.severe("Interruzione durante l'attesa tra i tentativi di connessione: " + e.getMessage());
+               logger.severe("Interruzione durante l'attesa tra i tentativi di connessione al broker: " + e.getMessage());
             }
          }
       }

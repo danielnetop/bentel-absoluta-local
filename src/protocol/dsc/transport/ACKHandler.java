@@ -18,7 +18,7 @@ public class ACKHandler extends ChannelDuplexHandler {
    public void write(ChannelHandlerContext var1, Object var2, ChannelPromise var3) throws Exception {
       if (var2 == SimpleMessage.COMMAND_RECEIVED) {
          if (TransportLayerEncoder.isOutgoingACKRequired(var1)) {
-            logger.finer("Sending low ACK");
+            logger.finest("Sending low ACK");
             var1.write(LowACK.getInstance(), var3);
          } else {
             var3.setSuccess();
@@ -31,7 +31,7 @@ public class ACKHandler extends ChannelDuplexHandler {
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof DscCommand) {
          if (msg instanceof LowACK) {
-            logger.finer("Low ACK received");
+            logger.finest("Low ACK received");
          } else if (msg instanceof EncapsulatedCommandForMultiplePackets) {
             logger.finer("Multiple packets received");
          } else {
