@@ -9,7 +9,6 @@ import protocol.dsc.commands.SystemTroubleStatus;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.javatuples.Pair;
 
 public class SystemTroubleStatusReading extends RequestableCommandReading<Void, List<Pair<Integer, Integer>>, SystemTroubleStatus> {
@@ -24,17 +23,16 @@ public class SystemTroubleStatusReading extends RequestableCommandReading<Void, 
    }
 
    protected void parseResponse(ChannelHandlerContext var1, SystemTroubleStatus var2, List<Message.Response> var3) {
-      List<SystemTroubleStatus.Trouble> troubles = var2.getTroubles();
-      List<Pair<Integer, Integer>> result = new ArrayList<>();
-
-      for (SystemTroubleStatus.Trouble trouble : troubles) {
+      List<SystemTroubleStatus.Trouble> var4 = var2.getTroubles();
+      List<Pair<Integer, Integer>> var5 = new ArrayList<Pair<Integer, Integer>>();
+      for (SystemTroubleStatus.Trouble trouble : var4) {
          int deviceModuleType = trouble.getDeviceModuleType();
          for (Integer troubleType : trouble.getTroubleTypes()) {
-            result.add(Pair.with(deviceModuleType, troubleType));
+         var5.add(Pair.with(deviceModuleType, troubleType));
          }
       }
 
-      var3.add(new NewValue(this, result));
+      var3.add(new NewValue(this, var5));
    }
 
    protected void parseCommandResponse(ChannelHandlerContext var1, Void var2, CommandResponse var3, List<Message.Response> var4) {

@@ -2,6 +2,7 @@ package protocol.dsc.messages;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.DscError;
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
@@ -17,87 +18,95 @@ import java.util.logging.Logger;
 
 abstract class MessageWithResponse<P, V> extends Message<P, V> {
    private static final Logger logger = Logger.getLogger(MessageWithResponse.class.getName());
+
    @SuppressWarnings({"unchecked", "rawtypes"})
-   static <P, V> DscCommandWithAppSeq tryToPrepare(Class<? extends MessageWithResponse> var0, ChannelHandlerContext var1, Object var2) throws Exception {
-      if (var2 instanceof SendingMessage) {
-         SendingMessage<P, V> var3 = (SendingMessage)var2;
-         Message<P, V> var4 = var3.getMessage();
-         if (var0.isInstance(var4)) {
-            MessageWithResponse<P, V> var5 = (MessageWithResponse)var4;
-            return var5.doPrepare(var1, var3.getParam(), var3.getPriority());
+   static <P, V> DscCommandWithAppSeq tryToPrepare(
+         Class<? extends MessageWithResponse> expectedClass,
+         ChannelHandlerContext ctx,
+         Object msgObj) throws Exception {
+      if (msgObj instanceof SendingMessage) {
+         SendingMessage<P, V> sendingMsg = (SendingMessage<P, V>) msgObj;
+         Message<P, V> message = sendingMsg.getMessage();
+         if (expectedClass.isInstance(message)) {
+               MessageWithResponse<P, V> msgWithResp = (MessageWithResponse<P, V>) message;
+               return msgWithResp.doPrepare(ctx, sendingMsg.getParam(), sendingMsg.getPriority());
          }
       }
-
       return null;
    }
 
-   protected final DscCommandWithAppSeq doPrepare(ChannelHandlerContext var1, P var2, Priority var3) throws Exception {
-      DscCommandWithAppSeq var4 = this.prepareCommand(var1, var2);
+   protected final DscCommandWithAppSeq doPrepare(ChannelHandlerContext ctx, P param, Priority priority) throws Exception {
+      DscCommandWithAppSeq command = this.prepareCommand(ctx, param);
 
-      assert !var4.hasResponseCallback();
-
-      var4.setResponseCallback(new MessageResponseCallback(var1, var2));
-      var4.setPriority(var3);
-      return var4;
-   }
-
-   private NewValue newACK(P var1) {
-      return new NewValue(this, var1, null);
-   }
-
-   private DscError errorFromDscResponse(P var1, DscGeneralResponse var2) {
-      assert !var2.isSuccess();
-
-      Integer var3 = null;
-      if (var2 instanceof CommandResponse) {
-         CommandResponse var4 = (CommandResponse)var2;
-         var3 = var4.getResponseCode();
+      if (command.hasResponseCallback()) {
+         throw new IllegalStateException("Callback già presente!");
       }
 
-      return DscError.newMessageError(this, var1, var3, var2.getDescription());
+      command.setResponseCallback(new MessageResponseCallback(ctx, param));
+      command.setPriority(priority);
+      return command;
+   }
+
+   private NewValue newACK(P param) {
+      return new NewValue(this, param, null);
+   }
+
+   private DscError errorFromDscResponse(P param, DscGeneralResponse response) {
+      if (response.isSuccess()) {
+         throw new IllegalArgumentException("La risposta dovrebbe essere di errore!");
+      }
+
+      Integer responseCode = null;
+      if (response instanceof CommandResponse) {
+         CommandResponse cmdResp = (CommandResponse) response;
+         responseCode = cmdResp.getResponseCode();
+      }
+
+      return DscError.newMessageError(this, param, responseCode, response.getDescription());
    }
 
    protected abstract boolean expectedSuccessfulResponse();
 
-   protected abstract DscCommandWithAppSeq prepareCommand(ChannelHandlerContext var1, P var2) throws Exception;
+   protected abstract DscCommandWithAppSeq prepareCommand(ChannelHandlerContext ctx, P param) throws Exception;
 
-   protected void parseCommandResponse(ChannelHandlerContext var1, P var2, CommandResponse var3, List<Message.Response> var4) {
+   protected void parseCommandResponse(ChannelHandlerContext ctx, P param, CommandResponse response, List<Message.Response> outResponses) {
    }
 
    private class MessageResponseCallback implements DscCommandWithAppSeq.ResponseCallback {
       private final ChannelHandlerContext ctx;
       private final P param;
 
-      MessageResponseCallback(ChannelHandlerContext var2, P var3) {
-         this.ctx = var2;
-         this.param = var3;
+      MessageResponseCallback(ChannelHandlerContext ctx, P param) {
+         this.ctx = ctx;
+         this.param = param;
       }
 
-      public void generalResponseReceived(Channel var1, DscGeneralResponse var2) {
-         if (var2 instanceof CommandResponse) {
-         try {
-            CommandResponse var3 = (CommandResponse)var2;
-            List<Message.Response> var4 = new ArrayList<>();
-            MessageWithResponse.this.parseCommandResponse(this.ctx, this.param, var3, var4);
-            if (!var4.isEmpty()) {
-            for (Message.Response var6 : var4) {
-               this.ctx.fireChannelRead(var6);
-            }
-            return;
-            }
-         } catch (RuntimeException var7) {
-            MessageWithResponse.logger.severe("error parsing command response " + var7);
-         }
+      @Override
+      public void generalResponseReceived(Channel channel, DscGeneralResponse response) {
+         if (response instanceof CommandResponse) {
+               try {
+                  CommandResponse cmdResp = (CommandResponse) response;
+                  List<Message.Response> parsedResponses = new ArrayList<>();
+                  MessageWithResponse.this.parseCommandResponse(this.ctx, this.param, cmdResp, parsedResponses);
+                  if (!parsedResponses.isEmpty()) {
+                     for (Message.Response resp : parsedResponses) {
+                           this.ctx.fireChannelRead(resp);
+                     }
+                     return;
+                  }
+               } catch (RuntimeException ex) {
+                  logger.severe("Error parsing command response " + ex);
+               }
          }
 
-         if (var2.isSuccess()) {
-         if (MessageWithResponse.this.expectedSuccessfulResponse()) {
-            this.ctx.fireChannelRead(MessageWithResponse.this.newACK(this.param));
+         if (response.isSuccess()) {
+               if (MessageWithResponse.this.expectedSuccessfulResponse()) {
+                  this.ctx.fireChannelRead(MessageWithResponse.this.newACK(this.param));
+               } else {
+                  logger.warning("Unexpected successful response: " + response);
+               }
          } else {
-            MessageWithResponse.logger.warning("unexpected succesful response: " + var2);
-         }
-         } else {
-         this.ctx.fireChannelRead(MessageWithResponse.this.errorFromDscResponse(this.param, var2));
+               this.ctx.fireChannelRead(MessageWithResponse.this.errorFromDscResponse(this.param, response));
          }
       }
    }

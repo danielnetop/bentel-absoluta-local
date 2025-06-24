@@ -36,5 +36,6 @@ public class RequestedReadingHandler extends ChannelDuplexHandler {
       } finally {
          this.out.clear();
       }
+
    }
 }

@@ -7,6 +7,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.util.AttributeKey;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.DscError;
 import protocol.dsc.NewValue;
@@ -75,7 +76,7 @@ public class EndpointHandler extends ChannelDuplexHandler {
       var1.executor().schedule(new Runnable() {
          public void run() {
             if (var2.isOpen()) {
-               EndpointHandler.logger.warning("forcing channel closure ...");
+               logger.warning("Forcing channel closure ...");
                var2.close().addListener(LogOnFailure.INSTANCE);
             }
 

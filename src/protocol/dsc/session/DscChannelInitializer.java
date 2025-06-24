@@ -11,6 +11,7 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+
 import protocol.dsc.DscEndpointState;
 import protocol.dsc.commands.DscCommand;
 import protocol.dsc.commands.Poll;
@@ -94,14 +95,14 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    }
 
    protected Queue<HandshakeHandler<?>> buildHandshakeHandlers() {
-      Queue<HandshakeHandler<?>> var1 = new ArrayDeque<>(2);
+      Queue<HandshakeHandler<?>> var1 = new ArrayDeque<HandshakeHandler<?>>(2);
       var1.add(new OpenSessionHandler());
       var1.add(new RequestAccessHandler());
       return var1;
    }
 
    protected List<ChannelHandler> buildNormalModeHandlers() {
-      List<ChannelHandler> var1 = new ArrayList<>(6);
+      List<ChannelHandler> var1 = new ArrayList<ChannelHandler>(6);
       var1.add(new RequestedReadingHandler());
       var1.add(WRITING_HANDLER);
       var1.add(TEXT_NOTIFICATION_HANDLER);
@@ -126,7 +127,7 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    protected abstract void inizialized(DscEndpoint var1, SocketChannel var2);
 
    protected final void initChannel(SocketChannel var1) throws Exception {
-      logger.fine("initializing channel for connection number " + this.num);
+      logger.fine("Initializing channel for connection number " + this.num + " ...");
       final DscEndpoint var2 = new DscEndpoint(var1);
       var1.closeFuture().addListener(new ChannelFutureListener() {
          public void operationComplete(ChannelFuture var1) throws Exception {
@@ -144,6 +145,6 @@ public abstract class DscChannelInitializer extends ChannelInitializer<SocketCha
    }
 
    private LoggingHandler newLoggingHandler(int var1) {
-      return new LoggingHandler(logger.getName() + ".LoggingHandler_" + var1 + ".connection_" + this.num, LogLevel.TRACE);
+      return new LoggingHandler("DEBUG: .LoggingHandler_" + var1 + ".connection_" + this.num, LogLevel.TRACE);
    }
 }

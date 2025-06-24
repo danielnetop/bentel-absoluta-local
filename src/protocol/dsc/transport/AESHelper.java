@@ -31,21 +31,21 @@ class AESHelper {
 
          assert this.cipher.getBlockSize() == BLOCK_SIZE;
 
-         assert this.buffer.length >= 16;
+         assert this.buffer.length >= BLOCK_SIZE;
 
       }
    }
 
    void process(ByteBuf var1, ByteBuf var2) {
       try {
-         int var3 = (16 - var1.readableBytes() % 16) % 16;
+         int var3 = (BLOCK_SIZE - var1.readableBytes() % BLOCK_SIZE) % BLOCK_SIZE;
 
-         assert 0 <= var3 && var3 < 16;
+         assert 0 <= var3 && var3 < BLOCK_SIZE;
 
-         assert (var1.readableBytes() + var3) % 16 == 0;
+         assert (var1.readableBytes() + var3) % BLOCK_SIZE == 0;
 
          if (this.mode == 2 && var3 != 0) {
-            throw new CorruptedFrameException(String.format("length must be multiple of %d bytes", 16));
+            throw new CorruptedFrameException(String.format("length must be multiple of %d bytes", BLOCK_SIZE));
          } else {
             ByteBufInputStream var4 = new ByteBufInputStream(var1);
             Throwable var5 = null;

@@ -5,7 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.MessageToByteEncoder;
 
-import java.util.logging.Logger ;
+import java.util.logging.Logger;
 
 @Sharable
 public class TransportLayerEncoder extends MessageToByteEncoder<ByteBuf> {
@@ -15,7 +15,7 @@ public class TransportLayerEncoder extends MessageToByteEncoder<ByteBuf> {
       boolean var4 = SequenceHandlersHelper.isLowACK(var2);
       SequenceHandlersHelper.Counters var5 = SequenceHandlersHelper.getCounters(var1);
       if (!var4 && !var5.isReadyForANewCommand()) {
-         logger.warning("command sent before confirmation of the previous");
+         logger.fine("Command sent before confirmation of the previous");
       }
 
       var5.setNextSequenceNumber(var4);

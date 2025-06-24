@@ -1,6 +1,7 @@
 package protocol.dsc.messages;
 
 import io.netty.channel.ChannelHandlerContext;
+
 import protocol.dsc.Message;
 import protocol.dsc.NewValue;
 import protocol.dsc.commands.DscCommandWithAppSeq;
@@ -15,52 +16,67 @@ import java.util.logging.Logger;
 import org.javatuples.Pair;
 import org.javatuples.Septet;
 
+public class EventBufferReading extends Reading<
+      Pair<Integer, Integer>,
+      List<Septet<Calendar, Integer, Boolean, Integer, Integer, Integer, List<Integer>>>,
+      EventBufferReadResponse> {
 
-public class EventBufferReading extends Reading<Pair<Integer, Integer>, List<Septet<Calendar, Integer, Boolean, Integer, Integer, Integer, List<Integer>>>, EventBufferReadResponse> {
    private static final Logger logger = Logger.getLogger(EventBufferReading.class.getName());
 
    public EventBufferReading() {
       super(EventBufferReadResponse.class);
    }
 
-   protected void parseResponse(ChannelHandlerContext var1, EventBufferReadResponse var2, List<Message.Response> var3) {
-      if (var2.getBufferID() != 3) {
-         logger.warning("unmanaged buffer ID: " + var2.getBufferID());
-      } else {
-         List<EventBufferReadResponse.Event> var4 = var2.getEvents();
+   @Override
+   protected void parseResponse(ChannelHandlerContext ctx, EventBufferReadResponse response, List<Message.Response> responses) {
+      if (response.getBufferID() != 3) {
+            logger.warning("Unmanaged buffer ID: " + response.getBufferID());
+            return;
+      }
 
-         assert var4.size() == var2.getNumberOfEvents();
+      List<EventBufferReadResponse.Event> events = response.getEvents();
+      if (events.size() != response.getNumberOfEvents()) {
+            logger.warning("Event count mismatch");
+            return;
+      }
 
-         Pair<Integer, Integer> var5 = Pair.with(var2.getEventNumber(), var2.getNumberOfEvents());
-         List<Septet<Calendar, Integer, Boolean, Integer, Integer, Integer, List<Integer>>> var6 = new ArrayList<>(var4.size());
+      Pair<Integer, Integer> eventInfo = Pair.with(response.getEventNumber(), response.getNumberOfEvents());
+      List<Septet<Calendar, Integer, Boolean, Integer, Integer, Integer, List<Integer>>> eventDetails = new ArrayList<>(events.size());
 
-         for (int i = 0; i < var4.size(); i++) {
-            EventBufferReadResponse.Event var8 = var4.get(i);
-            if (var8.getFlags() != 9) {
-               logger.warning("unexpected flags: " + var8.getFlags());
+      for (EventBufferReadResponse.Event event : events) {
+            if (event.getFlags() != 9) {
+               logger.warning("Unexpected flags: " + event.getFlags());
                return;
             }
 
-            int var9 = var8.getPartitionMaskUnusedBytes();
-            List<Integer> var10 = null;
-            if (var9 == 0) {
-               var10 = var8.getPartitions();
-            } else if (var9 != 65535) {
-               logger.warning("unexpected partition mask unused bytes: " + var9);
+            int unusedBytes = event.getPartitionMaskUnusedBytes();
+            List<Integer> partitions = null;
+            if (unusedBytes == 0) {
+               partitions = event.getPartitions();
+            } else if (unusedBytes != 65535) {
+               logger.warning("Unexpected partition mask unused bytes: " + unusedBytes);
             }
 
-            var6.add(Septet.with(var8.getDateTimeStamp(), var8.getEventClass(), var8.isRestore(), var8.getEventCode(), var8.getWhereWhy(), var8.getWho(), var10));
-         }
-
-         var3.add(new NewValue(this, var5, var6));
+            eventDetails.add(Septet.with(
+                  event.getDateTimeStamp(),
+                  event.getEventClass(),
+                  event.isRestore(),
+                  event.getEventCode(),
+                  event.getWhereWhy(),
+                  event.getWho(),
+                  partitions
+            ));
       }
+
+      responses.add(new NewValue(this, eventInfo, eventDetails));
    }
 
-   protected DscCommandWithAppSeq prepareCommand(ChannelHandlerContext var1, Pair<Integer, Integer> var2) throws Exception {
-      EventBufferRead var3 = new EventBufferRead();
-      var3.setBufferID(3);
-      var3.setEventNumber((Integer)var2.getValue0());
-      var3.setNumberOfEvents((Integer)var2.getValue1());
-      return var3;
+   @Override
+   protected DscCommandWithAppSeq prepareCommand(ChannelHandlerContext ctx, Pair<Integer, Integer> param) throws Exception {
+      EventBufferRead command = new EventBufferRead();
+      command.setBufferID(3);
+      command.setEventNumber(param.getValue0());
+      command.setNumberOfEvents(param.getValue1());
+      return command;
    }
 }

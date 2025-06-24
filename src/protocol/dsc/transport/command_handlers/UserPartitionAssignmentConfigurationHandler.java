@@ -15,14 +15,15 @@ import org.javatuples.Pair;
 public class UserPartitionAssignmentConfigurationHandler extends ChannelInboundHandlerAdapter {
    public void channelRead(ChannelHandlerContext var1, Object var2) throws Exception {
       if (var2 instanceof UserPartitionAssignmentConfiguration) {
-         UserPartitionAssignmentConfiguration var3 = (UserPartitionAssignmentConfiguration) var2;
-         for (Entry<Integer, List<Integer>> var5 : var3.getPartitionAssignments().entrySet()) {
-            Integer var6 = var5.getKey();
-            List<Integer> var7 = var5.getValue();
-            var1.fireChannelRead(new NewValue(Message.USER_PARTITION_ASSIGNMENT_CONFIGURATION, Pair.with(var6, var7)));
+         UserPartitionAssignmentConfiguration var3 = (UserPartitionAssignmentConfiguration)var2;
+         for (Entry<Integer, List<Integer>> entry : var3.getPartitionAssignments().entrySet()) {
+            Integer key = entry.getKey();
+            List<Integer> value = entry.getValue();
+            var1.fireChannelRead(new NewValue(Message.USER_PARTITION_ASSIGNMENT_CONFIGURATION, Pair.with(key, value)));
          }
       } else {
          super.channelRead(var1, var2);
       }
+
    }
 }

@@ -5,6 +5,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.MessageToMessageDecoder;
+
 import protocol.dsc.errors.WrongSequenceNumberException;
 
 import java.nio.ByteOrder;
@@ -36,7 +37,7 @@ public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
                   }
                } else {
                   if (var4 == var7.remoteSequenceNumber()) {
-                     logger.warning("repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
+                     logger.fine("Repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
                      return;
                   }
 
@@ -48,13 +49,12 @@ public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
 
             if (var5 != var7.sequenceNumber() && var5 != var7.prevSequenceNumber()) {
                throw new WrongSequenceNumberException(var8, String.format("unexpected remote sequence number: %d instead of %d or %d", Integer.valueOf(var5), var7.sequenceNumber(), var7.prevSequenceNumber()));
+            } else {
+               var3.add(var2.readSlice(var2.readableBytes()).retain());
             }
-
-            var3.add(var2.readSlice(var2.readableBytes()).retain());
          } finally {
             var7.messageReceived(var6, var4, var5);
          }
-
       }
    }
 }

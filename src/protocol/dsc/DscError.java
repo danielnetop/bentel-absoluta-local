@@ -16,7 +16,7 @@ public class DscError extends Message.Response {
    }
 
    public static DscError newFatalError(String var0) {
-      return new DscError(DscError.Type.FATAL, var0, null, null, null);
+      return new DscError(DscError.Type.FATAL, var0, (Message<Object, ?>)null, (Object)null, (Integer)null);
    }
 
    public static DscError newFatalError(Throwable var0) {
@@ -24,7 +24,7 @@ public class DscError extends Message.Response {
    }
 
    public static DscError newGenericError(String var0) {
-      return new DscError(DscError.Type.GENERIC, var0, null, null, null);
+      return new DscError(DscError.Type.GENERIC, var0, (Message<Object, ?>)null, (Object)null, (Integer)null);
    }
 
    public static DscError newGenericError(Throwable var0) {

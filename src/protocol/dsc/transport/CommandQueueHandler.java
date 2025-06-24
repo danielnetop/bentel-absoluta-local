@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
+
 import protocol.dsc.Priority;
 import protocol.dsc.commands.DscCommand;
 
@@ -40,11 +41,12 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
          Priority var5 = var2[var4];
          Queue<CommandQueueHandler.WaitingMsg> var6 = this.queues.get(var5);
          if (!var6.isEmpty()) {
-            logger.warning("removing " + var6.size() + " enqueued commands with priority " + var5);
+            logger.finer("Removing " + var6.size() + " enqueued commands with priority " + var5);
             CancellationException var7 = new CancellationException("channel inactivated before sending");
             for (CommandQueueHandler.WaitingMsg var9 : var6) {
                var9.promise.setFailure(var7);
             }
+
             var6.clear();
          }
       }
@@ -54,7 +56,7 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
       if (var2 instanceof DscCommand) {
          DscCommand var4 = (DscCommand)var2;
          if (var4.getPriority() == null) {
-            logger.finer("sending immediately: " +  var4);
+            logger.finer("Sending immediately: " + var4);
             var1.write(var4, var3);
          } else {
             this.enqueue(var1, var4, var3);
@@ -70,13 +72,12 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
    private void enqueue(ChannelHandlerContext var1, DscCommand var2, ChannelPromise var3) throws IllegalStateException {
       Priority var4 = var2.getPriority();
       Queue<CommandQueueHandler.WaitingMsg> var5 = this.queues.get(var4);
-      logger.finer("enqueuing a command with priority " + var4 + ": " + var2);
+      logger.finer("Enqueuing a command with priority " + var4 + ": " + var2);
       if (var5.size() < 4096) {
          var5.add(new CommandQueueHandler.WaitingMsg(var2, var3));
       } else {
-         String var6 = "command queue is full";
-         logger.warning(var6);
-         IllegalStateException var7 = new IllegalStateException(var6);
+         logger.warning("Command queue is full");
+         IllegalStateException var7 = new IllegalStateException("command queue is full");
          var1.fireExceptionCaught(var7);
          throw var7;
       }
@@ -89,14 +90,13 @@ public class CommandQueueHandler extends ChannelOutboundHandlerAdapter {
 
          for(int var4 = 0; var4 < var3; ++var4) {
             Priority var5 = var2[var4];
-            CommandQueueHandler.WaitingMsg var6 = (CommandQueueHandler.WaitingMsg)(this.queues.get(var5)).poll();
+            CommandQueueHandler.WaitingMsg var6 = this.queues.get(var5).poll();
             if (var6 != null) {
-               logger.finer("sending enqueued command with priority " +  var5 + ": " + var6.cmd);
+               logger.finer("Sending enqueued command with priority " + var5 + ": " + var6.cmd);
                var1.write(var6.cmd, var6.promise);
                break;
             }
          }
-
       }
    }
 

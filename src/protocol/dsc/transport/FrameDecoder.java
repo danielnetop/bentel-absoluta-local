@@ -64,9 +64,9 @@ public class FrameDecoder extends ByteToMessageDecoder {
                      var4 = var5;
                   }
                default:
-                  if (this.outBuf.readableBytes() >= 65535) {
+                  if (this.outBuf.readableBytes() >= MAX_FRAME_LENGTH) {
                      this.discarding = true;
-                     throw new TooLongFrameException(String.format("frame length exceeds %d", 65535));
+                     throw new TooLongFrameException(String.format("frame length exceeds %d", MAX_FRAME_LENGTH));
                   }
 
                   this.outBuf.writeByte(var4);

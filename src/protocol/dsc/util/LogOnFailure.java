@@ -2,6 +2,7 @@ package protocol.dsc.util;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+
 import java.util.concurrent.CancellationException;
 import java.util.logging.Logger;
 
@@ -13,12 +14,11 @@ public class LogOnFailure implements ChannelFutureListener {
       Throwable var2 = var1.cause();
       if (var2 != null) {
          if (var2 instanceof CancellationException) {
-            logger.fine("operation cancelled");
+            logger.finer("Operation cancelled");
          } else {
-            logger.warning("operation failed " + var2);
+            logger.finer("Operation failed");
          }
       }
-
    }
 
    private LogOnFailure() {

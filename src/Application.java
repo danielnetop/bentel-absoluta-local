@@ -73,12 +73,15 @@ public class Application {
 
       Level logLevel = parseLogLevel(LOG_LEVEL);
       logger.setLevel(logLevel);
-      // Aggiungi ConsoleHandler solo se non già presente
-      if (logger.getHandlers().length == 0) {
-         java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler();
-         handler.setLevel(logLevel);
-         logger.addHandler(handler);
+      // Rimuovi tutti gli handler esistenti per evitare log doppi
+      java.util.logging.Handler[] handlers = logger.getHandlers();
+      for (java.util.logging.Handler h : handlers) {
+         logger.removeHandler(h);
       }
+      // Aggiungi ConsoleHandler
+      java.util.logging.ConsoleHandler handler = new java.util.logging.ConsoleHandler();
+      handler.setLevel(logLevel);
+      logger.addHandler(handler);
 
       logger.info("Avvio Bentel Absoluta MQTT Bridge - Versione " + VERSION);
 
@@ -94,7 +97,6 @@ public class Application {
       boolean connected = false;
       for (int i = 0; i < MQTT_CONNECT_ATTEMPTS && !connected; i++) {
          try {
-            logger.info("Tentativo di connessione numero: " + (i + 1));
             String mqttServer = "tcp://" + MQTT_ADDRESS + ":" + MQTT_PORT;
             MqttClient mqttClient = new MqttClient(mqttServer, "absolutamqtt", memPers);
             MqttConnectOptions mqttOption = new MqttConnectOptions();
@@ -114,12 +116,12 @@ public class Application {
             AbsolutaPanelProvider.providerConnStatus connStatus = AbsolutaPanelProvider.providerConnStatus.UNREACHABLE;
             while (attempt < maxAttempts && connStatus != AbsolutaPanelProvider.providerConnStatus.SUCCESS) {
                attempt++;
-               logger.info("Tentativo di connessione alla centrale n° " + attempt);
                connStatus = provider.connect();
                if (connStatus != AbsolutaPanelProvider.providerConnStatus.SUCCESS) {
                   logger.warning("Connessione fallita: " + connStatus + ". Riprovo tra 90 secondi...");
                   try {
                      Thread.sleep(90000L);
+                     logger.info("Tentativo di connessione alla centrale n° " + attempt);
                   } catch (InterruptedException e) {
                      logger.severe("Interrotto durante l'attesa di riconnessione: " + e.getMessage());
                      break;
@@ -136,6 +138,7 @@ public class Application {
             logger.warning("Attendo 15 secondi prima del prossimo tentativo...");
             try {
                Thread.sleep(15000L);
+               logger.info("Tentativo di connessione numero: " + (i + 1));
             } catch (InterruptedException e) {
                logger.severe("Interruzione durante l'attesa tra i tentativi di connessione: " + e.getMessage());
             }

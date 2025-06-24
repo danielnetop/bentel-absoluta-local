@@ -3,6 +3,7 @@ package protocol.dsc.transport;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+
 import protocol.dsc.DscError;
 import protocol.dsc.commands.DscCommandWithAppSeq;
 import protocol.dsc.commands.DscGeneralResponse;
@@ -16,13 +17,11 @@ public class ResponseHandler extends ChannelDuplexHandler {
    private static final Logger logger = Logger.getLogger(ResponseHandler.class.getName());
    private static final int MAX_WAITING_CMDS = 32;
    private final Queue<DscCommandWithAppSeq> waitingCmds = new LinkedList<DscCommandWithAppSeq>();
-
    public void channelInactive(ChannelHandlerContext var1) throws Exception {
       if (!this.waitingCmds.isEmpty()) {
-         logger.warning("removing " + this.waitingCmds.size() + " waiting commands");
+         logger.fine("Removing " + this.waitingCmds.size() + " waiting commands");
          this.waitingCmds.clear();
       }
-
       super.channelInactive(var1);
    }
 
@@ -31,12 +30,10 @@ public class ResponseHandler extends ChannelDuplexHandler {
          DscCommandWithAppSeq var4 = (DscCommandWithAppSeq)var2;
          if (this.waitingCmds.size() == MAX_WAITING_CMDS) {
             DscCommandWithAppSeq var5 = (DscCommandWithAppSeq)this.waitingCmds.remove();
-            logger.warning("waiting command removed to limit the queue size: " + var5);
+            logger.fine("Waiting command removed to limit the queue size: " + var5);
          }
-
          this.waitingCmds.add(var4);
       }
-
       super.write(var1, var2, var3);
    }
 
@@ -44,24 +41,24 @@ public class ResponseHandler extends ChannelDuplexHandler {
       boolean var3 = false;
       if (var2 instanceof DscResponse) {
          DscResponse var4 = (DscResponse)var2;
-         for (DscCommandWithAppSeq var6 : new LinkedList<>(this.waitingCmds)) {
-         if (var6.matchAsResponse(var4)) {
-            logger.fine("responde " + var4 + " received for " + var6);
-            this.waitingCmds.remove(var6);
-            var3 = true;
-            if (var4 instanceof DscGeneralResponse) {
-            DscGeneralResponse var7 = (DscGeneralResponse)var4;
-            var6.generalResponseReceived(var1.channel(), var7);
+         for (DscCommandWithAppSeq var6 : waitingCmds) {
+            if (var6.matchAsResponse(var4)) {
+               logger.finer("Response " + var4 + " received for " + var6);
+               waitingCmds.remove(var6);
+               var3 = true;
+               if (var4 instanceof DscGeneralResponse) {
+               DscGeneralResponse var7 = (DscGeneralResponse) var4;
+               var6.generalResponseReceived(var1.channel(), var7);
+               }
+               break;
             }
-            break;
-         }
          }
       }
 
       if (var2 instanceof DscGeneralResponse) {
          if (!var3) {
             DscGeneralResponse var8 = (DscGeneralResponse)var2;
-            logger.warning("unmatched general responde: " + var8);
+            logger.fine("Unmatched general response " + var8);
             if (!var8.isSuccess()) {
                var1.fireChannelRead(DscError.newGenericError(var8.getDescription()));
             }
@@ -69,6 +66,5 @@ public class ResponseHandler extends ChannelDuplexHandler {
       } else {
          super.channelRead(var1, var2);
       }
-
    }
 }
