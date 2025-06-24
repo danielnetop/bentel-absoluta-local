@@ -73,6 +73,8 @@ public class Application {
 
       Level logLevel = parseLogLevel(LOG_LEVEL);
       logger.setLevel(logLevel);
+      // Disabilita la propagazione al root logger per evitare log doppi
+      logger.setUseParentHandlers(false);
       // Rimuovi tutti gli handler esistenti per evitare log doppi
       java.util.logging.Handler[] handlers = logger.getHandlers();
       for (java.util.logging.Handler h : handlers) {
