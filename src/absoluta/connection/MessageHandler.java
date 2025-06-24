@@ -145,7 +145,7 @@ public class MessageHandler {
          logger.fine("Command " + this.lastMessage + " discarded");
          this.sendNext();
       } else if (this.lastMessage.attemptNum < RETRY_NUMBER) {
-         logger.fine("Retrying " + this.lastMessage + " ...");
+         logger.fine("Retry N° " + this.lastMessage.attemptNum + ": " + this.lastMessage + " ...");
          this.sendMessage(this.lastMessage);
       } else {
          logger.warning("Too many attempts for " + this.lastMessage);
