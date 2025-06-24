@@ -26,8 +26,6 @@ public interface PanelProvider {
 
    void setOutput(int outputId, OutputAction action);
 
-   boolean armingSupport(char presetMode);
-
    void setModeArming(char mode);
 
    public interface PanelCallback extends AlertCallback {

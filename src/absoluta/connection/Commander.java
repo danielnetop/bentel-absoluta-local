@@ -61,10 +61,6 @@ public class Commander {
 
    }
 
-   public boolean armingSupport(char presetMode) {
-      return CustomizedArmingModes.CUSTOMIZED_ARMING_MODES.containsKey(presetMode);
-   }
-
    public void armingSet(char presetMode) {
       logger.fine("Setting global arming to preset " + presetMode);
       Integer presetModeInteger = (Integer)CustomizedArmingModes.CUSTOMIZED_ARMING_MODES.get(presetMode);

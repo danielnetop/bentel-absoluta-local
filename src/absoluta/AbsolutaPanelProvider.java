@@ -68,11 +68,6 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public boolean armingSupport(char presetMode) {
-      return this.connectionHandler.getCommander().armingSupport(presetMode);
-   }
-
-   @Override
    public void setModeArming(char presetMode) {
       this.connectionHandler.getCommander().armingSet(presetMode);
    }
