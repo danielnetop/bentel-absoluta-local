@@ -35,7 +35,7 @@ public class ACKHandler extends ChannelDuplexHandler {
          } else if (msg instanceof EncapsulatedCommandForMultiplePackets) {
             logger.finer("Multiple packets received");
          } else {
-            logger.finer("Command received: " + msg);
+            logger.finest("Command received: " + msg);
             ctx.fireChannelRead(msg);
          }
 

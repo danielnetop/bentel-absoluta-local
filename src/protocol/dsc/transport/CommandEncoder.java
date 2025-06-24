@@ -28,7 +28,7 @@ public class CommandEncoder extends MessageToByteEncoder<DscCommand> {
          }
 
          cmd.writeTo(buffer);
-         logger.finer("Command encoded: " + cmd);
+         logger.finest("Command encoded: " + cmd);
       }
    }
 }
