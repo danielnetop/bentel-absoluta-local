@@ -9,6 +9,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import absoluta.AbsolutaPanelProvider;
 
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.logging.Level;
 
 public class Application {
@@ -58,6 +59,7 @@ public class Application {
       String MQTT_CONNECT_ATTEMPTS_STR = getConfigValue(props, "MQTT_CONNECT_ATTEMPTS");
       String HOME_ASSISTANT_DISCOVERY = getConfigValue(props, "HOME_ASSISTANT_DISCOVERY");
       String LOG_LEVEL = getConfigValue(props, "LOG_LEVEL");
+      String LOG_LOCATION = getConfigValue(props, "LOG_LOCATION");
 
       if (MQTT_ADDRESS == null || MQTT_PORT == null || Username == null || Password == null ||
          ADDRESS == null || PIN == null || PORT == null) {
@@ -90,6 +92,20 @@ public class Application {
       // Disabilita log dettagliati per i package di librerie esterne
       Logger.getLogger("org.eclipse.paho.client.mqttv3").setLevel(Level.WARNING);
       Logger.getLogger("io.netty").setLevel(Level.WARNING);
+
+      // Se LOG_LOCATION è "FILE", imposta un FileHandler
+      if (LOG_LOCATION != null && LOG_LOCATION.equalsIgnoreCase("FILE")) {
+         try {
+            java.util.logging.FileHandler fileHandler = new java.util.logging.FileHandler("absoluta.log", false);
+            fileHandler.setLevel(logLevel);
+            fileHandler.setFormatter(new SimpleFormatter()); // usa un formato di testo semplice
+            rootLogger.addHandler(fileHandler);
+         } catch (IOException e) {
+            logger.severe("Errore durante la creazione del FileHandler: " + e.getMessage());
+         }
+      } else {
+         logger.info("Registrazione su console abilitata. Per registrare su file, imposta LOG_LOCATION a 'FILE'.");
+      }
 
       logger.info("Avvio Bentel Absoluta MQTT Bridge - Versione " + VERSION);
 
