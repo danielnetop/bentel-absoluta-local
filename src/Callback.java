@@ -609,25 +609,24 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    }
 
    private void reconnectWithDelay(String objName) {
-      this.isConnected = false;
-      ++this.reconnectionAttempts;
-      logger.warning("Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
-      safePublish("ABS/conn", "Status: Scollegato", QOS, false, "disconnessione forzata");
       try {
-         TimeUnit.SECONDS.sleep((long)RECON_DELAY);
          if (objName.equals("centrale")) {
+            this.isConnected = false;
+            ++this.reconnectionAttempts;
+            logger.warning("Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
+            safePublish("ABS/conn", "Status: Scollegato", QOS, false, "disconnessione forzata");
+            TimeUnit.SECONDS.sleep((long)RECON_DELAY);
             providerConnStatus status = this.provider.connect();
             if (status == providerConnStatus.UNREACHABLE) {
-               logger.fine("Rilevato 'busy panel'. Tentativo di riconnessione forzata...");
                throw new Exception("Busy panel");
+            } else if (status == providerConnStatus.SUCCESS) {
+               this.reconnectionAttempts = 0;
+               this.isConnected = true;
+               safePublish("ABS/conn", "Status: Connesso", QOS, false, "riconnessione riuscita");
             }
          } else if (objName.equals("broker MQTT")) {
             this.mqttClient.connect(this.connOpts);
          }
-
-         this.reconnectionAttempts = 0;
-         this.isConnected = true;
-         safePublish("ABS/conn", "Status: Connesso", QOS, false, "riconnessione riuscita");
       } catch (InterruptedException ex) {
          Thread.currentThread().interrupt();
          this.handleReconnectionFailure(objName, ex);
