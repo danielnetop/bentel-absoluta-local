@@ -273,7 +273,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          return;
       }
       if (this.zoneNames[zoneId] == null) {
-         logger.fine("Nome sensore nullo: " + zoneId + ", non invio stato.");
+         logger.finest("Nome sensore nullo: " + zoneId + ", non invio stato.");
          return;
       }
       String str = "";

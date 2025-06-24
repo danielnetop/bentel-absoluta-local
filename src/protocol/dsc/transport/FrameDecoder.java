@@ -6,9 +6,9 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.TooLongFrameException;
+
 import protocol.dsc.session.SessionInfo;
 
-import java.nio.ByteOrder;
 import java.util.List;
 
 public class FrameDecoder extends ByteToMessageDecoder {
@@ -17,7 +17,6 @@ public class FrameDecoder extends ByteToMessageDecoder {
    private boolean inFrame = false;
    private boolean discarding = false;
 
-   @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws DecoderException {
       try {
          byte var4;
@@ -38,7 +37,7 @@ public class FrameDecoder extends ByteToMessageDecoder {
             assert !this.discarding;
 
             if (this.outBuf == null) {
-               this.outBuf = var1.alloc().buffer().order(ByteOrder.BIG_ENDIAN);
+               this.outBuf = var1.alloc().buffer();
 
                assert this.outBuf.maxCapacity() > MAX_FRAME_LENGTH;
             }

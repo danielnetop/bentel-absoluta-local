@@ -5,16 +5,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.EncoderException;
 import io.netty.handler.codec.MessageToByteEncoder;
-import protocol.dsc.util.Crc16;
 
-import java.nio.ByteOrder;
+import protocol.dsc.util.Crc16;
 
 @Sharable
 public class DataEncoder extends MessageToByteEncoder<ByteBuf> {
 
-   @SuppressWarnings("deprecation")
    protected void encode(ChannelHandlerContext var1, ByteBuf var2, ByteBuf var3) throws EncoderException {
-      assert var3.order() == ByteOrder.BIG_ENDIAN;
 
       int var4 = var2.readableBytes() + 2;
       if (var4 >= 4 && var4 <= 32767) {

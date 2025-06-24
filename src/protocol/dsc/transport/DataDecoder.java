@@ -5,18 +5,16 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.CorruptedFrameException;
 import io.netty.handler.codec.MessageToMessageDecoder;
+
 import protocol.dsc.util.Crc16;
 import protocol.dsc.util.Decoders;
 
-import java.nio.ByteOrder;
 import java.util.List;
 
 @Sharable
 public class DataDecoder extends MessageToMessageDecoder<ByteBuf> {
 
-   @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws CorruptedFrameException {
-      assert var2.order() == ByteOrder.BIG_ENDIAN;
 
       if (var2.readableBytes() < 5) {
          throw new CorruptedFrameException("too short frame");

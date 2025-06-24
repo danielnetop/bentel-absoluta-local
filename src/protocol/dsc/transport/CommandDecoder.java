@@ -73,7 +73,6 @@ import protocol.dsc.errors.DscProtocolException;
 import protocol.dsc.errors.WrongCommandLengthException;
 import protocol.dsc.util.DscUtils;
 
-import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,10 +122,8 @@ public class CommandDecoder extends MessageToMessageDecoder<ByteBuf> {
    }
 
    @Override
-   @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
          throws DscProtocolException, CorruptedFrameException {
-      assert in.order() == ByteOrder.BIG_ENDIAN;
 
       if (SequenceHandlersHelper.isLowACK(in)) {
          out.add(LowACK.getInstance());

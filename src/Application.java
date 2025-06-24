@@ -87,6 +87,10 @@ public class Application {
       handler.setLevel(logLevel);
       rootLogger.addHandler(handler);
 
+      // Disabilita log dettagliati per i package di librerie esterne
+      Logger.getLogger("org.eclipse.paho.client.mqttv3").setLevel(Level.WARNING);
+      Logger.getLogger("io.netty").setLevel(Level.WARNING);
+
       logger.info("Avvio Bentel Absoluta MQTT Bridge - Versione " + VERSION);
 
       logger.fine("MQTT_ADDRESS=" + MQTT_ADDRESS);

@@ -44,7 +44,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void setPanelId(String newPanelId) {
-      logger.fine("Setting panel id: " + newPanelId);
+      logger.finer("Setting panel id: " + newPanelId);
       String oldPanelId = this.panelId;
       this.panelId = newPanelId;
       this.changeSupport.firePropertyChange("panelId", oldPanelId, newPanelId);
@@ -55,7 +55,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void setPin(String newPin) {
-      logger.fine("Setting pin: " + newPin);
+      logger.finer("Setting pin: " + newPin);
       String oldPin = this.pin;
       this.pin = newPin;
       EndpointHandler.setPin(this.channel, newPin);
@@ -157,7 +157,7 @@ public class DscEndpoint implements Endpoint, Messenger {
    }
 
    public void broadcastNewValue(NewValue value) {
-      logger.fine("New value received: " + value);
+      logger.finest("New value received: " + value);
       for (MessageListener listener : this.messageListeners) {
          listener.newValue(value);
       }

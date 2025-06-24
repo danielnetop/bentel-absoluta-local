@@ -8,7 +8,6 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 
 import protocol.dsc.errors.WrongSequenceNumberException;
 
-import java.nio.ByteOrder;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -16,9 +15,7 @@ import java.util.logging.Logger;
 public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
    private static final Logger logger = Logger.getLogger(TransportLayerDecoder.class.getName());
 
-   @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws WrongSequenceNumberException, CorruptedFrameException {
-      assert var2.order() == ByteOrder.BIG_ENDIAN;
 
       if (var2.readableBytes() != 2 && var2.readableBytes() < 4) {
          throw new CorruptedFrameException("invalid frame lenght");

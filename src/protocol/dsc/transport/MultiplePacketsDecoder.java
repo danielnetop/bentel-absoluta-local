@@ -4,18 +4,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.MessageToMessageDecoder;
+
 import protocol.dsc.errors.WrongCommandLengthException;
 import protocol.dsc.util.Decoders;
 
-import java.nio.ByteOrder;
 import java.util.List;
 
 @Sharable
 public class MultiplePacketsDecoder extends MessageToMessageDecoder<ByteBuf> {
 
-   @SuppressWarnings("deprecation")
    protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws Exception {
-      assert var2.order() == ByteOrder.BIG_ENDIAN;
 
       if (var2.readableBytes() >= 2 && var2.getShort(var2.readerIndex()) == 1571) {
          var3.add(var2.readSlice(2).retain());

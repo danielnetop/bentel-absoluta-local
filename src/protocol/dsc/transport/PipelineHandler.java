@@ -45,7 +45,7 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
    @Override
    public void channelActive(ChannelHandlerContext ctx) throws Exception {
       super.channelActive(ctx);
-      logger.fine("Handshake begin");
+      logger.finer("Handshake begin");
       ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_BEGIN_EVENT);
       this.nextStage(ctx);
    }
@@ -68,14 +68,14 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
    private void nextStage(ChannelHandlerContext ctx) {
       HandshakeHandler<?> handler = this.handshakeHandlers.poll();
       if (handler != null) {
-         logger.fine("Handshake next stage");
+         logger.finer("Handshake next stage");
          this.setManagedHandlers(ctx, Collections.singletonList(handler));
          SessionInfo sessionInfo = SessionInfo.getOwnInfo(ctx.channel());
          if (sessionInfo.isClient()) {
                handler.startHandshakeStage();
          }
       } else {
-         logger.fine("Handshake end");
+         logger.finer("Handshake end");
          this.setManagedHandlers(ctx, this.normalModeHandlers);
          ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_END_EVENT);
       }

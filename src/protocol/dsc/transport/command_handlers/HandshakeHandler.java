@@ -105,7 +105,7 @@ public abstract class HandshakeHandler<C extends DscCommand> extends ChannelInbo
    }
 
    private void onSuccess(ChannelHandlerContext ctx) {
-      logger.fine("Handshake stage completed for " + this.commandClass.getSimpleName());
+      logger.finer("Handshake stage completed for " + this.commandClass.getSimpleName());
       ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_STAGE_COMPLETED_EVENT);
    }
 
