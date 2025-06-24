@@ -3,6 +3,7 @@ package absoluta.spi;
 import java.util.List;
 
 import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.AbsolutaPanelProvider.providerStatus;
 import absoluta.connection.PanelStatus.GlobalArming;
 import absoluta.connection.PanelStatus.InputStatus;
 import absoluta.connection.PanelStatus.OutputAction;
@@ -33,6 +34,8 @@ public interface PanelProvider {
       void connectionLost();
 
       void updateGlobalArming(GlobalArming arming);
+
+      void setStatus(providerStatus status);
 
       void getAllPartitions(List<Integer> partitions);
 

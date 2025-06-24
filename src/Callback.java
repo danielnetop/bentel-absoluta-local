@@ -10,6 +10,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import absoluta.AbsolutaPanelProvider;
 import absoluta.AbsolutaPanelProvider.providerConnStatus;
+import absoluta.AbsolutaPanelProvider.providerStatus;
 import absoluta.connection.PanelStatus;
 
 import java.util.logging.Logger;
@@ -77,6 +78,8 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       //TODO: sarebbe meglio diversificare per tipo di errore.
       notifyError(var1);
    }
+
+   public void setStatus(providerStatus status){}
 
    public void notifyError(String errorMessage) {
       // Build new error notification as a JSON object with required field names

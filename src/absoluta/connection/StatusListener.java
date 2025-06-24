@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 import org.javatuples.Pair;
+import org.javatuples.Quartet;
 
 class StatusListener implements MessageListener {
    private static final Logger logger = Logger.getLogger(StatusListener.class.getName());
@@ -108,6 +109,13 @@ class StatusListener implements MessageListener {
          int armingModeId = (Integer) msg.getParam(Message.ABSOLUTA_ARMING_MODE_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_ARMING_MODE_LABEL)).trim();
          panelStatus.updateArmingModeLabel(armingModeId, label);
+      } else if (msg.isFor(Message.TROUBLE_DETAIL_NOTIFICATION)) {
+         List<Quartet<Integer, Integer, Integer, Integer>> troubles =
+            (List<Quartet<Integer, Integer, Integer, Integer>>) msg.getValue(Message.TROUBLE_DETAIL_NOTIFICATION);
+
+         for (Quartet<Integer, Integer, Integer, Integer> trouble : troubles) {
+            this.manageTrouble(trouble);
+         }
       }
    }
 
@@ -211,5 +219,32 @@ class StatusListener implements MessageListener {
 
       panelStatus.updateZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));
       panelStatus.updateZoneStatus(zoneId, zoneStatus);
+   }
+
+   private void manageTrouble(Quartet<Integer, Integer, Integer, Integer> var1) {
+      int var2 = (Integer)var1.getValue0();
+      int var3 = (Integer)var1.getValue1();
+      int var4 = (Integer)var1.getValue2();
+      int var5 = (Integer)var1.getValue3();
+      if (var2 == 1 && !this.panelStatus.getZones().contains(var4)) {
+         logger.fine("discarding trouble 0x" + var3 + " notification for zone " + var4 + " (the zone doesn't belong to the current user)");
+      } else {
+         Trouble var6 = new Trouble(var2, var3, var4, false);
+         Trouble var7 = new Trouble(var2, var3, var4, true);
+         switch (var5) {
+            case 0:
+               this.panelStatus.removeTrouble(var6);
+               this.panelStatus.removeTrouble(var7);
+               break;
+            case 1:
+               this.panelStatus.removeTrouble(var7);
+               this.panelStatus.addTrouble(var6);
+               break;
+            case 2:
+               this.panelStatus.removeTrouble(var6);
+               this.panelStatus.addTrouble(var7);
+         }
+
+      }
    }
 }

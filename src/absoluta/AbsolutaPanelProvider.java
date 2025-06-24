@@ -108,4 +108,10 @@ public class AbsolutaPanelProvider implements PanelProvider {
       UNAUTHORIZED,
       UNREACHABLE
    }
+
+   public enum providerStatus {
+      TAMPER,
+      FAULT,
+      OK
+   }
 }

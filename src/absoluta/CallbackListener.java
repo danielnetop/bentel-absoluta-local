@@ -7,6 +7,7 @@ import java.beans.PropertyChangeListener;
 import java.util.List;
 import java.util.Objects;
 
+import absoluta.AbsolutaPanelProvider.providerStatus;
 import absoluta.connection.CustomizedArmingModes;
 import absoluta.connection.PanelStatus;
 import absoluta.spi.PanelProvider.PanelCallback;
@@ -88,6 +89,8 @@ class CallbackListener implements PropertyChangeListener {
                   this.callback.getAllOutputs(this.panelStatus.getOutputs());
                   break;
                case "TROUBLES":
+                  Boolean var11 = !this.panelStatus.getTroubles().isEmpty();
+                  this.callback.setStatus(var11 ? providerStatus.FAULT : providerStatus.OK);
                   break;
             }
          }

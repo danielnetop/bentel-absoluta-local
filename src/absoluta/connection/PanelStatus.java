@@ -1,13 +1,20 @@
 package absoluta.connection;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 public class PanelStatus {
+   private static final Logger logger = Logger.getLogger(StatusListener.class.getName());
+
    // Costanti per i nomi delle proprietà osservabili
    public static final String CONNECTION_STATUS = "CONNECTION_STATUS";
    public static final String GLOBAL_ARMING = "GLOBAL_ARMING";
@@ -45,6 +52,8 @@ public class PanelStatus {
    private final Map<Integer, OutputStatus> outputStatuses;
    private final Map<Integer, String> outputLabels;
    private final Map<Integer, String> armingModeLabels;
+   private ImmutableSet<Trouble> troubles;
+   private final Set<Trouble> unconfirmedTroubles;
 
    public PanelStatus() {
       this.connectionStatus = PanelConnStatus.DISCONNECTED;
@@ -57,6 +66,8 @@ public class PanelStatus {
       this.outputStatuses = new HashMap<>();
       this.outputLabels = new HashMap<>();
       this.armingModeLabels = new HashMap<>();
+      this.troubles = ImmutableSet.of();
+      this.unconfirmedTroubles = new HashSet<>();
    }
 
    public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -305,5 +316,52 @@ public class PanelStatus {
       GLOBALLY_DISARMED,
       NOT_AVAILABLE,
       TRIGGERED
+   }
+
+   void addTrouble(Trouble var1) {
+      if (this.unconfirmedTroubles.remove(var1)) {
+         logger.fine("trouble confirmed: " + var1);
+      }
+
+      if (!this.troubles.contains(var1)) {
+         ImmutableSet<Trouble> var2 = this.troubles;
+         this.troubles = ImmutableSet.<Trouble>builder().addAll(this.troubles).add(var1).build();
+         logger.fine("trouble added: " + var1);
+         this.changeSupport.firePropertyChange("TROUBLES", var2, this.troubles);
+      }
+
+   }
+
+   void removeTrouble(Trouble var1) {
+      this.unconfirmedTroubles.remove(var1);
+      if (this.troubles.contains(var1)) {
+         Set<Trouble> var2 = new HashSet<>(this.troubles);
+         var2.remove(var1);
+         ImmutableSet<Trouble> var3 = this.troubles;
+         this.troubles = ImmutableSet.copyOf(var2);
+         logger.fine("trouble removed: " + var1);
+         this.changeSupport.firePropertyChange("TROUBLES", var3, this.troubles);
+      }
+
+   }
+
+   boolean unconfirmAllTroubles() {
+      this.unconfirmedTroubles.addAll(this.troubles);
+      return !this.unconfirmedTroubles.isEmpty();
+   }
+
+   void removeUnconfirmedTroubles() {
+      UnmodifiableIterator<Trouble> var1 = ImmutableSet.copyOf(this.unconfirmedTroubles).iterator();
+
+      while(var1.hasNext()) {
+         Trouble var2 = (Trouble)var1.next();
+         logger.fine("unconfirmed trouble: " + var2);
+         this.removeTrouble(var2);
+      }
+
+   }
+
+   public ImmutableSet<Trouble> getTroubles() {
+      return this.troubles;
    }
 }
