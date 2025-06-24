@@ -38,7 +38,7 @@ public class MessageHandler {
    static {
       TIME_UNIT = TimeUnit.MILLISECONDS;
       START_TIMEOUT = TimeUnit.SECONDS.toMillis(40L);
-      RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(5L);
+      RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(1L);
    }
 
    MessageHandler(Endpoint endpoint, ConnectionHandler.ErrorListener errorListener) {
@@ -118,7 +118,7 @@ public class MessageHandler {
    private void sendNext() {
       EnqueuedMessage<?> msg = this.enqueuedMessages.poll();
       if (msg != null) {
-         logger.finer("Sending next enqueued message " + msg);
+         logger.finest("Sending next enqueued message " + msg);
          this.sendMessage(msg);
       } else {
          this.executeIdleTimeTasks();
@@ -142,10 +142,10 @@ public class MessageHandler {
    private void manageError(Integer responseCode) {
       assert this.started && this.lastMessage != null;
       if (this.lastMessage.type == MessageType.COMMAND && responseCode != null) {
-         logger.fine("Command " + this.lastMessage + " discarded");
+         logger.finest("Command " + this.lastMessage + " discarded");
          this.sendNext();
       } else if (this.lastMessage.attemptNum < RETRY_NUMBER) {
-         logger.fine("Retry N° " + this.lastMessage.attemptNum + ": " + this.lastMessage + " ...");
+         logger.finer("Retry N° " + this.lastMessage.attemptNum + ": " + this.lastMessage + " ...");
          this.sendMessage(this.lastMessage);
       } else {
          logger.warning("Too many attempts for " + this.lastMessage);
