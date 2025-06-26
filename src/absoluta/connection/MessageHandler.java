@@ -20,10 +20,10 @@ import protocol.dsc.Message.Response;
 
 public class MessageHandler {
    private static final Logger logger = Logger.getLogger(MessageHandler.class.getName());
-   private static final int RETRY_NUMBER = 3;
-   private static final TimeUnit TIME_UNIT;
-   private static final long START_TIMEOUT;
-   private static final long RETRY_TIMEOUT;
+   private static final int RETRY_NUMBER = 4;
+   private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+   private static final long START_TIMEOUT= TimeUnit.SECONDS.toMillis(40);
+   private static final long RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(1);
    private final Messenger messenger;
    private final ScheduledExecutorService executor;
    private final ConnectionHandler.ErrorListener errorListener;
@@ -34,12 +34,6 @@ public class MessageHandler {
    private boolean started;
    private boolean stopped;
    private int messageCount;
-
-   static {
-      TIME_UNIT = TimeUnit.MILLISECONDS;
-      START_TIMEOUT = TimeUnit.SECONDS.toMillis(40L);
-      RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(1L);
-   }
 
    MessageHandler(Endpoint endpoint, ConnectionHandler.ErrorListener errorListener) {
       this.messenger = Objects.requireNonNull(endpoint.getMessenger());
