@@ -185,12 +185,20 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    }
 
    public void updateGlobalArming(PanelStatus.GlobalArming actArming) {
-      if (actArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
+      if (actArming == PanelStatus.GlobalArming.TRIGGERED) {
+         this.partitionArmStatuses[0] = "triggered";
+      } else if (actArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
          this.partitionArmStatuses[0] = "disarmed";
       } else if (actArming == PanelStatus.GlobalArming.GLOBALLY_ARMED) {
          this.partitionArmStatuses[0] = "armed_away";
       } else if (actArming == PanelStatus.GlobalArming.PARTIALLY_ARMED) {
          this.partitionArmStatuses[0] = "armed_custom_bypass";
+      } else if (actArming == PanelStatus.GlobalArming.ARMING) {
+         this.partitionArmStatuses[0] = "arming";
+      } else if (actArming == PanelStatus.GlobalArming.DISARMING) {
+         this.partitionArmStatuses[0] = "disarming";
+      } else if (actArming == PanelStatus.GlobalArming.NOT_AVAILABLE) {
+         this.partitionArmStatuses[0] = "not_available";
       }
       this.sendMessageOnUpdateGlobalArming();
    }
@@ -345,7 +353,9 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          logger.warning("Indice partizione fuori dai limiti: " + partitionID);
          return;
       }
-      if (actArming == PanelStatus.PartitionArming.DISARMED) {
+      if (actArming == PanelStatus.PartitionArming.TRIGGERED) {
+         this.partitionArmStatuses[partitionID] = "triggered";
+      } else if (actArming == PanelStatus.PartitionArming.DISARMED) {
          this.partitionArmStatuses[partitionID] = "disarmed";
       } else if (actArming == PanelStatus.PartitionArming.AWAY) {
          this.partitionArmStatuses[partitionID] = "armed_away";
@@ -353,8 +363,12 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          this.partitionArmStatuses[partitionID] = "armed_home";
       } else if (actArming == PanelStatus.PartitionArming.NODELAY) {
          this.partitionArmStatuses[partitionID] = "armed_night";
-      } else if (actArming == PanelStatus.PartitionArming.TRIGGERED) {
-         this.partitionArmStatuses[partitionID] = "triggered";
+      } else if (actArming == PanelStatus.PartitionArming.ARMING) {
+         this.partitionArmStatuses[partitionID] = "arming";
+      } else if (actArming == PanelStatus.PartitionArming.DISARMING) {
+         this.partitionArmStatuses[partitionID] = "disarming";
+      } else if (actArming == PanelStatus.PartitionArming.NOT_AVAILABLE) {
+         this.partitionArmStatuses[partitionID] = "not_available";
       }
 
       this.sendMessageOnUpdatePartitionArming(partitionID);
@@ -493,7 +507,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
             } else {
                logger.warning("Comando " + msg.toString() + " non valido per il topic: " + topic);
             }
-         }  
+         } 
       } else if (topic.equals("homeassistant/status")) {
          if(msg.toString().equals("online")){
             commandOnline();
@@ -508,22 +522,15 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "DISARM":
-            safePublish(this.partitionTopics[idArray], "disarming", QOS, false, "transitorio partizione" + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.DISARMED);
             return;
          case "ARM_HOME":
-            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.STAY);
             return;
          case "ARM_AWAY":
-            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.AWAY);
             return;
          case "ARM_NIGHT":
-            safePublish(this.partitionTopics[idArray], "arming", QOS, false, "transitorio partizione" + idArray);
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per partizione " + idArray); 
             this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.NODELAY);
             return;
          default:
@@ -535,11 +542,9 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          logger.fine("Comando ricevuto per stato globale: " + msg.toString());
          switch (msg.toString().toUpperCase()) {
             case "DISARM":
-               safePublish(this.partitionTopics[0], "disarming", QOS, false, "transitorio globale"); 
                this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_DISARMED);
                return;
             case "ARM_AWAY":
-               safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale");
                this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_ARMED);
                return;
             default:
@@ -551,19 +556,15 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Comando ricevuto per modalità: " + msg.toString());
       switch (msg.toString().toUpperCase()) {
          case "MODE_A" :
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità A");
             this.provider.setModeArming('A');
             return;
          case "MODE_B" :
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità B");
             this.provider.setModeArming('B');
             return;
          case "MODE_C" :
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità C");
             this.provider.setModeArming('C');
             return;
          case "MODE_D" :
-            safePublish(this.partitionTopics[0], "arming", QOS, false, "transitorio globale per modalità D");
             this.provider.setModeArming('D');
             return;
          default:
