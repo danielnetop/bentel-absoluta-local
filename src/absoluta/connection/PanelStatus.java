@@ -289,7 +289,9 @@ public class PanelStatus {
       STAY,
       NODELAY,
       TRIGGERED,
-      NOT_AVAILABLE
+      NOT_AVAILABLE,
+      ARMING,
+      DISARMING
    }
 
    // Enum per stato partizione
@@ -314,8 +316,10 @@ public class PanelStatus {
       GLOBALLY_ARMED,
       PARTIALLY_ARMED,
       GLOBALLY_DISARMED,
+      TRIGGERED,
       NOT_AVAILABLE,
-      TRIGGERED
+      ARMING,
+      DISARMING
    }
 
    void addTrouble(Trouble var1) {
