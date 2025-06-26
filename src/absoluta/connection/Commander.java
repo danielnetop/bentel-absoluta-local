@@ -29,9 +29,11 @@ public class Commander {
       logger.fine("Setting global arming to: " + newArmingStatus);
       switch(newArmingStatus) {
       case GLOBALLY_DISARMED:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.DISARMING);
          this.messageHandler.sendCommand(Message.DISARM, SYSTEM);
          break;
       case GLOBALLY_ARMED:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
          this.messageHandler.sendCommand(Message.ARM, Pair.with(SYSTEM, AWAY_ARM));
          break;
       default:
@@ -44,15 +46,23 @@ public class Commander {
       logger.fine("Setting partition " + partitionID + " arming to: " + newArmingStatus);
       switch(newArmingStatus) {
       case DISARMED:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.DISARMING);
+         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.DISARMED);
          this.messageHandler.sendCommand(Message.DISARM, partitionID);
          break;
       case AWAY:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
+         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.ARMING);
          this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, AWAY_ARM));
          break;
       case STAY:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
+         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.ARMING);
          this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, STAY_ARM));
          break;
       case NODELAY:
+         this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
+         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.ARMING);
          this.messageHandler.sendCommand(Message.ARM, Pair.with(partitionID, INSTANT_STAY_ARM));
          break;
       default:
@@ -64,6 +74,7 @@ public class Commander {
    public void armingSet(char presetMode) {
       logger.fine("Setting global arming to preset " + presetMode);
       Integer presetModeInteger = (Integer)CustomizedArmingModes.CUSTOMIZED_ARMING_MODES.get(presetMode);
+      this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
       if (presetModeInteger != null) {
          this.messageHandler.sendCommand(Message.ARM, Pair.with(SYSTEM, presetModeInteger));
       }
@@ -82,7 +93,7 @@ public class Commander {
 
    public void setOutput(int outputID, boolean setStatus) {
       logger.fine((setStatus ? "closing" : "opening") + " output  " + outputID);
-      Integer statusInteger = setStatus ? 1 : 2;
+      Integer statusInteger = setStatus ? ACTIVATE_OUTPUT : DEACTIVATE_OUTPUT;
       this.messageHandler.sendCommand(Message.SET_OUTPUT, Triplet.with((Integer)null, outputID, statusInteger));
    }
 
