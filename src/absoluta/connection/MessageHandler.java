@@ -23,7 +23,7 @@ public class MessageHandler {
    private static final int RETRY_NUMBER = 4;
    private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
    private static final long START_TIMEOUT= TimeUnit.SECONDS.toMillis(40);
-   private static final long RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(1);
+   private static final long RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(2);
    private final Messenger messenger;
    private final ScheduledExecutorService executor;
    private final ConnectionHandler.ErrorListener errorListener;
