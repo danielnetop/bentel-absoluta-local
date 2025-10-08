@@ -82,11 +82,16 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       this.reconnectWithDelay("centrale");
    }
 
-   public void alert(String var1) {
-      //TODO: @Stefano: è questa la callback per gli errori? Leggendo AlertListener mi sembra di sì.
-      String topic = "ABS/errors";
-      //TODO: sarebbe meglio diversificare per tipo di errore.
-      notifyError(var1);
+   public void alert(String message) {
+      // Questa è la callback chiamata da AlertListener per notificare errori specifici
+      // come problemi di inserimento, esclusione zone e controllo output
+      logger.warning("Alert received: " + message);
+      
+      // Notifica l'errore attraverso MQTT utilizzando il sistema di gestione errori esistente
+      notifyError(message);
+      
+      // Pubblica anche l'errore specifico sul topic dedicato
+      safePublish("ABS/errors/last", message, QOS, false, "ultimo errore");
    }
 
    public void setStatus(providerStatus status){}
