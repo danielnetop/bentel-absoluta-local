@@ -138,6 +138,14 @@ public class Application {
             logger.info("Broker connesso");
             provider.initialize(callback);
 
+            // Avvio il thread di ping TCP per mantenere viva la connessione
+            logger.info("Avvio thread di ping TCP verso " + ADDRESS + ":" + PORT);
+            PingKeepAlive pingKeepAlive = new PingKeepAlive(ADDRESS, Integer.parseInt(PORT));
+            pingKeepAlive.start();
+
+            // Breve attesa prima di iniziare i tentativi di connessione
+            Thread.sleep(5000);
+
             int maxAttempts = 5;
             int attempt = 0;
             AbsolutaPanelProvider.providerConnStatus connStatus = AbsolutaPanelProvider.providerConnStatus.UNREACHABLE;
