@@ -227,6 +227,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       }
       this.zoneNames[zoneId] = zoneName;
       this.sensorTopics[zoneId] = "ABS/sensor/" + zoneId;
+      // Inizializza lo stato di bypass a OFF per default
+      if (this.sensorBypass[zoneId] == null) {
+         this.sensorBypass[zoneId] = "OFF";
+      }
       // Invia discovery solo la prima volta per ogni sensore
       if (discoveryEnabled && !sensorDiscoverySent.contains(zoneId)) {
          String topic = "homeassistant/binary_sensor/absoluta_sensor_" + zoneId + "/config";
