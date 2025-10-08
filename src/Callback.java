@@ -46,6 +46,14 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private String errorMessages = "[]"; // JSON array of error notifications
    private boolean hasError = false;
 
+   private boolean isValidLabel(String label) {
+      if (label == null || label.trim().isEmpty()) {
+         return false;
+      }
+      // Verifica se la stringa contiene solo caratteri validi (stampabili)
+      return label.chars().allMatch(ch -> ch >= 32 && ch <= 126);
+   }
+
    public Callback(MqttClient mqttClient, AbsolutaPanelProvider provider, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
       this.mqttClient = mqttClient;
       this.provider = provider;
@@ -225,7 +233,11 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          logger.warning("Indice sensore fuori dai limiti: " + zoneId);
          return;
       }
-      this.zoneNames[zoneId] = zoneName;
+      if (!isValidLabel(zoneName)) {
+         logger.warning("Nome zona non valido: " + zoneId);
+         return;
+      }
+      this.zoneNames[zoneId] = zoneName.trim();
       this.sensorTopics[zoneId] = "ABS/sensor/" + zoneId;
       // Inizializza lo stato di bypass a OFF per default
       if (this.sensorBypass[zoneId] == null) {
@@ -301,14 +313,6 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       }
       safePublish(this.sensorTopics[zoneId], str, QOS, false, "stato sensore");
       logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
-   }
-
-   private boolean isValidLabel(String label) {
-      if (label == null || label.trim().isEmpty()) {
-         return false;
-      }
-      // Verifica se la stringa contiene solo caratteri validi (stampabili)
-      return label.chars().allMatch(ch -> ch >= 32 && ch <= 126);
    }
 
    public void updateModeLabel(char modeChar, String modeLabel) {
@@ -416,7 +420,11 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
          partitionArmStatuses = java.util.Arrays.copyOf(partitionArmStatuses, newSize);
          partitionStatuses = java.util.Arrays.copyOf(partitionStatuses, newSize);
       }
-      this.partitionNames[partitionID] = name;
+      if (!isValidLabel(name)) {
+         logger.warning("Nome partizione non valido: " + partitionID);
+         return;
+      }
+      this.partitionNames[partitionID] = name.trim();
       this.partitionTopics[partitionID] = "ABS/partition/" + partitionID;
       // Invia discovery solo la prima volta per ogni partizione
       if (discoveryEnabled && !partitionDiscoverySent.contains(partitionID)  && partitionID > 0) {
