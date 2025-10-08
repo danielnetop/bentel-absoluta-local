@@ -303,40 +303,48 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
    }
 
+   private boolean isValidLabel(String label) {
+      if (label == null || label.trim().isEmpty()) {
+         return false;
+      }
+      // Verifica se la stringa contiene solo caratteri validi (stampabili)
+      return label.chars().allMatch(ch -> ch >= 32 && ch <= 126);
+   }
+
    public void updateModeLabel(char modeChar, String modeLabel) {
       int modeIDInt = -1;
       switch (modeChar) {
          case 'A':
-            if (modeLabel == null || modeLabel.trim().isEmpty()) {
+            if (!isValidLabel(modeLabel)) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
             modeIDInt = 0;
-            this.modeNames[modeIDInt] = modeLabel;
+            this.modeNames[modeIDInt] = modeLabel.trim();
             break;
          case 'B':
-            if (modeLabel == null || modeLabel.trim().isEmpty()) {
+            if (!isValidLabel(modeLabel)) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
             modeIDInt = 1;
-            this.modeNames[modeIDInt] = modeLabel;
+            this.modeNames[modeIDInt] = modeLabel.trim();
             break;
          case 'C':
-            if (modeLabel == null || modeLabel.trim().isEmpty()) {
+            if (!isValidLabel(modeLabel)) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
             modeIDInt = 2;
-            this.modeNames[modeIDInt] = modeLabel;
+            this.modeNames[modeIDInt] = modeLabel.trim();
             break;
          case 'D':
-            if (modeLabel == null || modeLabel.trim().isEmpty()) {
+            if (!isValidLabel(modeLabel)) {
                modeDiscoverySent.add(modeIDInt);
                break;
             }
             modeIDInt = 3;
-            this.modeNames[modeIDInt] = modeLabel;
+            this.modeNames[modeIDInt] = modeLabel.trim();
             break;
       }
       // Invia discovery solo la prima volta per ogni modalità
