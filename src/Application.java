@@ -127,6 +127,9 @@ public class Application {
             mqttOption.setCleanSession(true);
             mqttOption.setUserName(Username);
             mqttOption.setPassword(Password.toCharArray());
+            mqttOption.setAutomaticReconnect(true);
+            mqttOption.setKeepAliveInterval(60);  // 60 seconds keep-alive
+            mqttOption.setConnectionTimeout(30);   // 30 seconds connection timeout
             logger.info("Collegamento al broker: " + mqttServer);
             AbsolutaPanelProvider provider = new AbsolutaPanelProvider(ADDRESS, PIN, PORT);
             Callback callback = new Callback(mqttClient, provider, mqttOption, discoveryEnabled);

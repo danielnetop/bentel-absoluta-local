@@ -34,12 +34,14 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private int reconnectionAttempts = 0;
    private boolean isConnected = false;
    private static final int RECON_DELAY = 90;
+   private static final int MAX_MQTT_RECONNECT_ATTEMPTS = 10;
    private static final int QOS = 1;
    private HashSet<Integer> sensorDiscoverySent = new HashSet<>();
    private HashSet<Integer> partitionDiscoverySent = new HashSet<>();
    private HashSet<Integer> modeDiscoverySent = new HashSet<>();
    private Boolean discoveryEnabled;
    private MqttMessageDispatcher mqttDispatcher;
+   private int mqttReconnectAttempts = 0;
 
    private String errorMessages = "[]"; // JSON array of error notifications
    private boolean hasError = false;
@@ -626,19 +628,50 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
                safePublish("ABS/conn", "Status: Connesso", QOS, false, "riconnessione riuscita");
             }
          } else if (objName.equals("broker MQTT")) {
-            this.mqttClient.connect(this.connOpts);
+            if (this.mqttReconnectAttempts >= MAX_MQTT_RECONNECT_ATTEMPTS) {
+               logger.severe("Raggiunto il numero massimo di tentativi di riconnessione al broker MQTT. Riavviare l'applicazione.");
+               return;
+            }
+            
+            ++this.mqttReconnectAttempts;
+            logger.warning("Tentativo di riconnessione " + this.mqttReconnectAttempts + "/" + MAX_MQTT_RECONNECT_ATTEMPTS + " al broker MQTT in " + RECON_DELAY + " secondi...");
+            
+            try {
+               if (this.mqttClient.isConnected()) {
+                  this.mqttClient.disconnect();
+               }
+               TimeUnit.SECONDS.sleep((long)RECON_DELAY);
+               this.mqttClient.connect(this.connOpts);
+               this.mqttReconnectAttempts = 0;  // Reset counter on successful connection
+               
+               // Resubscribe to topics after reconnection
+               this.mqttClient.subscribe("ABS/+/set");
+               this.mqttClient.subscribe("ABS/+/+/set");
+               this.mqttClient.subscribe("homeassistant/status");
+               
+               logger.info("Riconnessione al broker MQTT riuscita");
+            } catch (Exception e) {
+               handleReconnectionFailure(objName, e);
+            }
          }
       } catch (InterruptedException ex) {
          Thread.currentThread().interrupt();
-         this.handleReconnectionFailure(objName, ex);
+         handleReconnectionFailure(objName, ex);
       } catch (Exception ex) {
-         this.handleReconnectionFailure(objName, ex);
+         handleReconnectionFailure(objName, ex);
       }
    }
 
    private void handleReconnectionFailure(String name, Exception ex) {
       logger.warning("Impossibile riconnettersi a " + name + " Causa: " + ex.getMessage());
       ex.printStackTrace();
-      this.reconnectWithDelay(name);
+      
+      // Schedule reconnection attempt using a new thread to avoid recursion
+      if ((name.equals("centrale") && this.reconnectionAttempts < Integer.MAX_VALUE) ||
+          (name.equals("broker MQTT") && this.mqttReconnectAttempts < MAX_MQTT_RECONNECT_ATTEMPTS)) {
+         new Thread(() -> {
+            this.reconnectWithDelay(name);
+         }).start();
+      }
    }
 }
