@@ -144,7 +144,11 @@ public class Application {
             pingKeepAlive.start();
 
             // Breve attesa prima di iniziare i tentativi di connessione
-            Thread.sleep(5000);
+            try {
+               Thread.sleep(5000);
+            } catch (InterruptedException e) {
+               logger.severe("Interruzione durante l'attesa iniziale: " + e.getMessage());
+            }
 
             int maxAttempts = 5;
             int attempt = 0;
