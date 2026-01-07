@@ -1,5 +1,6 @@
-# Usa una immagine base OpenJDK 24
-FROM openjdk:24-slim
+# Usa una immagine base temurin 21
+FROM eclipse-temurin:21-jdk-jammy
+
 
 # Crea una directory per l'app
 WORKDIR /app
