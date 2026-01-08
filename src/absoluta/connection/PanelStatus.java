@@ -260,66 +260,143 @@ public class PanelStatus {
 
    // Enum per stato connessione pannello
    public enum PanelConnStatus {
-      CONNECTED,
-      DISCONNECTING,
-      DISCONNECTED
+      CONNECTED("connected"),
+      DISCONNECTING("disconnecting"),
+      DISCONNECTED("disconnected");
+
+      private final String wireValue;
+
+      PanelConnStatus(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per stato zona
    public enum InputStatus {
-      TAMPER,
-      FAULT,
-      ALARM,
-      ACTIVE,
-      BYPASSED,
-      OK
+      TAMPER("tamper"),
+      FAULT("fault"),
+      ALARM("alarm"),
+      ACTIVE("active"),
+      BYPASSED("bypassed"),
+      OK("ok");
+
+      private final String wireValue;
+
+      InputStatus(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per stato uscita
    public enum OutputStatus {
-      UNKNOWN,
-      OPEN,
-      CLOSED
+      UNKNOWN("unknown"),
+      OPEN("open"),
+      CLOSED("closed");
+
+      private final String wireValue;
+
+      OutputStatus(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per modalità armamento partizione
    public enum PartitionArming {
-      DISARMED,
-      AWAY,
-      STAY,
-      NODELAY,
-      TRIGGERED,
-      NOT_AVAILABLE,
-      ARMING,
-      DISARMING
+      DISARMED("disarmed"),
+      AWAY("armed_away"),
+      STAY("armed_home"),
+      NODELAY("armed_night"),
+      TRIGGERED("triggered"),
+      NOT_AVAILABLE("not_available"),
+      ARMING("arming"),
+      DISARMING("disarming");
+
+      private final String wireValue;
+
+      PartitionArming(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per stato partizione
    public enum PartitionStatus {
-      FIRE,
-      TAMPER,
-      FAULTS,
-      ALARMS,
-      ACTIVE,
-      OK
+      FIRE("Fire"),
+      TAMPER("Tamper"),
+      FAULTS("Faults"),
+      ALARMS("Alarms"),
+      ACTIVE("Active"),
+      OK("Ok");
+
+      private final String wireValue;
+
+      PartitionStatus(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per azione uscita
    public enum OutputAction {
-      DO_IMPULSE,
-      DO_OPEN,
-      DO_CLOSE
+      DO_IMPULSE("impulse"),
+      DO_OPEN("open"),
+      DO_CLOSE("close");
+
+      private final String wireValue;
+
+      OutputAction(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    // Enum per stato armamento globale
    public enum GlobalArming {
-      GLOBALLY_ARMED,
-      PARTIALLY_ARMED,
-      GLOBALLY_DISARMED,
-      TRIGGERED,
-      NOT_AVAILABLE,
-      ARMING,
-      DISARMING
+      GLOBALLY_ARMED("armed_away"),
+      PARTIALLY_ARMED("armed_custom_bypass"),
+      GLOBALLY_DISARMED("disarmed"),
+      TRIGGERED("triggered"),
+      NOT_AVAILABLE("not_available"),
+      ARMING("arming"),
+      DISARMING("disarming");
+
+      private final String wireValue;
+
+      GlobalArming(String wireValue) {
+         this.wireValue = wireValue;
+      }
+
+      @Override
+      public String toString() {
+         return this.wireValue;
+      }
    }
 
    void addTrouble(Trouble var1) {

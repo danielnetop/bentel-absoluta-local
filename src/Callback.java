@@ -1,7 +1,4 @@
-import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -9,7 +6,6 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import absoluta.AbsolutaPanelProvider;
-import absoluta.AbsolutaPanelProvider.providerConnStatus;
 import absoluta.AbsolutaPanelProvider.providerStatus;
 import absoluta.connection.PanelStatus;
 
@@ -18,353 +14,89 @@ import java.util.logging.Logger;
 class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    private static final Logger logger = Logger.getLogger(Callback.class.getName());
    private MqttClient mqttClient;
-   private int[] zoneIds;
-   private int[] partitionIDs;
-   private String[] zoneNames;
-   private String[] partitionNames;
-   private String[] sensorStatuses;
-   private String[] sensorBypass;
-   private String[] partitionArmStatuses;
-   private String[] partitionStatuses;
-   private String[] sensorTopics;
-   private String[] partitionTopics;
-   private String[] modeNames = new String[4];
+   private final Entities entities = new Entities();
+   private final ErrorManager errorManager;
+   private final EntityManager entityManager;
+   private final CommandManager commandManager;
+   private final Publisher publisher;
+   private final ConnectionManager connectionManager;
    private AbsolutaPanelProvider provider;
-   private MqttConnectOptions connOpts;
-   private int reconnectionAttempts = 0;
-   private boolean isConnected = false;
-   private static final int RECON_DELAY = 90;
-   private static final int MAX_MQTT_RECONNECT_ATTEMPTS = 10;
    private static final int QOS = 1;
-   private HashSet<Integer> sensorDiscoverySent = new HashSet<>();
-   private HashSet<Integer> partitionDiscoverySent = new HashSet<>();
-   private HashSet<Integer> modeDiscoverySent = new HashSet<>();
    private Boolean discoveryEnabled;
    private MqttMessageDispatcher mqttDispatcher;
-   private int mqttReconnectAttempts = 0;
 
-   private String errorMessages = "[]"; // JSON array of error notifications
-   private boolean hasError = false;
-
-   private boolean isValidLabel(String label) {
-      if (label == null || label.trim().isEmpty()) {
-         return false;
-      }
-      // Verifica se la stringa contiene solo caratteri validi (stampabili)
-      return label.chars().allMatch(ch -> ch >= 32 && ch <= 126);
-   }
-
-   public Callback(MqttClient mqttClient, AbsolutaPanelProvider provider, MqttConnectOptions mqttOption, Boolean discoveryEnabled) {
+   public Callback(MqttClient mqttClient, AbsolutaPanelProvider provider, MqttConnectOptions mqttOption,
+         Boolean discoveryEnabled) {
       this.mqttClient = mqttClient;
       this.provider = provider;
-      this.connOpts = mqttOption;
       this.discoveryEnabled = discoveryEnabled;
       this.mqttDispatcher = new MqttMessageDispatcher(mqttClient);
-   }
 
-   // Helper per publish MQTT con gestione eccezioni
-   private void safePublish(String topic, String payload, int qos, boolean retained, String context) {
-      try {
-         this.mqttDispatcher.publishString(topic, payload, qos, retained);
-      } catch (Exception ex) {
-         logger.warning("Invio messaggio: " + topic + " (" + context + ") Exception: " + ex.getMessage());
-      }
+      boolean discovery = Boolean.TRUE.equals(discoveryEnabled);
+      this.publisher = new Publisher(this.mqttDispatcher, logger);
+      this.errorManager = new ErrorManager(publisher, QOS);
+      this.entityManager = new EntityManager(entities, mqttClient, publisher, discovery, logger, QOS);
+      this.commandManager = new CommandManager(entities, provider, errorManager, entityManager, logger);
+      this.connectionManager = new ConnectionManager(mqttClient, mqttOption, provider, publisher, logger, QOS);
    }
 
    public void connectionLost(Throwable ex) {
-      logger.warning("Connessione persa con il broker MQTT: " + ex.getMessage() + ". Riconnessione...");
-      this.reconnectWithDelay("broker MQTT");
+      connectionManager.onMqttConnectionLost(ex);
    }
 
    public void connectionLost() {
-      logger.warning("Connessione persa con la centrale! Riconnessione...");
-      notifyError("Connessione persa con la centrale! Riconnessione...");
-      this.reconnectWithDelay("centrale");
+      errorManager.notifyError("Connessione persa con la centrale! Riconnessione...");
+      connectionManager.onPanelConnectionLost();
    }
 
    public void alert(String message) {
-      // Questa è la callback chiamata da AlertListener per notificare errori specifici
+      // Questa è la callback chiamata da AlertListener per notificare errori
+      // specifici
       // come problemi di inserimento, esclusione zone e controllo output
       logger.warning("Alert received: " + message);
-      
-      // Notifica l'errore attraverso MQTT utilizzando il sistema di gestione errori esistente
-      notifyError(message);
-      
-      // Pubblica anche l'errore specifico sul topic dedicato
-      safePublish("ABS/errors/last", message, QOS, false, "ultimo errore");
+
+      errorManager.notifyError(message);
    }
 
-   public void setStatus(providerStatus status){}
+   public void setStatus(providerStatus status) {
+   }
 
    public void notifyError(String errorMessage) {
-      // Build new error notification as a JSON object with required field names
-      String timestamp = java.time.LocalDateTime.now().format(
-         java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-      );
-      String newError = String.format("{\"Time\":\"%s\",\"Message\":\"%s\"}", timestamp, errorMessage);
-
-      // Add to errorMessages JSON array
-      if (errorMessages == null || errorMessages.isEmpty()) {
-         errorMessages = "[" + newError + "]";
-      } else {
-         String trimmed = errorMessages.trim();
-         if (trimmed.equals("[]")) {
-            errorMessages = "[" + newError + "]";
-         } else if (trimmed.endsWith("]")) {
-            errorMessages = trimmed.substring(0, trimmed.length() - 1) + "," + newError + "]";
-         } else {
-            errorMessages = "[" + newError + "]";
-         }
-      }
-
-      // Publish as an object with 'errors' key for Home Assistant attributes
-      String attributesPayload = "{\"errors\":" + errorMessages + "}";
-      safePublish("ABS/errors/attributes", attributesPayload, QOS, true, "errore centrale");
-      hasError = true;
-      safePublish("ABS/errors", "Errore!", QOS, true, "errore centrale");
+      errorManager.notifyError(errorMessage);
    }
 
-
    public void getAllZones(List<Integer> zones) {
-      this.zoneIds = new int[zones.size()];
-      int maxId = 0;
-      for (int i = 0; i < zones.size(); i++) {
-         int id = zones.get(i);
-         this.zoneIds[i] = id;
-         if (id > maxId) maxId = id;
-      }
-      this.zoneNames = new String[maxId + 1];
-      this.sensorTopics = new String[maxId + 1];
-      this.sensorStatuses = new String[maxId + 1];
-      this.sensorBypass = new String[maxId + 1];
-      logger.fine("Sensore ID: " + zones);
+      entityManager.initZones(zones);
    }
 
    public void getAllOutputs(List<Integer> outputs) {
    }
 
    public void getAllPartitions(List<Integer> partitions) {
-      /*
-      Riceve come informazione quante partizioni ha il sistema
-      e crea gli array per i nomi, i topic e gli stati delle partizioni.
-      Sposta tutte le partizioni lasciando la zero dedicata alla partizione globale.
-      */
-      this.partitionIDs = new int[partitions.size() + 1];
-      this.partitionIDs[0] = 0;
-      for (int i = 0; i < partitions.size(); i++) {
-         this.partitionIDs[i + 1] = partitions.get(i);
-      }
+      entityManager.initPartitions(partitions);
 
-      this.partitionNames = new String[this.partitionIDs.length];
-      this.partitionTopics = new String[this.partitionIDs.length];
-      this.partitionArmStatuses = new String[this.partitionIDs.length];
-      this.partitionStatuses = new String[this.partitionIDs.length];
-      this.partitionNames[0] = "Globale";
-      this.partitionTopics[0] = "ABS/partition/0";
-
-      // Invia discovery per la partizione globale (id 0)
-      if (discoveryEnabled && !partitionDiscoverySent.contains(0)) {
-         String topic = "homeassistant/alarm_control_panel/absoluta_partition_0/config";
-         String payload = HomeAssistantManager.buildPartition(0, partitionNames[0]);
-         safePublish(topic, payload, QOS, true, "discovery partizione globale");
-         partitionDiscoverySent.add(0);
-
-         // Invia discovery per pulsante reset errori
-         topic = "homeassistant/button/absoluta_errors_reset/config";
-         payload = HomeAssistantManager.buildResetErrors();
-         safePublish(topic, payload, QOS, true, "discovery reset errors");
-
-         // Invia discovery per i messaggi di errore 
-         topic = "homeassistant/sensor/absoluta_errors/config";
-         payload = HomeAssistantManager.buildErrorSensor();
-         safePublish(topic, payload, QOS, true, "discovery errori");
-
-         // Subscribe al topic di homeassistant
-         try {
-            this.mqttClient.subscribe("homeassistant/status");
-         } catch (Exception ex) {
-            logger.warning("Subscribe to: homeassistant/status");
-         }
-      }
-
-      if (!this.isConnected){
-         this.isConnected = true;
-         safePublish("ABS/conn", "Status: Connesso", QOS, false, "connessione iniziale");
-      }
-
-      try {
-         this.mqttClient.subscribe("ABS/+/set");
-         this.mqttClient.subscribe("ABS/+/+/set");
-      } catch (Exception ex) {
-         logger.warning("Errore durante la subscribe ai topic delle partizioni: " + ex.getMessage());
-      }
+      connectionManager.onPanelConnected();
       logger.fine("Partizione ID: " + String.valueOf(partitions));
    }
 
    public void updateGlobalArming(PanelStatus.GlobalArming actArming) {
-      if (actArming == PanelStatus.GlobalArming.TRIGGERED) {
-         this.partitionArmStatuses[0] = "triggered";
-      } else if (actArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
-         this.partitionArmStatuses[0] = "disarmed";
-      } else if (actArming == PanelStatus.GlobalArming.GLOBALLY_ARMED) {
-         this.partitionArmStatuses[0] = "armed_away";
-      } else if (actArming == PanelStatus.GlobalArming.PARTIALLY_ARMED) {
-         this.partitionArmStatuses[0] = "armed_custom_bypass";
-      } else if (actArming == PanelStatus.GlobalArming.ARMING) {
-         this.partitionArmStatuses[0] = "arming";
-      } else if (actArming == PanelStatus.GlobalArming.DISARMING) {
-         this.partitionArmStatuses[0] = "disarming";
-      } else if (actArming == PanelStatus.GlobalArming.NOT_AVAILABLE) {
-         this.partitionArmStatuses[0] = "not_available";
-      }
-      this.sendMessageOnUpdateGlobalArming();
-   }
-
-   public void sendMessageOnUpdateGlobalArming() {
-      String str = "";
-      if(discoveryEnabled){
-         if (this.partitionArmStatuses[0] == null) {
-            str = "disarmed";
-         } else {
-            str = this.partitionArmStatuses[0];
-         }
-      } else {
-         str = "Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0];
-      }
-      safePublish(this.partitionTopics[0], str, QOS, false, "stato partizione globale");
-      logger.fine("Partition Name: " + this.partitionNames[0] + " Arming: " + this.partitionArmStatuses[0] + " Status: " + this.partitionStatuses[0]);
+      entityManager.updateGlobalArming(actArming);
    }
 
    public void updateZoneName(int zoneId, String zoneName) {
-      if (zoneId < 0 || zoneId >= zoneNames.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
-         return;
-      }
-      if (!isValidLabel(zoneName)) {
-         logger.warning("Nome zona non valido: " + zoneId);
-         return;
-      }
-      this.zoneNames[zoneId] = zoneName.trim();
-      this.sensorTopics[zoneId] = "ABS/sensor/" + zoneId;
-      // Inizializza lo stato di bypass a OFF per default
-      if (this.sensorBypass[zoneId] == null) {
-         this.sensorBypass[zoneId] = "OFF";
-      }
-      // Invia discovery solo la prima volta per ogni sensore
-      if (discoveryEnabled && !sensorDiscoverySent.contains(zoneId)) {
-         String topic = "homeassistant/binary_sensor/absoluta_sensor_" + zoneId + "/config";
-         String payload = HomeAssistantManager.buildSensor(zoneId, zoneNames[zoneId]);
-         safePublish(topic, payload, QOS, true, "discovery sensore");
-         sensorDiscoverySent.add(zoneId);
-
-         topic = "homeassistant/switch/absoluta_sensor_" + zoneId + "_bypass/config";
-         payload = HomeAssistantManager.buildSensorBypass(zoneId, zoneNames[zoneId]);
-         safePublish(topic, payload, QOS, true, "discovery sensore Bypass");
-      }
-      String str = "";
-      if(discoveryEnabled){
-         str = (this.sensorStatuses[zoneId] == null) ? "OFF" : this.sensorStatuses[zoneId].toUpperCase();
-      } else {
-         str = "Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId];
-      }
-      safePublish(this.sensorTopics[zoneId], str, QOS, false, "stato sensore");
-      logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
+      entityManager.updateZoneName(zoneId, zoneName);
    }
 
    public void updateZoneStatus(int zoneId, PanelStatus.InputStatus zoneStatus) {
-      if (zoneId < 0 || zoneId >= sensorStatuses.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
-         return;
-      }
-      if (zoneStatus != PanelStatus.InputStatus.ACTIVE && zoneStatus != PanelStatus.InputStatus.ALARM) {
-         this.sensorStatuses[zoneId] = "Off";
-      } else {
-         this.sensorStatuses[zoneId] = "On";
-      }
-
-      this.sendMessageOnUpdateZoneStatus(zoneId);
+      entityManager.updateZoneStatus(zoneId, zoneStatus);
    }
 
    public void updateZoneBypass(int zoneId, boolean bypass) {
-      if (zoneId < 0 || zoneId >= sensorStatuses.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
-         return;
-      }
-
-      if (bypass) {
-         this.sensorBypass[zoneId] = "ON";
-      } else {
-         this.sensorBypass[zoneId] = "OFF";
-      }
-
-      this.sendMessageOnUpdateZoneStatus(zoneId);
-   }
-
-   public void sendMessageOnUpdateZoneStatus(int zoneId) {
-      if (zoneId < 0 || zoneId >= zoneNames.length) {
-         logger.warning("Indice sensore fuori dai limiti: " + zoneId);
-         return;
-      }
-      if (this.zoneNames[zoneId] == null) {
-         logger.finest("Nome sensore nullo: " + zoneId + ", non invio stato.");
-         return;
-      }
-      String str = "";
-      if(discoveryEnabled){
-         String topic = "ABS/sensor/" + zoneId + "_bypass";
-         str = (this.sensorBypass[zoneId] == null) ? "OFF" : this.sensorBypass[zoneId].toUpperCase();
-         safePublish(topic, str, QOS, false, "bypass sensore");
-         str = (this.sensorStatuses[zoneId] == null) ? "OFF" : this.sensorStatuses[zoneId].toUpperCase();
-      } else {
-         str = "Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId];
-      }
-      safePublish(this.sensorTopics[zoneId], str, QOS, false, "stato sensore");
-      logger.fine("Sensor Name: " + this.zoneNames[zoneId] + " Status: " + this.sensorStatuses[zoneId] + " Bypass: " + this.sensorBypass[zoneId]);
+      entityManager.updateZoneBypass(zoneId, bypass);
    }
 
    public void updateModeLabel(char modeChar, String modeLabel) {
-      int modeIDInt = -1;
-      switch (modeChar) {
-         case 'A':
-            if (!isValidLabel(modeLabel)) {
-               modeDiscoverySent.add(modeIDInt);
-               break;
-            }
-            modeIDInt = 0;
-            this.modeNames[modeIDInt] = modeLabel.trim();
-            break;
-         case 'B':
-            if (!isValidLabel(modeLabel)) {
-               modeDiscoverySent.add(modeIDInt);
-               break;
-            }
-            modeIDInt = 1;
-            this.modeNames[modeIDInt] = modeLabel.trim();
-            break;
-         case 'C':
-            if (!isValidLabel(modeLabel)) {
-               modeDiscoverySent.add(modeIDInt);
-               break;
-            }
-            modeIDInt = 2;
-            this.modeNames[modeIDInt] = modeLabel.trim();
-            break;
-         case 'D':
-            if (!isValidLabel(modeLabel)) {
-               modeDiscoverySent.add(modeIDInt);
-               break;
-            }
-            modeIDInt = 3;
-            this.modeNames[modeIDInt] = modeLabel.trim();
-            break;
-      }
-      // Invia discovery solo la prima volta per ogni modalità
-      if (discoveryEnabled && !modeDiscoverySent.contains(modeIDInt)) {
-         String topic = "homeassistant/button/absoluta_mode_" + modeIDInt + "/config";
-         String payload = HomeAssistantManager.buildMode(modeChar, modeLabel);
-         safePublish(topic, payload, QOS, true, "discovery modalità");
-         modeDiscoverySent.add(modeIDInt);
-      }
+      entityManager.updateModeLabel(modeChar, modeLabel);
    }
 
    public void updateOutputName(int outputID, String name) {
@@ -374,123 +106,15 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
    }
 
    public void updatePartitionArming(int partitionID, PanelStatus.PartitionArming actArming) {
-      if (partitionID < 0 || partitionID >= partitionArmStatuses.length) {
-         logger.warning("Indice partizione fuori dai limiti: " + partitionID);
-         return;
-      }
-      if (actArming == PanelStatus.PartitionArming.TRIGGERED) {
-         this.partitionArmStatuses[partitionID] = "triggered";
-      } else if (actArming == PanelStatus.PartitionArming.DISARMED) {
-         this.partitionArmStatuses[partitionID] = "disarmed";
-      } else if (actArming == PanelStatus.PartitionArming.AWAY) {
-         this.partitionArmStatuses[partitionID] = "armed_away";
-      } else if (actArming == PanelStatus.PartitionArming.STAY) {
-         this.partitionArmStatuses[partitionID] = "armed_home";
-      } else if (actArming == PanelStatus.PartitionArming.NODELAY) {
-         this.partitionArmStatuses[partitionID] = "armed_night";
-      } else if (actArming == PanelStatus.PartitionArming.ARMING) {
-         this.partitionArmStatuses[partitionID] = "arming";
-      } else if (actArming == PanelStatus.PartitionArming.DISARMING) {
-         this.partitionArmStatuses[partitionID] = "disarming";
-      } else if (actArming == PanelStatus.PartitionArming.NOT_AVAILABLE) {
-         this.partitionArmStatuses[partitionID] = "not_available";
-      }
-
-      this.sendMessageOnUpdatePartitionArming(partitionID);
-   }
-
-   public void sendMessageOnUpdatePartitionArming(int partitionID) {
-      if (partitionID < 0 || partitionID >= partitionNames.length || this.partitionNames[partitionID] == null) {
-         logger.warning("Indice partizione fuori dai limiti o nome nullo: " + partitionID);
-         return;
-      }
-      String str = "";
-      if(discoveryEnabled){
-         if (this.partitionArmStatuses[partitionID] == null) {
-            str = "disarmed";
-         } else {
-            str = this.partitionArmStatuses[partitionID];
-         }
-      } else {
-         str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
-      }
-      safePublish(this.partitionTopics[partitionID], str, QOS, false, "stato partizione");
-      logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
+      entityManager.updatePartitionArming(partitionID, actArming);
    }
 
    public void updatePartitionName(int partitionID, String name) {
-      // Controlla se l'array è sufficientemente grande per contenere la partizione
-      if (partitionID >= partitionNames.length) {
-         int newSize = partitionID + 1;
-         partitionNames = java.util.Arrays.copyOf(partitionNames, newSize);
-         partitionTopics = java.util.Arrays.copyOf(partitionTopics, newSize);
-         partitionArmStatuses = java.util.Arrays.copyOf(partitionArmStatuses, newSize);
-         partitionStatuses = java.util.Arrays.copyOf(partitionStatuses, newSize);
-      }
-      if (!isValidLabel(name)) {
-         logger.warning("Nome partizione non valido: " + partitionID);
-         return;
-      }
-      this.partitionNames[partitionID] = name.trim();
-      this.partitionTopics[partitionID] = "ABS/partition/" + partitionID;
-      // Invia discovery solo la prima volta per ogni partizione
-      if (discoveryEnabled && !partitionDiscoverySent.contains(partitionID)  && partitionID > 0) {
-         String topic = "homeassistant/alarm_control_panel/absoluta_partition_" + partitionID + "/config";
-         String payload = HomeAssistantManager.buildPartition(partitionID, name);
-         safePublish(topic, payload, QOS, true, "discovery partizione");
-         partitionDiscoverySent.add(partitionID);
-      }
-
-      String str = "";
-      if(discoveryEnabled){
-         if (this.partitionArmStatuses[partitionID] == null) {
-            str = "disarmed";
-         } else {
-            str = this.partitionArmStatuses[partitionID];
-         }
-      } else {
-         str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
-      }
-      safePublish(this.partitionTopics[partitionID], str, QOS, false, "stato partizione");
-      logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
+      entityManager.updatePartitionName(partitionID, name);
    }
 
    public void updatePartitionStatus(int partitionID, PanelStatus.PartitionStatus actStatus) {
-      if (partitionID < 0 || partitionID >= partitionStatuses.length) {
-         logger.warning("Indice partizione fuori dai limiti: " + partitionID);
-         return;
-      }
-      switch(actStatus) {
-         case FIRE:
-            this.partitionStatuses[partitionID] = "Fire";
-            break;
-         case FAULTS:
-            this.partitionStatuses[partitionID] = "Faults";
-            break;
-         case ALARMS:
-            this.partitionStatuses[partitionID] = "Alarms";
-            break;
-         case OK:
-            this.partitionStatuses[partitionID] = "Ok";
-            break;
-         default:
-            break;
-      }
-
-      if (this.partitionNames[partitionID] != null) {
-         String str = "";
-         if(discoveryEnabled){
-            if (this.partitionArmStatuses[partitionID] == null) {
-               str = "disarmed";
-            } else {
-               str = this.partitionArmStatuses[partitionID].toUpperCase();
-            }
-         } else {
-            str = "Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID];
-         }
-         safePublish(this.partitionTopics[partitionID], str, QOS, false, "stato partizione");
-      }
-      logger.fine("Partition Name: " + this.partitionNames[partitionID] + " Arming: " + this.partitionArmStatuses[partitionID] + " Status: " + this.partitionStatuses[partitionID]);
+      entityManager.updatePartitionStatus(partitionID, actStatus);
    }
 
    public void tagZoneIntoPartition(int partitionId, List<Integer> zones) {
@@ -498,207 +122,10 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
 
    // Smistamento dei comandi ricevuti via MQTT
    public void messageArrived(String topic, MqttMessage msg) {
-      String parentTopic = "";
-      if(topic.startsWith("ABS/") && topic.endsWith("/set")) {
-         parentTopic = topic.replace("/set", "");
-         if (ArrayUtils.contains(this.partitionTopics, parentTopic)) {
-            int idArray = ArrayUtils.indexOf(this.partitionTopics, parentTopic);
-            if (idArray > 0 && idArray <= this.partitionIDs.length) {
-               // Se partizione
-               this.commandPartition(idArray, msg);
-            } else if (idArray == 0) {
-               // Se globale
-               this.commandGlobal(idArray, msg);
-            } else {
-               // Errore
-               logger.warning("ID " + idArray + " non valido per il topic: " + topic);
-            }
-         } else if (ArrayUtils.contains(this.sensorTopics, parentTopic)) {
-            int idSensor = ArrayUtils.indexOf(this.sensorTopics, parentTopic);
-            int idArray = ArrayUtils.indexOf(this.zoneIds, idSensor);
-            if (idArray >= 0 && idArray < this.zoneIds.length) {
-               // Se sensore
-               this.commandSensor(idArray, msg);
-            } else {
-               // Errore
-               logger.warning("ID " + idArray + " non valido per il topic: " + topic);
-            }
-         } else if (parentTopic.contains("mode")) {
-            this.commandMode(msg);
-         } else if (parentTopic.contains("absoluta_errors")) {
-            if (msg.toString().equals("RESET_ERRORS")) {
-               logger.info("Resetting errors...");
-               this.provider.cleanTroubles();
-               this.errorMessages = "[]";
-               this.hasError = false;
-               safePublish("ABS/errors/attributes", "{\"errors\":[]}", QOS, true, "reset errori");
-               safePublish("ABS/errors", "Funzionamento Regolare", QOS, true, "reset errori");
-            } else {
-               logger.warning("Comando " + msg.toString() + " non valido per il topic: " + topic);
-            }
-         } 
-      } else if (topic.equals("homeassistant/status")) {
-         if(msg.toString().equals("online")){
-            commandOnline();
-         }
-      } else {
-         // Comando non riconosciuto
-         logger.warning("Comando non riconosciuto per il topic: " + topic);
-      }
-   }
-
-   private void commandPartition(int idArray, MqttMessage msg) {
-      logger.fine("Comando ricevuto per partizione numero: " + idArray + " nuovo stato: " + msg.toString());
-      switch (msg.toString().toUpperCase()) {
-         case "DISARM":
-            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.DISARMED);
-            return;
-         case "ARM_HOME":
-            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.STAY);
-            return;
-         case "ARM_AWAY":
-            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.AWAY);
-            return;
-         case "ARM_NIGHT":
-            this.provider.setPartitionArming(this.partitionIDs[idArray], PanelStatus.PartitionArming.NODELAY);
-            return;
-         default:
-            logger.warning("Comando " + msg.toString() + " non valido");
-      }
-   }
-
-   private void commandGlobal(int idArray, MqttMessage msg) {
-         logger.fine("Comando ricevuto per stato globale: " + msg.toString());
-         switch (msg.toString().toUpperCase()) {
-            case "DISARM":
-               this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_DISARMED);
-               return;
-            case "ARM_AWAY":
-               this.provider.setGlobalArming(PanelStatus.GlobalArming.GLOBALLY_ARMED);
-               return;
-            default:
-               logger.warning("Comando " + msg.toString() + " non valido");
-         }
-   }
-
-   private void commandMode(MqttMessage msg) {
-      logger.fine("Comando ricevuto per modalità: " + msg.toString());
-      switch (msg.toString().toUpperCase()) {
-         case "MODE_A" :
-            this.provider.setModeArming('A');
-            return;
-         case "MODE_B" :
-            this.provider.setModeArming('B');
-            return;
-         case "MODE_C" :
-            this.provider.setModeArming('C');
-            return;
-         case "MODE_D" :
-            this.provider.setModeArming('D');
-            return;
-         default:
-            logger.warning("Comando " + msg.toString() + " non valido");
-      }
-   }
-
-   private void commandSensor(int idArray, MqttMessage msg) {
-      if(msg.toString().equals("ON")) {
-         this.provider.setZoneBypass(this.zoneIds[idArray], true);
-      } else if(msg.toString().equals("OFF")){
-         this.provider.setZoneBypass(this.zoneIds[idArray], false);
-      } else {
-         logger.warning("Comando " + msg.toString() + " non valido per il sensore ID: " + idArray);
-      }
+      commandManager.onMessageArrived(topic, msg);
    }
 
    public void deliveryComplete(IMqttDeliveryToken var1) {
    }
 
-   private void commandOnline() {
-      logger.fine("Comando ricevuto per Home Assistant online");
-      // Stato globale (centrale)
-      if (this.partitionArmStatuses != null && this.partitionArmStatuses.length > 0) {
-         this.sendMessageOnUpdateGlobalArming();
-      }
-      // Stati partizioni
-      if (this.partitionIDs != null) {
-         for (int i = 1; i < this.partitionIDs.length; i++) {
-            if (this.partitionArmStatuses != null && this.partitionArmStatuses[i] != null) {
-               this.sendMessageOnUpdatePartitionArming(this.partitionIDs[i]);
-            }
-         }
-      }
-      // Stati sensori
-      if (this.zoneIds != null) {
-         for (int i = 0; i < this.zoneIds.length; i++) {
-            if (this.sensorStatuses != null && this.sensorStatuses[this.zoneIds[i]] != null) {
-               this.sendMessageOnUpdateZoneStatus(this.zoneIds[i]);
-            }
-         }
-      }
-   }
-
-   private void reconnectWithDelay(String objName) {
-      try {
-         if (objName.equals("centrale")) {
-            this.isConnected = false;
-            ++this.reconnectionAttempts;
-            logger.warning("Tentativo di riconnessione " + this.reconnectionAttempts + " a " + objName + " in " + RECON_DELAY + " secondi...");
-            safePublish("ABS/conn", "Status: Scollegato", QOS, false, "disconnessione forzata");
-            TimeUnit.SECONDS.sleep((long)RECON_DELAY);
-            providerConnStatus status = this.provider.connect();
-            if (status == providerConnStatus.UNREACHABLE) {
-               throw new Exception("Busy panel");
-            } else if (status == providerConnStatus.SUCCESS) {
-               this.reconnectionAttempts = 0;
-               this.isConnected = true;
-               safePublish("ABS/conn", "Status: Connesso", QOS, false, "riconnessione riuscita");
-            }
-         } else if (objName.equals("broker MQTT")) {
-            if (this.mqttReconnectAttempts >= MAX_MQTT_RECONNECT_ATTEMPTS) {
-               logger.severe("Raggiunto il numero massimo di tentativi di riconnessione al broker MQTT. Riavviare l'applicazione.");
-               return;
-            }
-            
-            ++this.mqttReconnectAttempts;
-            logger.warning("Tentativo di riconnessione " + this.mqttReconnectAttempts + "/" + MAX_MQTT_RECONNECT_ATTEMPTS + " al broker MQTT in " + RECON_DELAY + " secondi...");
-            
-            try {
-               if (this.mqttClient.isConnected()) {
-                  this.mqttClient.disconnect();
-               }
-               TimeUnit.SECONDS.sleep((long)RECON_DELAY);
-               this.mqttClient.connect(this.connOpts);
-               this.mqttReconnectAttempts = 0;  // Reset counter on successful connection
-               
-               // Resubscribe to topics after reconnection
-               this.mqttClient.subscribe("ABS/+/set");
-               this.mqttClient.subscribe("ABS/+/+/set");
-               this.mqttClient.subscribe("homeassistant/status");
-               
-               logger.info("Riconnessione al broker MQTT riuscita");
-            } catch (Exception e) {
-               handleReconnectionFailure(objName, e);
-            }
-         }
-      } catch (InterruptedException ex) {
-         Thread.currentThread().interrupt();
-         handleReconnectionFailure(objName, ex);
-      } catch (Exception ex) {
-         handleReconnectionFailure(objName, ex);
-      }
-   }
-
-   private void handleReconnectionFailure(String name, Exception ex) {
-      logger.warning("Impossibile riconnettersi a " + name + " Causa: " + ex.getMessage());
-      ex.printStackTrace();
-      
-      // Schedule reconnection attempt using a new thread to avoid recursion
-      if ((name.equals("centrale") && this.reconnectionAttempts < Integer.MAX_VALUE) ||
-          (name.equals("broker MQTT") && this.mqttReconnectAttempts < MAX_MQTT_RECONNECT_ATTEMPTS)) {
-         new Thread(() -> {
-            this.reconnectWithDelay(name);
-         }).start();
-      }
-   }
 }
