@@ -98,7 +98,9 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
 
    public void notifyError(String errorMessage) {
       // Build new error notification as a JSON object with required field names
-      String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+      String timestamp = java.time.LocalDateTime.now().format(
+         java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+      );
       String newError = String.format("{\"Time\":\"%s\",\"Message\":\"%s\"}", timestamp, errorMessage);
 
       // Add to errorMessages JSON array
