@@ -12,6 +12,7 @@ public class PingKeepAlive implements Runnable {
     private final Thread thread;
     private static final int PING_INTERVAL = 2000; // 2 secondi
     private static final int PING_TIMEOUT = 1000; // 1 secondo di timeout per il ping
+    private Socket pingSocket;
 
     public PingKeepAlive(String host, int port) {
         this.host = host;
@@ -33,23 +34,24 @@ public class PingKeepAlive implements Runnable {
     @Override
     public void run() {
         logger.info("Avvio thread di ping TCP verso " + host + ":" + port);
-        
-        while (running.get()) {
-            try {
-                try (Socket socket = new Socket()) {
-                    socket.connect(new InetSocketAddress(host, port), PING_TIMEOUT);
-                }
+
+        try {
+            pingSocket = new Socket();
+            pingSocket.setSoTimeout(PING_TIMEOUT);
+            pingSocket.setKeepAlive(true);
+            pingSocket.connect(new InetSocketAddress(host, port));
+
+            while (running.get()) {
                 Thread.sleep(PING_INTERVAL);
-            } catch (IOException e) {
-                logger.warning("Errore durante il ping TCP: " + e.getMessage());
-            } catch (InterruptedException e) {
-                if (running.get()) {
-                    logger.warning("Thread di ping interrotto inaspettatamente");
-                }
-                break;
+            }
+        } catch (IOException e) {
+            // riconnessione
+        } catch (InterruptedException e) {
+            if (running.get()) {
+                logger.warning("Thread di ping interrotto inaspettatamente");
             }
         }
-        
+
         logger.info("Thread di ping TCP terminato");
     }
 }
