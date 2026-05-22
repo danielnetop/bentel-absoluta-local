@@ -17,19 +17,21 @@ final class ConnectionManager {
     private final Publisher publisher;
     private final Logger logger;
     private final int qos;
+    private final EntityManager entityManager;
 
     private int panelReconnectionAttempts = 0;
     private int mqttReconnectAttempts = 0;
     private boolean isPanelConnected = false;
 
     ConnectionManager(MqttClient mqttClient, MqttConnectOptions mqttConnOpts, AbsolutaPanelProvider provider,
-            Publisher publisher, Logger logger, int qos) {
+            Publisher publisher, Logger logger, int qos, EntityManager entityManager) {
         this.mqttClient = mqttClient;
         this.mqttConnOpts = mqttConnOpts;
         this.provider = provider;
         this.publisher = publisher;
         this.logger = logger;
         this.qos = qos;
+        this.entityManager = entityManager;
     }
 
     void onPanelConnected() {
@@ -75,6 +77,7 @@ final class ConnectionManager {
                     panelReconnectionAttempts = 0;
                     isPanelConnected = true;
                     publisher.publish("ABS/conn", "Status: Connesso", qos, false, "riconnessione riuscita");
+                    entityManager.republishAllStates();
                 }
 
                 return;

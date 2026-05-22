@@ -144,14 +144,7 @@ final class EntityManager {
             publish.publish(topic, payload, qos, true, "discovery sensore Bypass");
         }
 
-        String str;
-        if (discoveryEnabled) {
-            str = sensor.status == null ? "OFF" : sensor.status.toUpperCase();
-        } else {
-            str = "Name: " + sensor.name + " Status: " + sensor.status + " Bypass: " + sensor.bypass;
-        }
-
-        publish.publish(sensor.topic, str, qos, false, "stato sensore");
+        publishZoneState(zoneId);
         logger.fine("Sensor Name: " + sensor.name + " Status: " + sensor.status + " Bypass: " + sensor.bypass);
     }
 
@@ -301,7 +294,7 @@ final class EntityManager {
         if (partition.name != null) {
             String str;
             if (discoveryEnabled) {
-                str = partition.arming == null ? "disarmed" : partition.arming.toUpperCase();
+                str = partition.arming == null ? "disarmed" : partition.arming;
             } else {
                 str = "Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status;
             }
@@ -314,6 +307,10 @@ final class EntityManager {
 
     void onHomeAssistantOnline() {
         logger.fine("Comando ricevuto per Home Assistant online");
+        republishAllStates();
+    }
+
+    void republishAllStates() {
         publishGlobalState();
 
         for (Map.Entry<Integer, Entities.Partition> entry : entities.partitionsById.entrySet()) {
@@ -322,7 +319,7 @@ final class EntityManager {
                 continue;
             }
             Entities.Partition partition = entry.getValue();
-            if (partition != null && partition.name != null && partition.arming != null) {
+            if (partition != null && partition.name != null) {
                 publishPartitionArming(partitionId);
             }
         }
@@ -330,7 +327,7 @@ final class EntityManager {
         for (Map.Entry<Integer, Entities.Sensor> entry : entities.sensorsById.entrySet()) {
             int zoneId = entry.getKey();
             Entities.Sensor sensor = entry.getValue();
-            if (sensor != null && sensor.name != null && sensor.status != null) {
+            if (sensor != null && sensor.name != null) {
                 publishZoneState(zoneId);
             }
         }

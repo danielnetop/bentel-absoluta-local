@@ -37,7 +37,7 @@ class Callback implements AbsolutaPanelProvider.PanelCallback, MqttCallback {
       this.errorManager = new ErrorManager(publisher, QOS);
       this.entityManager = new EntityManager(entities, mqttClient, publisher, discovery, logger, QOS);
       this.commandManager = new CommandManager(entities, provider, errorManager, entityManager, logger);
-      this.connectionManager = new ConnectionManager(mqttClient, mqttOption, provider, publisher, logger, QOS);
+      this.connectionManager = new ConnectionManager(mqttClient, mqttOption, provider, publisher, logger, QOS, entityManager);
    }
 
    public void connectionLost(Throwable ex) {

@@ -158,8 +158,10 @@ class StatusListener implements MessageListener {
 
       panelStatus.updatePartitionStatus(partitionId, partitionStatus);
 
-      // If partition is in alarm, set TRIGGERED
-      if (partitionStatus == PanelStatus.PartitionStatus.ALARMS) {
+      // Override to TRIGGERED only when the alarm is actively sounding, not just in memory.
+      // PARTITION_ALARM_IN_MEMORY stays true after disarming and would otherwise keep the
+      // partition stuck in TRIGGERED until the memory bit is cleared by re-arming.
+      if (statusMask.get(PARTITION_ALARM)) {
          armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
 
