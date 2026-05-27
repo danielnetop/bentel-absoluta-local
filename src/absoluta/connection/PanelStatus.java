@@ -32,6 +32,8 @@ public class PanelStatus {
    public static final String OUTPUT_LABEL = "OUTPUT_LABEL";
    public static final String ARMING_MODE_LABEL = "ARMING_MODE_LABEL";
    public static final String TROUBLES = "TROUBLES";
+   public static final String PARTITION_READY_STATUS = "PARTITION_READY_STATUS";
+   public static final String PARTITION_ALARM_IN_MEMORY = "PARTITION_ALARM_IN_MEMORY";
 
    private final PropertyChangeSupport changeSupport = new PropertyChangeSupport(this);
 
@@ -54,6 +56,8 @@ public class PanelStatus {
    private final Map<Integer, String> armingModeLabels;
    private ImmutableSet<Trouble> troubles;
    private final Set<Trouble> unconfirmedTroubles;
+   private final Map<Integer, Boolean> partitionReady = new HashMap<>();
+   private final Map<Integer, Boolean> partitionAlarmInMemory = new HashMap<>();
 
    public PanelStatus() {
       this.connectionStatus = PanelConnStatus.DISCONNECTED;
@@ -245,6 +249,31 @@ public class PanelStatus {
 
    public String getOutputLabel(int outputId) {
       return this.outputLabels.get(outputId);
+   }
+
+   // Stato prontezza all'armamento (valido solo quando disarmata)
+   void updatePartitionReady(int partitionId, boolean ready) {
+      if (this.partitions != null && this.partitions.contains(partitionId)) {
+         Boolean old = this.partitionReady.get(partitionId);
+         this.partitionReady.put(partitionId, ready);
+         this.changeSupport.fireIndexedPropertyChange(PARTITION_READY_STATUS, partitionId, old, (Boolean) ready);
+      }
+   }
+
+   public Boolean getPartitionReady(int partitionId) {
+      return this.partitionReady.get(partitionId);
+   }
+
+   void updatePartitionAlarmInMemory(int partitionId, boolean inMemory) {
+      if (this.partitions != null && this.partitions.contains(partitionId)) {
+         Boolean old = this.partitionAlarmInMemory.get(partitionId);
+         this.partitionAlarmInMemory.put(partitionId, inMemory);
+         this.changeSupport.fireIndexedPropertyChange(PARTITION_ALARM_IN_MEMORY, partitionId, old, (Boolean) inMemory);
+      }
+   }
+
+   public Boolean getPartitionAlarmInMemory(int partitionId) {
+      return this.partitionAlarmInMemory.get(partitionId);
    }
 
    // Label modalità armamento

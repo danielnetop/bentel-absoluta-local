@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -25,15 +27,15 @@ final class CommandManager {
 
     private final Entities entities;
     private final AbsolutaPanelProvider provider;
-    private final ErrorManager errorManager;
+    private final BridgeAlertManager bridgeAlertManager;
     private final EntityManager entityManager;
     private final Logger logger;
 
-    CommandManager(Entities entities, AbsolutaPanelProvider provider, ErrorManager errorManager,
+    CommandManager(Entities entities, AbsolutaPanelProvider provider, BridgeAlertManager bridgeAlertManager,
             EntityManager entityManager, Logger logger) {
         this.entities = entities;
         this.provider = provider;
-        this.errorManager = errorManager;
+        this.bridgeAlertManager = bridgeAlertManager;
         this.entityManager = entityManager;
         this.logger = logger;
     }
@@ -66,11 +68,22 @@ final class CommandManager {
                 return;
             }
 
-            if (parentTopic.contains("absoluta_errors")) {
+            if (parentTopic.contains("absoluta_bridge_alerts")) {
                 if (msg != null && msg.toString().equals("RESET_ERRORS")) {
-                    logger.info("Resetting errors...");
+                    logger.info("Resetting bridge alerts...");
                     provider.cleanTroubles();
-                    errorManager.resetErrors();
+                    bridgeAlertManager.resetAlerts();
+                } else {
+                    logger.warning("Comando " + (msg == null ? "null" : msg.toString()) + " non valido per il topic: "
+                            + topic);
+                }
+                return;
+            }
+
+            if (parentTopic.contains("absoluta_alarm_memory")) {
+                if (msg != null && msg.toString().equals("RESET_ALARM_MEMORY")) {
+                    logger.info("Resetting alarm memory...");
+                    provider.cleanAlarmMemory();
                 } else {
                     logger.warning("Comando " + (msg == null ? "null" : msg.toString()) + " non valido per il topic: "
                             + topic);
@@ -101,6 +114,11 @@ final class CommandManager {
             logger.warning("Comando " + cmd + " non valido");
             return;
         }
+        if (arming != PanelStatus.PartitionArming.DISARMED) {
+            if (rejectIfNotReady("partizione " + partitionId, partitionId)) {
+                return;
+            }
+        }
         provider.setPartitionArming(partitionId, arming);
     }
 
@@ -112,6 +130,12 @@ final class CommandManager {
             logger.warning("Comando " + cmd + " non valido");
             return;
         }
+        if (arming == PanelStatus.GlobalArming.GLOBALLY_ARMED) {
+            int[] partIds = realPartitionIds();
+            if (rejectIfNotReady("globale", partIds)) {
+                return;
+            }
+        }
         provider.setGlobalArming(arming);
     }
 
@@ -121,6 +145,9 @@ final class CommandManager {
         Character mode = MODE_COMMANDS.get(cmd);
         if (mode == null) {
             logger.warning("Comando " + cmd + " non valido");
+            return;
+        }
+        if (rejectIfNotReady("modalità " + mode, realPartitionIds())) {
             return;
         }
         provider.setModeArming(mode);
@@ -139,6 +166,30 @@ final class CommandManager {
         } else {
             logger.warning("Comando " + msg.toString() + " non valido per il sensore ID: " + zoneId);
         }
+    }
+
+    private boolean rejectIfNotReady(String context, int... partitionIds) {
+        for (int partitionId : partitionIds) {
+            Boolean ready = provider.isPartitionReady(partitionId);
+            if (!Boolean.TRUE.equals(ready)) {
+                String msgText = "Inserimento rifiutato (" + context + "): partizione " + partitionId
+                        + " non pronta (zone aperte o in anomalia)";
+                logger.warning(msgText);
+                bridgeAlertManager.notifyAlert(msgText);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int[] realPartitionIds() {
+        List<Integer> ids = new ArrayList<>();
+        for (Integer id : entities.partitionsById.keySet()) {
+            if (id != 0) {
+                ids.add(id);
+            }
+        }
+        return ids.stream().mapToInt(Integer::intValue).toArray();
     }
 
     private static String normalizeCmd(MqttMessage msg) {

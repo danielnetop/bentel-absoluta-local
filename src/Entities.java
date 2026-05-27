@@ -1,5 +1,7 @@
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 final class Entities {
@@ -14,6 +16,9 @@ final class Entities {
    final HashSet<Integer> sensorDiscoverySent = new HashSet<>();
    final HashSet<Integer> partitionDiscoverySent = new HashSet<>();
    final HashSet<Integer> modeDiscoverySent = new HashSet<>();
+
+   List<String> panelFaults = Collections.emptyList();
+   List<String> alarmMemory = Collections.emptyList();
 
    static final class Partition {
       String name;

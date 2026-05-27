@@ -20,6 +20,8 @@ class StatusListener implements MessageListener {
    // Partition status indices
    private static final int PARTITION_ARMED = 0;
    private static final int PARTITION_STAY = 1;
+   // PARTITION_READY shares index 1: bit1 means "Ready to Arm" when disarmed, "Stay" when armed (ITv2 spec 6.7.4)
+   private static final int PARTITION_READY = 1;
    private static final int PARTITION_AWAY = 2;
    private static final int PARTITION_NIGHT = 3;
    private static final int PARTITION_NODELAY = 4;
@@ -116,6 +118,14 @@ class StatusListener implements MessageListener {
          for (Quartet<Integer, Integer, Integer, Integer> trouble : troubles) {
             this.manageTrouble(trouble);
          }
+      } else if (msg.isFor(Message.TROUBLE_DETAIL)) {
+         Pair<Integer, Integer> param = (Pair<Integer, Integer>) msg.getParam(Message.TROUBLE_DETAIL);
+         List<Integer> deviceNumbers = (List<Integer>) msg.getValue(Message.TROUBLE_DETAIL);
+         int deviceType = param.getValue0();
+         int troubleType = param.getValue1();
+         for (Integer deviceNumber : deviceNumbers) {
+            this.manageTrouble(Quartet.with(deviceType, troubleType, deviceNumber, Trouble.TROUBLE));
+         }
       }
    }
 
@@ -157,6 +167,7 @@ class StatusListener implements MessageListener {
       }
 
       panelStatus.updatePartitionStatus(partitionId, partitionStatus);
+      panelStatus.updatePartitionAlarmInMemory(partitionId, statusMask.get(PARTITION_ALARM_IN_MEMORY));
 
       // Override to TRIGGERED only when the alarm is actively sounding, not just in memory.
       // PARTITION_ALARM_IN_MEMORY stays true after disarming and would otherwise keep the
@@ -164,6 +175,16 @@ class StatusListener implements MessageListener {
       if (statusMask.get(PARTITION_ALARM)) {
          armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
+
+      boolean ready;
+      if (armingMode == PanelStatus.PartitionArming.DISARMED) {
+         ready = statusMask.size() > PARTITION_READY && statusMask.get(PARTITION_READY);
+      } else if (armingMode == PanelStatus.PartitionArming.TRIGGERED) {
+         ready = false;
+      } else {
+         ready = true;
+      }
+      panelStatus.updatePartitionReady(partitionId, ready);
 
       panelStatus.updatePartitionArming(partitionId, armingMode);
 

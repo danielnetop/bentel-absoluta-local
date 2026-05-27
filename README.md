@@ -7,8 +7,6 @@ Utilizzando il protocollo ITv2 comunichiamo con la centrale e riceviamo lo stato
 - `src`: contenente il codice sorgente
 - `lib`: contenente le librerie utilizzate
 
-
-
 ## Creare immagine container docker
 
 Per creare l'immagine del container docker, è necessario eseguire lo script di build. Questo script compila il codice sorgente e prepara l'eseguibile java.

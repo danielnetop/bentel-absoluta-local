@@ -60,5 +60,9 @@ public interface PanelProvider {
       void updateOutputStatus(int outputId, OutputStatus status);
 
       void updateModeLabel(char mode, String label);
+
+      void updatePanelFaults(List<String> panelFaults);
+
+      void updateAlarmMemory(List<String> partitionsWithAlarmMemory);
    }
 }

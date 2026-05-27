@@ -27,3 +27,6 @@ proguard.pro
 
 # Private Configs
 *.properties
+
+# Private Docs
+Docs/

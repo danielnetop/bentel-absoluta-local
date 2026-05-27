@@ -19,7 +19,7 @@ public class Application {
    // Major: Cambiamenti significativi, API breaking
    // Minor: Nuove funzionalità, compatibilità con le versioni precedenti
    // Patch: Correzioni di bug, miglioramenti minori
-   private static final String VERSION = "1.2.4-alpha";
+   private static final String VERSION = "1.2.7-alpha";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
@@ -130,6 +130,7 @@ public class Application {
             mqttOption.setAutomaticReconnect(true);
             mqttOption.setKeepAliveInterval(60);  // 60 seconds keep-alive
             mqttOption.setConnectionTimeout(30);   // 30 seconds connection timeout
+            mqttOption.setWill("ABS/availability", "offline".getBytes(), 1, true);
             logger.info("Collegamento al broker: " + mqttServer);
             AbsolutaPanelProvider provider = new AbsolutaPanelProvider(ADDRESS, PIN, PORT);
             Callback callback = new Callback(mqttClient, provider, mqttOption, discoveryEnabled);

@@ -38,6 +38,7 @@ final class ConnectionManager {
         if (!isPanelConnected) {
             isPanelConnected = true;
             publisher.publish("ABS/conn", "Status: Connesso", qos, false, "connessione iniziale");
+            publisher.publish(HomeAssistantManager.AVAILABILITY_TOPIC, "online", qos, true, "disponibilità online");
         }
 
         try {
@@ -68,6 +69,7 @@ final class ConnectionManager {
                 logger.warning("Tentativo di riconnessione " + panelReconnectionAttempts + " a " + objName + " in "
                         + RECON_DELAY_SECONDS + " secondi...");
                 publisher.publish("ABS/conn", "Status: Scollegato", qos, false, "disconnessione forzata");
+                publisher.publish(HomeAssistantManager.AVAILABILITY_TOPIC, "offline", qos, true, "disponibilità offline");
 
                 TimeUnit.SECONDS.sleep(RECON_DELAY_SECONDS);
                 providerConnStatus status = provider.connect();
@@ -77,6 +79,7 @@ final class ConnectionManager {
                     panelReconnectionAttempts = 0;
                     isPanelConnected = true;
                     publisher.publish("ABS/conn", "Status: Connesso", qos, false, "riconnessione riuscita");
+                    publisher.publish(HomeAssistantManager.AVAILABILITY_TOPIC, "online", qos, true, "disponibilità online");
                     entityManager.republishAllStates();
                 }
 

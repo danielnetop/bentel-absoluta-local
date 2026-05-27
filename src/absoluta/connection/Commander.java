@@ -15,6 +15,8 @@ public class Commander {
    private static final int AWAY_ARM = 2;
    private static final int INSTANT_STAY_ARM = 7;
    private static final int CLEAR_FAULTS = 10;
+   private static final int CLEAR_ALARM_MEMORY = 8;
+   private static final int CLEAR_ALL = 12;
    static final int ACTIVATE_OUTPUT = 1;
    static final int DEACTIVATE_OUTPUT = 2;
    private final MessageHandler messageHandler;
@@ -100,5 +102,15 @@ public class Commander {
    public void cleanTroubles() {
       logger.fine("Cleaning troubles");
       this.messageHandler.sendCommand(Message.USER_ACTIVITY, CLEAR_FAULTS);
+   }
+
+   public void cleanAlarmMemory() {
+      logger.fine("Cleaning alarm memory");
+      this.messageHandler.sendCommand(Message.USER_ACTIVITY, CLEAR_ALARM_MEMORY);
+   }
+
+   public void cleanAll() {
+      logger.fine("Cleaning all alarms, faults and tampers");
+      this.messageHandler.sendCommand(Message.USER_ACTIVITY, CLEAR_ALL);
    }
 }

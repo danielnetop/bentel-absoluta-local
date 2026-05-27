@@ -141,6 +141,11 @@ public class MessageHandler {
       } else if (this.lastMessage.attemptNum < RETRY_NUMBER) {
          logger.finer("Retry N° " + this.lastMessage.attemptNum + ": " + this.lastMessage + " ...");
          this.sendMessage(this.lastMessage);
+      } else if (this.lastMessage.type == MessageType.MID_PRIORITY_READING
+               || this.lastMessage.type == MessageType.LOW_PRIORITY_READING) {
+         // Transient panel unavailability (e.g. busy arming) — skip and continue
+         logger.warning("Too many attempts for " + this.lastMessage + ", skipping");
+         this.sendNext();
       } else {
          logger.warning("Too many attempts for " + this.lastMessage);
          this.errorListener.fatalError();

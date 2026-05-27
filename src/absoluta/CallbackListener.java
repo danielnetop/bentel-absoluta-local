@@ -4,8 +4,13 @@ import java.beans.IndexedPropertyChangeEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
+
+import absoluta.connection.Trouble;
 
 import absoluta.AbsolutaPanelProvider.providerStatus;
 import absoluta.connection.CustomizedArmingModes;
@@ -13,6 +18,7 @@ import absoluta.connection.PanelStatus;
 import absoluta.spi.PanelProvider.PanelCallback;
 
 class CallbackListener implements PropertyChangeListener {
+   private static final Logger logger = Logger.getLogger(CallbackListener.class.getName());
    private final PanelCallback callback;
    private final PanelStatus panelStatus;
 
@@ -59,6 +65,9 @@ class CallbackListener implements PropertyChangeListener {
                      this.callback.updateModeLabel(charMode, this.panelStatus.getArmingModeLabel(indexProperty));
                   }
                   break;
+               case "PARTITION_ALARM_IN_MEMORY":
+                  this.callback.updateAlarmMemory(buildAlarmMemoryList());
+                  break;
             }
          }
          else {
@@ -89,11 +98,31 @@ class CallbackListener implements PropertyChangeListener {
                   this.callback.getAllOutputs(this.panelStatus.getOutputs());
                   break;
                case "TROUBLES":
-                  Boolean var11 = !this.panelStatus.getTroubles().isEmpty();
-                  this.callback.setStatus(var11 ? providerStatus.FAULT : providerStatus.OK);
+                  List<String> troubleStrings = new ArrayList<>();
+                  for (Object obj : (Iterable<?>) property.getNewValue()) {
+                     Trouble t = (Trouble) obj;
+                     troubleStrings.add(t.toLocalizedString(this.panelStatus));
+                  }
+                  Collections.sort(troubleStrings);
+                  this.callback.updatePanelFaults(Collections.unmodifiableList(troubleStrings));
+                  this.callback.setStatus(troubleStrings.isEmpty() ? providerStatus.OK : providerStatus.FAULT);
                   break;
             }
          }
       }
+   }
+
+   private List<String> buildAlarmMemoryList() {
+      List<String> alarmMemory = new ArrayList<>();
+      List<Integer> partitions = this.panelStatus.getPartitions();
+      if (partitions == null) return Collections.emptyList();
+      for (Integer id : partitions) {
+         Boolean inMemory = this.panelStatus.getPartitionAlarmInMemory(id);
+         if (Boolean.TRUE.equals(inMemory)) {
+            String label = this.panelStatus.getPartitionLabel(id);
+            alarmMemory.add(label != null && !label.isEmpty() ? label : "Partizione " + id);
+         }
+      }
+      return Collections.unmodifiableList(alarmMemory);
    }
 }

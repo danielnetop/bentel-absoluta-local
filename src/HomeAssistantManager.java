@@ -1,5 +1,7 @@
 public class HomeAssistantManager {
 
+    public static final String AVAILABILITY_TOPIC = "ABS/availability";
+
     private static final String DEVICE_JSON =
         "\"device\": {" +
             "\"identifiers\": [\"absoluta_panel\"]," +
@@ -7,6 +9,11 @@ public class HomeAssistantManager {
             "\"manufacturer\": \"Bentel\"," +
             "\"model\": \"Absoluta\"" +
         "}";
+
+    private static final String AVAILABILITY_JSON =
+        "\"availability_topic\": \"" + AVAILABILITY_TOPIC + "\"," +
+        "\"payload_available\": \"online\"," +
+        "\"payload_not_available\": \"offline\",";
 
     public static String buildPartition(int partitionID, String partitionName) {
         return "{" +
@@ -19,6 +26,7 @@ public class HomeAssistantManager {
             "\"supported_features\": [\"arm_away\"]," +
             "\"payload_arm_away\": \"ARM_AWAY\"," +
             "\"payload_disarm\": \"DISARM\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }
@@ -29,6 +37,7 @@ public class HomeAssistantManager {
             "\"state_topic\": \"ABS/sensor/" + sensorID + "\"," +
             "\"unique_id\": \"absoluta_sensor_" + sensorID + "\"," +
             "\"device_class\": \"motion\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }
@@ -42,6 +51,7 @@ public class HomeAssistantManager {
             "\"payload_on\": \"ON\"," +
             "\"payload_off\": \"OFF\"," +
             "\"device_class\": \"switch\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }
@@ -53,28 +63,55 @@ public class HomeAssistantManager {
             "\"unique_id\": \"absoluta_mode_" + modeChar + "\"," +
             "\"command_topic\": \"ABS/mode/" + modeChar + "/set\"," +
             "\"payload_press\": \"MODE_" + modeChar + "\"," +
+            AVAILABILITY_JSON +
+            DEVICE_JSON +
+        "}";
+    }
+
+    public static String buildResetAlarmMemory() {
+        return "{" +
+            "\"name\": \"Resetta Allarmi in Memoria\"," +
+            "\"state_topic\": \"ABS/reset_alarm_memory\"," +
+            "\"unique_id\": \"absoluta_reset_alarm_memory\"," +
+            "\"command_topic\": \"ABS/absoluta_alarm_memory/set\"," +
+            "\"payload_press\": \"RESET_ALARM_MEMORY\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }
 
     public static String buildResetErrors() {
         return "{" +
-            "\"name\": \"Resetta Guasti e Sabotaggi\"," +
-            "\"state_topic\": \"ABS/reset_errors\"," +
-            "\"unique_id\": \"absoluta_reset_errors\"," +
-            "\"command_topic\": \"ABS/absoluta_errors/set\"," +
+            "\"name\": \"Resetta Avvisi Bridge\"," +
+            "\"state_topic\": \"ABS/reset_bridge_alerts\"," +
+            "\"unique_id\": \"absoluta_reset_bridge_alerts\"," +
+            "\"command_topic\": \"ABS/absoluta_bridge_alerts/set\"," +
             "\"payload_press\": \"RESET_ERRORS\"," +
+            AVAILABILITY_JSON +
+            DEVICE_JSON +
+        "}";
+    }
+
+    public static String buildTroublesSensor() {
+        return "{" +
+            "\"name\": \"Guasti della Centrale\"," +
+            "\"state_topic\": \"ABS/panel_faults\"," +
+            "\"unique_id\": \"absoluta_panel_faults\"," +
+            "\"icon\": \"mdi:alert-circle\"," +
+            "\"json_attributes_topic\": \"ABS/panel_faults/attributes\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }
 
     public static String buildErrorSensor() {
         return "{" +
-            "\"name\": \"Allarmi, Guasti e Sabotaggi\"," +
-            "\"state_topic\": \"ABS/errors\"," +
+            "\"name\": \"Avvisi Bridge\"," +
+            "\"state_topic\": \"ABS/bridge_alerts\"," +
             "\"icon\": \"mdi:alert\"," +
-            "\"unique_id\": \"absoluta_errors\"," +
-            "\"json_attributes_topic\": \"ABS/errors/attributes\"," +
+            "\"unique_id\": \"absoluta_bridge_alerts\"," +
+            "\"json_attributes_topic\": \"ABS/bridge_alerts/attributes\"," +
+            AVAILABILITY_JSON +
             DEVICE_JSON +
         "}";
     }

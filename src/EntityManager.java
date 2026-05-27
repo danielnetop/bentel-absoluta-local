@@ -1,7 +1,11 @@
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import com.google.gson.GsonBuilder;
 
 import org.eclipse.paho.client.mqttv3.MqttClient;
 
@@ -20,15 +24,17 @@ final class EntityManager {
     private final boolean discoveryEnabled;
     private final Logger logger;
     private final int qos;
+    private final BridgeAlertManager bridgeAlertManager;
 
     EntityManager(Entities entities, MqttClient mqttClient, Publisher publish, boolean discoveryEnabled, Logger logger,
-            int qos) {
+            int qos, BridgeAlertManager bridgeAlertManager) {
         this.entities = entities;
         this.mqttClient = mqttClient;
         this.publish = publish;
         this.discoveryEnabled = discoveryEnabled;
         this.logger = logger;
         this.qos = qos;
+        this.bridgeAlertManager = bridgeAlertManager;
     }
 
     void initZones(List<Integer> zones) {
@@ -69,13 +75,22 @@ final class EntityManager {
             publish.publish(topic, payload, qos, true, "discovery partizione globale");
             entities.partitionDiscoverySent.add(0);
 
-            topic = "homeassistant/button/absoluta_errors_reset/config";
+            topic = "homeassistant/button/absoluta_bridge_alerts_reset/config";
             payload = HomeAssistantManager.buildResetErrors();
             publish.publish(topic, payload, qos, true, "discovery reset errors");
 
-            topic = "homeassistant/sensor/absoluta_errors/config";
+            topic = "homeassistant/button/absoluta_alarm_memory_reset/config";
+            payload = HomeAssistantManager.buildResetAlarmMemory();
+            publish.publish(topic, payload, qos, true, "discovery reset alarm memory");
+
+            topic = "homeassistant/sensor/absoluta_bridge_alerts/config";
             payload = HomeAssistantManager.buildErrorSensor();
             publish.publish(topic, payload, qos, true, "discovery errori");
+
+            topic = "homeassistant/sensor/absoluta_panel_faults/config";
+            payload = HomeAssistantManager.buildTroublesSensor();
+            publish.publish(topic, payload, qos, true, "discovery guasti");
+            publishPanelFaults();
 
             try {
                 mqttClient.subscribe("homeassistant/status");
@@ -109,7 +124,7 @@ final class EntityManager {
             str = "Name: " + global.name + " Arming: " + global.arming + " Status: " + global.status;
         }
 
-        publish.publish(global.topic, str, qos, false, "stato partizione globale");
+        publish.publish(global.topic, str, qos, true, "stato partizione globale");
         logger.fine("Partition Name: " + global.name + " Arming: " + global.arming + " Status: " + global.status);
     }
 
@@ -187,13 +202,13 @@ final class EntityManager {
         if (discoveryEnabled) {
             String bypassTopic = "ABS/sensor/" + zoneId + "_bypass";
             String bypassValue = sensor.bypass == null ? "OFF" : sensor.bypass.toUpperCase();
-            publish.publish(bypassTopic, bypassValue, qos, false, "bypass sensore");
+            publish.publish(bypassTopic, bypassValue, qos, true, "bypass sensore");
             str = sensor.status == null ? "OFF" : sensor.status.toUpperCase();
         } else {
             str = "Name: " + sensor.name + " Status: " + sensor.status + " Bypass: " + sensor.bypass;
         }
 
-        publish.publish(sensor.topic, str, qos, false, "stato sensore");
+        publish.publish(sensor.topic, str, qos, true, "stato sensore");
         logger.fine("Sensor Name: " + sensor.name + " Status: " + sensor.status + " Bypass: " + sensor.bypass);
     }
 
@@ -243,7 +258,7 @@ final class EntityManager {
             str = "Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status;
         }
 
-        publish.publish(partition.topic, str, qos, false, "stato partizione");
+        publish.publish(partition.topic, str, qos, true, "stato partizione");
         logger.fine(
                 "Partition Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status);
     }
@@ -276,7 +291,7 @@ final class EntityManager {
             str = "Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status;
         }
 
-        publish.publish(partition.topic, str, qos, false, "stato partizione");
+        publish.publish(partition.topic, str, qos, true, "stato partizione");
         logger.fine(
                 "Partition Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status);
     }
@@ -298,11 +313,48 @@ final class EntityManager {
             } else {
                 str = "Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status;
             }
-            publish.publish(partition.topic, str, qos, false, "stato partizione");
+            publish.publish(partition.topic, str, qos, true, "stato partizione");
         }
 
         logger.fine(
                 "Partition Name: " + partition.name + " Arming: " + partition.arming + " Status: " + partition.status);
+    }
+
+    void updatePanelFaults(List<String> panelFaults) {
+        entities.panelFaults = panelFaults;
+        publishPanelFaults();
+    }
+
+    void updateAlarmMemory(List<String> alarmMemory) {
+        entities.alarmMemory = alarmMemory;
+        publishPanelFaults();
+    }
+
+    private void publishPanelFaults() {
+        List<String> panelFaults = entities.panelFaults;
+        List<String> alarmMemory = entities.alarmMemory;
+        int faultCount = panelFaults.size();
+        int alarmCount = alarmMemory.size();
+
+        String state;
+        if (faultCount == 0 && alarmCount == 0) {
+            state = "Nessun Problema";
+        } else {
+            List<String> parts = new ArrayList<>();
+            if (faultCount == 1) parts.add("1 guasto attivo");
+            else if (faultCount > 1) parts.add(faultCount + " guasti attivi");
+            if (alarmCount == 1) parts.add("1 allarme in memoria");
+            else if (alarmCount > 1) parts.add(alarmCount + " allarmi in memoria");
+            state = String.join(", ", parts);
+        }
+
+        Map<String, Object> attrsMap = new LinkedHashMap<>();
+        attrsMap.put("guasti", panelFaults);
+        attrsMap.put("allarmi_in_memoria", alarmMemory);
+        String attributes = new GsonBuilder().disableHtmlEscaping().create().toJson(attrsMap);
+
+        publish.publish("ABS/panel_faults", state, qos, true, "stato guasti centrale");
+        publish.publish("ABS/panel_faults/attributes", attributes, qos, true, "attributi guasti centrale");
     }
 
     void onHomeAssistantOnline() {
@@ -331,6 +383,9 @@ final class EntityManager {
                 publishZoneState(zoneId);
             }
         }
+
+        publishPanelFaults();
+        bridgeAlertManager.publishAlerts();
     }
 
     private static boolean isValidLabel(String label) {

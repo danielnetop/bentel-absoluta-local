@@ -91,9 +91,20 @@ public class AbsolutaPanelProvider implements PanelProvider {
       }
    }
 
-   // Pulisce le segnalazioni di guasto
+   public Boolean isPartitionReady(int partitionId) {
+      return this.panelStatus.getPartitionReady(partitionId);
+   }
+
    public void cleanTroubles() {
       this.connectionHandler.getCommander().cleanTroubles();
+   }
+
+   public void cleanAlarmMemory() {
+      this.connectionHandler.getCommander().cleanAlarmMemory();
+   }
+
+   public void cleanAll() {
+      this.connectionHandler.getCommander().cleanAll();
    }
 
    public enum providerConnStatus {
