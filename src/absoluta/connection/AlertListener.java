@@ -7,7 +7,10 @@ import protocol.dsc.NewValue;
 
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
-import org.openide.util.NbBundle;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ResourceBundle;
 
 import absoluta.spi.AlertCallback;
 
@@ -15,6 +18,7 @@ import java.util.logging.Logger;
 
 class AlertListener implements MessageListener {
    private static final Logger logger = Logger.getLogger(AlertListener.class.getName());
+   private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("absoluta.connection.Bundle");
 	private final AlertCallback alertCallback;
 	private final PanelStatus panelStatus;
 
@@ -38,10 +42,24 @@ class AlertListener implements MessageListener {
          Pair<Integer, ?> armParam = (Pair<Integer, ?>) error.getParam(Message.ARM);
          Integer partitionId = armParam.getValue0();
          if (partitionId == null) {
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.arm.global"));
+            List<Integer> targets = panelStatus.getPendingArmPartitions();
+            List<String> failedLabels = new ArrayList<>();
+            if (targets != null) {
+               for (Integer id : targets) {
+                  if (!Boolean.TRUE.equals(panelStatus.getPartitionReady(id))) {
+                     String label = panelStatus.getPartitionLabel(id);
+                     failedLabels.add(label != null ? label : "partition " + id);
+                  }
+               }
+            }
+            if (failedLabels.isEmpty()) {
+               alertCallback.alert(BUNDLE.getString("Alert.arm.global"));
+            } else {
+               alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.arm.global.partitions"), String.join(", ", failedLabels)));
+            }
          } else {
             String partitionLabel = panelStatus.getPartitionLabel(partitionId);
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.arm.partition", partitionLabel));
+            alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.arm.partition"), partitionLabel));
          }
 		} else if (error.isFor(Message.SINGLE_ZONE_BYPASS_WRITE)) {
          // Zone bypass/unbypass error
@@ -51,9 +69,9 @@ class AlertListener implements MessageListener {
          String zoneLabel = panelStatus.getZoneLabel(zoneId);
 
          if (isBypass) {
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.bypass.zone", zoneLabel));
+            alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.bypass.zone"), zoneLabel));
          } else {
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.unbypass.zone", zoneLabel));
+            alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.unbypass.zone"), zoneLabel));
          }
 
          // Output set error (if present)
@@ -63,9 +81,9 @@ class AlertListener implements MessageListener {
          String outputLabel = panelStatus.getOutputLabel(outputId);
 
          if (outputState == 1) {
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.output.close", outputLabel));
+            alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.output.close"), outputLabel));
          } else if (outputState == 2) {
-            alertCallback.alert(NbBundle.getMessage(AlertListener.class, "Alert.output.open", outputLabel));
+            alertCallback.alert(MessageFormat.format(BUNDLE.getString("Alert.output.open"), outputLabel));
          }
 		}
 	}

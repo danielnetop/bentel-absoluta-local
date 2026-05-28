@@ -36,6 +36,7 @@ public class Commander {
          break;
       case GLOBALLY_ARMED:
          this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
+         this.panelStatus.setPendingArmPartitions(this.panelStatus.getPartitions());
          this.messageHandler.sendCommand(Message.ARM, Pair.with(SYSTEM, AWAY_ARM));
          break;
       default:
@@ -77,6 +78,7 @@ public class Commander {
       logger.fine("Setting global arming to preset " + presetMode);
       Integer presetModeInteger = (Integer)CustomizedArmingModes.CUSTOMIZED_ARMING_MODES.get(presetMode);
       this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.ARMING);
+      this.panelStatus.setPendingArmPartitions(this.panelStatus.getPartitions());
       if (presetModeInteger != null) {
          this.messageHandler.sendCommand(Message.ARM, Pair.with(SYSTEM, presetModeInteger));
       }

@@ -6,8 +6,10 @@ import com.google.common.collect.UnmodifiableIterator;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -58,6 +60,7 @@ public class PanelStatus {
    private final Set<Trouble> unconfirmedTroubles;
    private final Map<Integer, Boolean> partitionReady = new HashMap<>();
    private final Map<Integer, Boolean> partitionAlarmInMemory = new HashMap<>();
+   private List<Integer> pendingArmPartitions;
 
    public PanelStatus() {
       this.connectionStatus = PanelConnStatus.DISCONNECTED;
@@ -274,6 +277,14 @@ public class PanelStatus {
 
    public Boolean getPartitionAlarmInMemory(int partitionId) {
       return this.partitionAlarmInMemory.get(partitionId);
+   }
+
+   void setPendingArmPartitions(List<Integer> partitionIds) {
+      this.pendingArmPartitions = partitionIds != null ? new ArrayList<>(partitionIds) : null;
+   }
+
+   public List<Integer> getPendingArmPartitions() {
+      return this.pendingArmPartitions;
    }
 
    // Label modalità armamento

@@ -1,9 +1,11 @@
 package absoluta.connection;
 
 import java.util.MissingResourceException;
-import org.openide.util.NbBundle;
+import java.util.ResourceBundle;
 
 public class Trouble {
+   private static final ResourceBundle BUNDLE = ResourceBundle.getBundle("absoluta.connection.Bundle");
+
    static final int ZONE_DEVICE = 1;
    static final int TROUBLE_RESTORE = 0;
    static final int TROUBLE = 1;
@@ -41,10 +43,9 @@ public class Trouble {
       StringBuilder sb = new StringBuilder();
 
       try {
-         sb.append(NbBundle.getMessage(Trouble.class, String.format("Trouble.deviceType.0x%02X", this.deviceType)));
+         sb.append(BUNDLE.getString(String.format("Trouble.deviceType.0x%02X", this.deviceType)));
       } catch (MissingResourceException ex) {
-         // Se la risorsa non esiste, mostra tipo generico + valore esadecimale
-         sb.append(String.format("%s 0x%02X", NbBundle.getMessage(Trouble.class, "Trouble.deviceType"), this.deviceType));
+         sb.append(String.format("%s 0x%02X", BUNDLE.getString("Trouble.deviceType"), this.deviceType));
       }
 
       // Se è una zona e c'è un'etichetta, aggiungila; altrimenti mostra solo il numero
@@ -57,13 +58,13 @@ public class Trouble {
       sb.append(": ");
 
       try {
-         sb.append(NbBundle.getMessage(Trouble.class, String.format("Trouble.troubleType.0x%02X", this.troubleType)));
+         sb.append(BUNDLE.getString(String.format("Trouble.troubleType.0x%02X", this.troubleType)));
       } catch (MissingResourceException ex) {
-         sb.append(String.format("%s 0x%02X", NbBundle.getMessage(Trouble.class, "Trouble.troubleType"), this.troubleType));
+         sb.append(String.format("%s 0x%02X", BUNDLE.getString("Trouble.troubleType"), this.troubleType));
       }
 
       if (this.inMemory) {
-         sb.append(" (").append(NbBundle.getMessage(Trouble.class, "Trouble.inMemory")).append(")");
+         sb.append(" (").append(BUNDLE.getString("Trouble.inMemory")).append(")");
       }
 
       return sb.toString();
