@@ -176,6 +176,17 @@ class StatusListener implements MessageListener {
          armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
 
+      // Preserve ARMING/DISARMING until the panel confirms the transition, so intermediate
+      // status packets (still showing old state) don't flash the UI back to the previous state.
+      PanelStatus.PartitionArming currentArming = panelStatus.getPartitionArming(partitionId);
+      if (currentArming == PanelStatus.PartitionArming.ARMING && armingMode == PanelStatus.PartitionArming.DISARMED) {
+         armingMode = PanelStatus.PartitionArming.ARMING;
+      } else if (currentArming == PanelStatus.PartitionArming.DISARMING &&
+                 armingMode != PanelStatus.PartitionArming.DISARMED &&
+                 armingMode != PanelStatus.PartitionArming.TRIGGERED) {
+         armingMode = PanelStatus.PartitionArming.DISARMING;
+      }
+
       boolean ready;
       if (armingMode == PanelStatus.PartitionArming.DISARMED) {
          ready = statusMask.size() > PARTITION_READY && statusMask.get(PARTITION_READY);
@@ -192,14 +203,20 @@ class StatusListener implements MessageListener {
       boolean anyPartitionDisarmed = false;
       boolean missingData = false;
       boolean anyPartitionTriggered = false;
+      boolean anyPartitionArming = false;
+      boolean anyPartitionDisarming = false;
 
       for (Integer id : panelStatus.getPartitions()) {
          PanelStatus.PartitionArming mode = panelStatus.getPartitionArming(id);
          if (mode == null) {
             missingData = true;
-         } else if (mode == PanelStatus.PartitionArming.TRIGGERED){
+         } else if (mode == PanelStatus.PartitionArming.TRIGGERED) {
             anyPartitionTriggered = true;
-         }else if (mode == PanelStatus.PartitionArming.DISARMED) {
+         } else if (mode == PanelStatus.PartitionArming.ARMING) {
+            anyPartitionArming = true;
+         } else if (mode == PanelStatus.PartitionArming.DISARMING) {
+            anyPartitionDisarming = true;
+         } else if (mode == PanelStatus.PartitionArming.DISARMED) {
             anyPartitionDisarmed = true;
          } else {
             anyPartitionArmed = true;
@@ -211,12 +228,28 @@ class StatusListener implements MessageListener {
          globalArming = null;
       } else if (anyPartitionTriggered) {
          globalArming = PanelStatus.GlobalArming.TRIGGERED;
+      } else if (anyPartitionArming) {
+         globalArming = PanelStatus.GlobalArming.ARMING;
+      } else if (anyPartitionDisarming) {
+         globalArming = PanelStatus.GlobalArming.DISARMING;
       } else if (anyPartitionArmed && anyPartitionDisarmed) {
          globalArming = PanelStatus.GlobalArming.PARTIALLY_ARMED;
       } else if (anyPartitionArmed) {
          globalArming = PanelStatus.GlobalArming.GLOBALLY_ARMED;
       } else {
          globalArming = PanelStatus.GlobalArming.GLOBALLY_DISARMED;
+      }
+
+      // When Commander.arming() sends a system-level arm/disarm, individual partitions are not
+      // set to ARMING/DISARMING. Preserve the global state so intermediate panel status packets
+      // (still showing old state) don't override it before the panel confirms the transition.
+      PanelStatus.GlobalArming currentGlobal = panelStatus.getGlobalArming();
+      if (currentGlobal == PanelStatus.GlobalArming.ARMING && globalArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
+         globalArming = PanelStatus.GlobalArming.ARMING;
+      } else if (currentGlobal == PanelStatus.GlobalArming.DISARMING &&
+                 (globalArming == PanelStatus.GlobalArming.GLOBALLY_ARMED ||
+                  globalArming == PanelStatus.GlobalArming.PARTIALLY_ARMED)) {
+         globalArming = PanelStatus.GlobalArming.DISARMING;
       }
 
       panelStatus.updateGlobalArming(globalArming);

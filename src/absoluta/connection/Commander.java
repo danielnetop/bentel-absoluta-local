@@ -50,7 +50,7 @@ public class Commander {
       switch(newArmingStatus) {
       case DISARMED:
          this.panelStatus.updateGlobalArming(PanelStatus.GlobalArming.DISARMING);
-         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.DISARMED);
+         this.panelStatus.updatePartitionArming(partitionID, PanelStatus.PartitionArming.DISARMING);
          this.messageHandler.sendCommand(Message.DISARM, partitionID);
          break;
       case AWAY:
