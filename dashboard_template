@@ -1,0 +1,280 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Bentel Absoluta — Home Assistant Dashboard Template
+#
+# Replace all placeholder entity IDs with your actual ones.
+# Entity IDs can be found in Settings → Devices & Services → MQTT → your device,
+# or in Developer Tools → States filtered by "centrale_absoluta".
+#
+# Required HACS custom cards:
+#   - card-mod          (styling)
+#   - auto-entities     (active sensors / bypassed zones cards)
+#   - fold-entity-row   (collapsible partition rows)
+#   - multiple-entity-row (zone rows with inline bypass toggle)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── 1. PANEL FAULTS & ALARM MEMORY (conditional — shown only when active) ────
+- type: conditional
+  conditions:
+    - condition: state
+      entity: sensor.centrale_absoluta_guasti_della_centrale
+      state_not: Nessun Problema
+    - condition: state
+      entity: sensor.centrale_absoluta_guasti_della_centrale
+      state_not: unavailable
+  card:
+    type: horizontal-stack
+    cards:
+      - type: markdown
+        title: Allarmi Antifurto
+        content: >-
+          {% set guasti =
+          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          'guasti') | default([], true) %}
+          {% set allarmi =
+          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          'allarmi_in_memoria') | default([], true) %}
+          {% for g in guasti %} - **{{ g.Time }}** — {{ g.Message }}
+          {% endfor %}
+          {% for a in allarmi %} - **{{ a.Time }}** — {{ a.Message }} *(memoria)*
+          {% endfor %}
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+      - type: button
+        entity: button.centrale_absoluta_resetta_allarmi_in_memoria
+        icon: mdi:delete-sweep
+        show_name: false
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.centrale_absoluta_resetta_allarmi_in_memoria
+          confirmation: true
+        card_mod:
+          style: |
+            :host {
+              flex: 0 0 5rem !important;
+              align-self: flex-start !important;
+              margin-top: 1rem !important;
+            }
+            ha-card {
+              background: transparent !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+    card_mod:
+      style: |
+        :host {
+          background: var(--ha-card-background, white);
+          border-radius: var(--ha-card-border-radius, 12px);
+          box-shadow: var(--ha-card-box-shadow, 0 2px 2px rgba(0,0,0,.14));
+          border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, transparent);
+          overflow: hidden;
+        }
+
+# ── 2. BRIDGE ALERTS (conditional — shown only when active) ──────────────────
+- type: conditional
+  conditions:
+    - condition: state
+      entity: sensor.centrale_absoluta_avvisi_bridge
+      state: Avviso!
+  card:
+    type: horizontal-stack
+    cards:
+      - type: markdown
+        title: Avvisi Antifurto
+        content: >-
+          {% set avvisi =
+          state_attr('sensor.centrale_absoluta_avvisi_bridge', 'avvisi') |
+          default([], true) %}
+          {% for avviso in avvisi | reverse %} - **{{ avviso.Time }}** — {{ avviso.Message }}
+          {% endfor %}
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+      - type: button
+        entity: button.centrale_absoluta_resetta_avvisi_bridge
+        icon: mdi:delete-sweep
+        show_name: false
+        show_state: false
+        tap_action:
+          action: perform-action
+          perform_action: button.press
+          target:
+            entity_id: button.centrale_absoluta_resetta_avvisi_bridge
+          confirmation: true
+        card_mod:
+          style: |
+            :host {
+              flex: 0 0 5rem !important;
+              align-self: flex-start !important;
+              margin-top: 1rem !important;
+            }
+            ha-card {
+              background: transparent !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+    card_mod:
+      style: |
+        :host {
+          background: var(--ha-card-background, white);
+          border-radius: var(--ha-card-border-radius, 12px);
+          box-shadow: var(--ha-card-box-shadow, 0 2px 2px rgba(0,0,0,.14));
+          border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, transparent);
+          overflow: hidden;
+        }
+
+# ── 3. GLOBAL ALARM PANEL ─────────────────────────────────────────────────────
+- states:
+    - arm_away
+  type: alarm-panel
+  entity: alarm_control_panel.centrale_absoluta_globale
+
+# ── 4. ARMING MODE BUTTONS ────────────────────────────────────────────────────
+- type: horizontal-stack
+  cards:
+    - show_name: true
+      show_icon: true
+      type: button
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.centrale_absoluta_mode_a
+      icon_height: 50px
+      entity: button.centrale_absoluta_mode_a
+      show_state: false
+    - show_name: true
+      show_icon: true
+      type: button
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.centrale_absoluta_mode_b
+      icon_height: 50px
+      entity: button.centrale_absoluta_mode_b
+      show_state: false
+    - show_name: true
+      show_icon: true
+      type: button
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.centrale_absoluta_mode_c
+      icon_height: 50px
+      entity: button.centrale_absoluta_mode_c
+      show_state: false
+    - show_name: true
+      show_icon: true
+      type: button
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.centrale_absoluta_mode_d
+      icon_height: 50px
+      entity: button.centrale_absoluta_mode_d
+      show_state: false
+
+# ── 5. ACTIVE SENSORS (auto-entities) ────────────────────────────────────────
+# Shows only zones that are currently open/triggered. Hidden when all clear.
+- type: custom:auto-entities
+  card:
+    type: entities
+    title: Sensori Attivi Antifurto
+  filter:
+    include:
+      - entity_id: binary_sensor.centrale_absoluta_*
+        state: 'on'
+    exclude: []
+  show_empty: false
+
+# ── 6. BYPASSED ZONES (auto-entities) ────────────────────────────────────────
+# Shows only zones that are currently bypassed. Hidden when none bypassed.
+- type: custom:auto-entities
+  card:
+    type: entities
+    title: Sensori Bypassati Antifurto
+    show_header_toggle: false
+  filter:
+    include:
+      - entity_id: switch.centrale_absoluta_*_bypass
+        state: 'on'
+    exclude: []
+  show_empty: false
+
+# ── 7. PARTITIONS WITH ZONES (fold-entity-row) ───────────────────────────────
+# Each partition is a collapsible row. Inside each partition, zones are listed
+# with an inline bypass toggle. Duplicate the fold-entity-row blocks as needed.
+- type: vertical-stack
+  cards:
+    - type: entities
+      entities:
+
+        # ── Partition 1 ──────────────────────────────────────────────────────
+        - type: custom:fold-entity-row
+          style:
+            .: |
+              div#head {
+                --toggle-icon-width: 24px;
+              }
+          head:
+            type: custom:multiple-entity-row
+            entity: alarm_control_panel.centrale_absoluta_partizione_1  # REPLACE
+          entities:
+            - entity: binary_sensor.centrale_absoluta_zona_1            # REPLACE
+              type: custom:multiple-entity-row
+              show_state: false
+              state_color: true
+              entities:
+                - entity: switch.centrale_absoluta_zona_1_bypass         # REPLACE
+                  name: Bypass
+                  toggle: true
+            - entity: binary_sensor.centrale_absoluta_zona_2            # REPLACE
+              type: custom:multiple-entity-row
+              show_state: false
+              state_color: true
+              entities:
+                - entity: switch.centrale_absoluta_zona_2_bypass         # REPLACE
+                  name: Bypass
+                  toggle: true
+
+        # ── Partition 2 ──────────────────────────────────────────────────────
+        - type: custom:fold-entity-row
+          style:
+            .: |
+              div#head {
+                --toggle-icon-width: 24px;
+              }
+          head:
+            type: custom:multiple-entity-row
+            entity: alarm_control_panel.centrale_absoluta_partizione_2  # REPLACE
+          entities:
+            - entity: binary_sensor.centrale_absoluta_zona_3            # REPLACE
+              type: custom:multiple-entity-row
+              show_state: false
+              state_color: true
+              entities:
+                - entity: switch.centrale_absoluta_zona_3_bypass         # REPLACE
+                  name: Bypass
+                  toggle: true
+            - entity: binary_sensor.centrale_absoluta_zona_4            # REPLACE
+              type: custom:multiple-entity-row
+              show_state: false
+              state_color: true
+              entities:
+                - entity: switch.centrale_absoluta_zona_4_bypass         # REPLACE
+                  name: Bypass
+                  toggle: true
