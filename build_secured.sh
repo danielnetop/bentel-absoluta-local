@@ -1,19 +1,28 @@
 #!/bin/bash
-# Script per compilare e creare i JAR di cms, plugin e protocol nella cartella secured (versione Unix)
+set -e
 
-# 1. Crea la cartella build se non esiste
 mkdir -p build
 
-# 2. Compila e crea protocol.jar
+# Compila e crea protocol.jar
 find src/protocol -name "*.java" > protocol_sources.txt
 javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.txt
-jar cf secured/protocol.jar -C build/protocol .
 rm protocol_sources.txt
+find src/protocol -name "*.properties" | while read f; do
+    dest="build/${f#src/}"
+    mkdir -p "$(dirname "$dest")"
+    cp "$f" "$dest"
+done
+jar cf secured/protocol.jar -C build/protocol .
 
-# 3. Compila e crea absoluta.jar
+# Compila e crea absoluta.jar
 find src/absoluta -name "*.java" > absoluta_sources.txt
 javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @absoluta_sources.txt
-jar cf secured/absoluta.jar -C build/absoluta .
 rm absoluta_sources.txt
+find src/absoluta -name "*.properties" | while read f; do
+    dest="build/${f#src/}"
+    mkdir -p "$(dirname "$dest")"
+    cp "$f" "$dest"
+done
+jar cf secured/absoluta.jar -C build/absoluta .
 
-echo "Compilazione e creazione dei JAR in secured/ completata."
+echo "Build completed: secured/protocol.jar, secured/absoluta.jar"

@@ -12,74 +12,68 @@ public class BCDCharset extends Charset {
       super("BCD", (String[])null);
    }
 
-   @Override
-   public boolean contains(Charset cs) {
-      return this.equals(cs);
+   public boolean contains(Charset var1) {
+      return this.equals(var1);
    }
 
-   @Override
    public CharsetDecoder newDecoder() {
-      // Decodifica: da byte BCD a caratteri
       return new CharsetDecoder(this, 2.0F, 2.0F) {
-         @Override
-         protected CoderResult decodeLoop(ByteBuffer in, CharBuffer out) {
-            while (in.remaining() > 0 && out.remaining() > 0) {
-               byte b = in.get();
-               out.append(toChar((b >> 4) & 0xF));
-               out.append(toChar(b & 0xF));
+         protected CoderResult decodeLoop(ByteBuffer var1, CharBuffer var2) {
+            while(var1.remaining() > 0 && var2.remaining() > 0) {
+               byte var3 = var1.get();
+               var2.append(this.toChar(var3 >> 4 & 15));
+               var2.append(this.toChar(var3 & 15));
             }
-            return in.remaining() > 0 ? CoderResult.OVERFLOW : CoderResult.UNDERFLOW;
+
+            return var1.remaining() > 0 ? CoderResult.OVERFLOW : CoderResult.UNDERFLOW;
          }
 
-         // Converte nibble in carattere ASCII ('0'-'9', 'A'-'F')
-         private char toChar(int nibble) {
-            return (char) (nibble < 10 ? '0' + nibble : 'A' + (nibble - 10));
+         private char toChar(int var1) {
+            return (char)(var1 < 10 ? 48 + var1 : 65 + (var1 - 10));
          }
       };
    }
 
-   @Override
    public CharsetEncoder newEncoder() {
-      // Codifica: da caratteri a byte BCD
       return new CharsetEncoder(this, 0.5F, 1.0F, new byte[1]) {
-         private final int[] nibbles = new int[2];
-         private int nibbleIndex;
+         private final int[] b = new int[2];
+         private int i;
 
-         @Override
          protected void implReset() {
-            this.nibbleIndex = 0;
+            this.i = 0;
          }
 
-         @Override
-         protected CoderResult implFlush(ByteBuffer out) {
-            // Se rimane un nibble dispari, lo scrive come nibble alto
-            if (this.nibbleIndex == 1) {
-               out.put((byte) (this.nibbles[0] << 4));
+         protected CoderResult implFlush(ByteBuffer var1) {
+            if (this.i == 1) {
+               var1.put((byte)(this.b[0] << 4));
             }
+
             return CoderResult.UNDERFLOW;
          }
 
-         @Override
-         protected CoderResult encodeLoop(CharBuffer in, ByteBuffer out) {
-            while (in.remaining() > 0 && out.remaining() > 0) {
-               char c = in.get();
-               // Supporta cifre decimali e lettere esadecimali (case insensitive)
-               if ('0' <= c && c <= '9') {
-                  this.nibbles[this.nibbleIndex] = c - '0';
-               } else if (c >= 'A' && c <= 'F') {
-                  this.nibbles[this.nibbleIndex] = c - 'A' + 10;
-               } else if (c >= 'a' && c <= 'f') {
-                  this.nibbles[this.nibbleIndex] = c - 'a' + 10;
+         protected CoderResult encodeLoop(CharBuffer var1, ByteBuffer var2) {
+            while(var1.remaining() > 0 && var2.remaining() > 0) {
+               char var3 = var1.get();
+               if ('0' <= var3 && var3 <= '9') {
+                  this.b[this.i] = var3 - 48 & 15;
+               } else if (var3 >= 'A' && var3 <= 'F') {
+                  this.b[this.i] = var3 - 65 + 10 & 15;
                } else {
-                  continue; // ignora caratteri non validi
+                  if (var3 < 'a' || var3 > 'f') {
+                     continue;
+                  }
+
+                  this.b[this.i] = var3 - 97 + 10 & 15;
                }
 
-               if (this.nibbleIndex == 1) {
-                  out.put((byte) (this.nibbles[0] << 4 | this.nibbles[1]));
+               if (this.i == 1) {
+                  var2.put((byte)(this.b[0] << 4 | this.b[1]));
                }
-               this.nibbleIndex ^= 1;
+
+               this.i ^= 1;
             }
-            return in.remaining() > 0 ? CoderResult.OVERFLOW : CoderResult.UNDERFLOW;
+
+            return var1.remaining() > 0 ? CoderResult.OVERFLOW : CoderResult.UNDERFLOW;
          }
       };
    }

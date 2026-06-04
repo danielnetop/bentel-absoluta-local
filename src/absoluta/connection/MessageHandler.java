@@ -20,10 +20,10 @@ import protocol.dsc.Message.Response;
 
 public class MessageHandler {
    private static final Logger logger = Logger.getLogger(MessageHandler.class.getName());
-   private static final int RETRY_NUMBER = 3;
-   private static final TimeUnit TIME_UNIT;
-   private static final long START_TIMEOUT;
-   private static final long RETRY_TIMEOUT;
+   private static final int RETRY_NUMBER = 4;
+   private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+   private static final long START_TIMEOUT= TimeUnit.SECONDS.toMillis(40);
+   private static final long RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(2);
    private final Messenger messenger;
    private final ScheduledExecutorService executor;
    private final ConnectionHandler.ErrorListener errorListener;
@@ -34,12 +34,6 @@ public class MessageHandler {
    private boolean started;
    private boolean stopped;
    private int messageCount;
-
-   static {
-      TIME_UNIT = TimeUnit.MILLISECONDS;
-      START_TIMEOUT = TimeUnit.SECONDS.toMillis(40L);
-      RETRY_TIMEOUT = TimeUnit.SECONDS.toMillis(5L);
-   }
 
    MessageHandler(Endpoint endpoint, ConnectionHandler.ErrorListener errorListener) {
       this.messenger = Objects.requireNonNull(endpoint.getMessenger());
@@ -118,7 +112,7 @@ public class MessageHandler {
    private void sendNext() {
       EnqueuedMessage<?> msg = this.enqueuedMessages.poll();
       if (msg != null) {
-         logger.finer("Sending next enqueued message " + msg);
+         logger.finest("Sending next enqueued message " + msg);
          this.sendMessage(msg);
       } else {
          this.executeIdleTimeTasks();
@@ -142,11 +136,16 @@ public class MessageHandler {
    private void manageError(Integer responseCode) {
       assert this.started && this.lastMessage != null;
       if (this.lastMessage.type == MessageType.COMMAND && responseCode != null) {
-         logger.fine("Command " + this.lastMessage + " discarded");
+         logger.finest("Command " + this.lastMessage + " discarded");
          this.sendNext();
       } else if (this.lastMessage.attemptNum < RETRY_NUMBER) {
-         logger.fine("Retrying " + this.lastMessage + " ...");
+         logger.finer("Retry N° " + this.lastMessage.attemptNum + ": " + this.lastMessage + " ...");
          this.sendMessage(this.lastMessage);
+      } else if (this.lastMessage.type == MessageType.MID_PRIORITY_READING
+               || this.lastMessage.type == MessageType.LOW_PRIORITY_READING) {
+         // Transient panel unavailability (e.g. busy arming) — skip and continue
+         logger.warning("Too many attempts for " + this.lastMessage + ", skipping");
+         this.sendNext();
       } else {
          logger.warning("Too many attempts for " + this.lastMessage);
          this.errorListener.fatalError();

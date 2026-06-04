@@ -3,48 +3,56 @@ package protocol.dsc.util;
 import io.netty.buffer.ByteBuf;
 
 public class Crc16 {
-   public static final Crc16 CRC_16_CCITT = new Crc16(0x1021, 0xFFFF, 0x0000); // polinomio, valore iniziale, xor finale
+   public static final Crc16 CRC_16_CCITT = new Crc16(4129, 65535, 0);
    private final int poly;
    private final int initialVal;
    private final int finalXor;
-   private final int[] lookupTable;
+   private final int[] tab;
 
-   public Crc16(int poly, int initialVal, int finalXor) {
-      this.poly = DscUtils.validateUShort(poly);
-      this.initialVal = DscUtils.validateUShort(initialVal);
-      this.finalXor = DscUtils.validateUShort(finalXor);
-      this.lookupTable = new int[256];
+   public Crc16(int var1, int var2, int var3) {
+      this.poly = DscUtils.validateUShort(var1);
+      this.initialVal = DscUtils.validateUShort(var2);
+      this.finalXor = DscUtils.validateUShort(var3);
+      this.tab = new int[256];
 
-      // Precalcola la tabella di lookup per velocizzare il calcolo CRC
-      for (int i = 0; i < 256; ++i) {
-         this.lookupTable[i] = computeCrcForByte(i);
+      for(int var4 = 0; var4 < 256; ++var4) {
+         this.tab[var4] = this.crc1(var4);
       }
+
    }
 
-   private int computeCrcForByte(int value) {
-      int crc = value << 8;
-      for (int bit = 0; bit < 8; ++bit) {
-         if ((crc & 0x8000) != 0) {
-            crc = (crc << 1) ^ this.poly;
+   private int crc1(int var1) {
+      int var2 = var1 << 8;
+
+      for(int var3 = 0; var3 < 8; ++var3) {
+         if ((var2 & 0x8000) != 0) {
+            var2 = (var2 <<= 1) ^ this.poly;
          } else {
-            crc <<= 1;
+            var2 <<= 1;
          }
-         crc &= 0xFFFF;
+
+         var2 &= 65535;
       }
-      return crc;
+
+      return var2;
    }
 
-   public int calculate(ByteBuf buf) {
+   public int calculate(ByteBuf var1) {
       try {
-         int crc = this.initialVal;
-         while (buf.isReadable()) {
-            short b = buf.readUnsignedByte();
-            int idx = (crc >> 8) & 0xFF;
-            crc = this.lookupTable[b ^ idx] ^ ((crc & 0xFF) << 8);
+         int var2;
+         short var3;
+         int var4;
+         int var5;
+         for(var2 = this.initialVal; var1.isReadable(); var2 = this.tab[var3 ^ var4] ^ var5 << 8) {
+            var3 = var1.readUnsignedByte();
+            var4 = var2 >> 8 & 255;
+            var5 = var2 & 255;
          }
-         return crc ^ this.finalXor;
+
+         int var9 = var2 ^ this.finalXor;
+         return var9;
       } finally {
-         buf.release();
+         var1.release();
       }
    }
 }

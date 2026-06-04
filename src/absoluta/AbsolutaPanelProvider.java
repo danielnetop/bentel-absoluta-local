@@ -68,11 +68,6 @@ public class AbsolutaPanelProvider implements PanelProvider {
    }
 
    @Override
-   public boolean armingSupport(char presetMode) {
-      return this.connectionHandler.getCommander().armingSupport(presetMode);
-   }
-
-   @Override
    public void setModeArming(char presetMode) {
       this.connectionHandler.getCommander().armingSet(presetMode);
    }
@@ -96,9 +91,20 @@ public class AbsolutaPanelProvider implements PanelProvider {
       }
    }
 
-   // Pulisce le segnalazioni di guasto
-   void cleanTroubles() {
+   public Boolean isPartitionReady(int partitionId) {
+      return this.panelStatus.getPartitionReady(partitionId);
+   }
+
+   public void cleanTroubles() {
       this.connectionHandler.getCommander().cleanTroubles();
+   }
+
+   public void cleanAlarmMemory() {
+      this.connectionHandler.getCommander().cleanAlarmMemory();
+   }
+
+   public void cleanAll() {
+      this.connectionHandler.getCommander().cleanAll();
    }
 
    public enum providerConnStatus {
@@ -107,5 +113,11 @@ public class AbsolutaPanelProvider implements PanelProvider {
       INCOMPATIBLE,
       UNAUTHORIZED,
       UNREACHABLE
+   }
+
+   public enum providerStatus {
+      TAMPER,
+      FAULT,
+      OK
    }
 }

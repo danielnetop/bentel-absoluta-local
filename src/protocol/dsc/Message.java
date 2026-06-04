@@ -83,7 +83,6 @@ public class Message<P, V> {
 
    @Override
    public final String toString() {
-      // Restituisce il nome del campo statico se presente, altrimenti null
       if (this.name == null) {
          Field[] fields = Message.class.getFields();
          for (Field field : fields) {
@@ -100,7 +99,6 @@ public class Message<P, V> {
    }
 
    static {
-      // Inizializzazione dei messaggi Absoluta e altri custom
       ABSOLUTA_PARTITION_LABEL = new NumberedLabelReading(3, 1, DscCharsets.WIN1252);
       ABSOLUTA_OUTPUT_LABEL = new NumberedLabelReading(4, 0, 50, DscCharsets.WIN1252);
       ABSOLUTA_REMOTE_COMMAND_LABEL = new NumberedLabelReading(4, 50, 32, DscCharsets.WIN1252);
@@ -129,10 +127,9 @@ public class Message<P, V> {
       TEST_COMMAND = new TestCommandWriting();
    }
 
-   // Classe base per le risposte ai messaggi
    public abstract static class Response {
-      protected final Message<?, ?> message; // Messaggio di riferimento
-      protected final Object param;          // Parametro associato
+      protected final Message<?, ?> message;
+      protected final Object param;
 
       protected <P, V> Response(Message<P, V> message, P param) {
          this.message = message;

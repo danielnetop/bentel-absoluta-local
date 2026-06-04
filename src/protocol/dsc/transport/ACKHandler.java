@@ -15,31 +15,30 @@ import java.util.logging.Logger;
 public class ACKHandler extends ChannelDuplexHandler {
    private static final Logger logger = Logger.getLogger(ACKHandler.class.getName());
 
-   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-      // Invia LowACK se richiesto dal marker COMMAND_RECEIVED
-      if (msg == SimpleMessage.COMMAND_RECEIVED) {
-         if (TransportLayerEncoder.isOutgoingACKRequired(ctx)) {
-               logger.finer("Sending low ACK");
-               ctx.write(LowACK.getInstance(), promise);
+   public void write(ChannelHandlerContext var1, Object var2, ChannelPromise var3) throws Exception {
+      if (var2 == SimpleMessage.COMMAND_RECEIVED) {
+         if (TransportLayerEncoder.isOutgoingACKRequired(var1)) {
+            logger.finest("Sending low ACK");
+            var1.write(LowACK.getInstance(), var3);
          } else {
-               promise.setSuccess();
+            var3.setSuccess();
          }
       } else {
-         super.write(ctx, msg, promise);
+         super.write(var1, var2, var3);
       }
    }
 
    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
       if (msg instanceof DscCommand) {
          if (msg instanceof LowACK) {
-               logger.finer("Low ACK received");
+            logger.finest("Low ACK received");
          } else if (msg instanceof EncapsulatedCommandForMultiplePackets) {
-               logger.finer("Multiple packets received");
+            logger.finer("Multiple packets received");
          } else {
-               logger.finer("Command received: " + msg);
-               ctx.fireChannelRead(msg);
+            logger.finest("Command received: " + msg);
+            ctx.fireChannelRead(msg);
          }
-         // Notifica ricezione comando (per ACK)
+
          ctx.fireChannelRead(SimpleMessage.COMMAND_RECEIVED);
       } else {
          super.channelRead(ctx, msg);

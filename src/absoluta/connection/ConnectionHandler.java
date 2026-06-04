@@ -159,7 +159,7 @@ public class ConnectionHandler {
             ConnectionHandler.this.panelStatus.updateConnectionStatus(PanelConnStatus.CONNECTED);
             ConnectionHandler.this.setConnectionStatus(providerConnStatus.SUCCESS);
             ConnectionHandler.this.statusReader.startWaitingForNotificationsAfterLogin();
-            ConnectionHandler.this.endpoint.setSessionActive(true);
+            ConnectionHandler.this.endpoint.setSessionful(true);
          }
       }
 

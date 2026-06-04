@@ -18,76 +18,86 @@ class AESHelper {
    private final int mode;
    private final Cipher cipher;
 
-   // Restituisce istanza solo se chiave non nulla
-   static AESHelper getInstance(byte[] key, int mode) {
-      return key == null ? null : new AESHelper(key, mode);
+   static AESHelper getInstance(byte[] var0, int var1) {
+      return var0 == null ? null : new AESHelper(var0, var1);
    }
 
-   private AESHelper(byte[] key, int mode) {
-      if (mode != DECRYPT_MODE && mode != ENCRYPT_MODE) {
-         throw new IllegalArgumentException("invalid mode " + mode);
+   private AESHelper(byte[] var1, int var2) {
+      if (var2 != 2 && var2 != 1) {
+         throw new IllegalArgumentException("invalid mode " + var2);
       } else {
-         this.mode = mode;
-         this.cipher = DscUtils.getAESCipher(key, mode);
+         this.mode = var2;
+         this.cipher = DscUtils.getAESCipher(var1, var2);
 
          assert this.cipher.getBlockSize() == BLOCK_SIZE;
+
          assert this.buffer.length >= BLOCK_SIZE;
+
       }
    }
 
-   // Esegue cifratura/decifratura su ByteBuf, gestendo padding e blocchi
-   void process(ByteBuf in, ByteBuf out) {
+   void process(ByteBuf var1, ByteBuf var2) {
       try {
-         int padding = (BLOCK_SIZE - in.readableBytes() % BLOCK_SIZE) % BLOCK_SIZE;
+         int var3 = (BLOCK_SIZE - var1.readableBytes() % BLOCK_SIZE) % BLOCK_SIZE;
 
-         assert 0 <= padding && padding < BLOCK_SIZE;
-         assert (in.readableBytes() + padding) % BLOCK_SIZE == 0;
+         assert 0 <= var3 && var3 < BLOCK_SIZE;
 
-         // In decifratura, la lunghezza deve essere multiplo del blocco
-         if (this.mode == DECRYPT_MODE && padding != 0) {
-               throw new CorruptedFrameException(String.format("length must be multiple of %d bytes", BLOCK_SIZE));
+         assert (var1.readableBytes() + var3) % BLOCK_SIZE == 0;
+
+         if (this.mode == 2 && var3 != 0) {
+            throw new CorruptedFrameException(String.format("length must be multiple of %d bytes", BLOCK_SIZE));
          } else {
-               ByteBufInputStream bis = new ByteBufInputStream(in);
-               Throwable bisEx = null;
+            ByteBufInputStream var4 = new ByteBufInputStream(var1);
+            Throwable var5 = null;
+
+            try {
+               CipherOutputStream var6 = new CipherOutputStream(new ByteBufOutputStream(var2), this.cipher);
+               Throwable var7 = null;
 
                try {
-                  CipherOutputStream cos = new CipherOutputStream(new ByteBufOutputStream(out), this.cipher);
-                  Throwable cosEx = null;
+                  int var8;
+                  while((var8 = var4.read(this.buffer)) != -1) {
+                     var6.write(this.buffer, 0, var8);
+                  }
 
-                  try {
-                     int read;
-                     while ((read = bis.read(this.buffer)) != -1) {
-                           cos.write(this.buffer, 0, read);
-                     }
-                     // Padding solo in cifratura
-                     cos.write(this.buffer, 0, padding);
-                  } catch (Throwable t) {
-                     cosEx = t;
-                     throw t;
-                  } finally {
-                     if (cos != null) {
-                           if (cosEx != null) {
-                              try { cos.close(); } catch (Throwable t2) { cosEx.addSuppressed(t2); }
-                           } else {
-                              cos.close();
-                           }
+                  var6.write(this.buffer, 0, var3);
+               } catch (Throwable var32) {
+                  var7 = var32;
+                  throw var32;
+               } finally {
+                  if (var6 != null) {
+                     if (var7 != null) {
+                        try {
+                           var6.close();
+                        } catch (Throwable var31) {
+                           var7.addSuppressed(var31);
+                        }
+                     } else {
+                        var6.close();
                      }
                   }
-               } catch (Throwable t) {
-                  bisEx = t;
-                  throw t;
-               } finally {
-                  if (bis != null) {
-                     if (bisEx != null) {
-                           try { bis.close(); } catch (Throwable t2) { bisEx.addSuppressed(t2); }
-                     } else {
-                           bis.close();
+
+               }
+            } catch (Throwable var34) {
+               var5 = var34;
+               throw var34;
+            } finally {
+               if (var4 != null) {
+                  if (var5 != null) {
+                     try {
+                        var4.close();
+                     } catch (Throwable var30) {
+                        var5.addSuppressed(var30);
                      }
+                  } else {
+                     var4.close();
                   }
                }
+
+            }
          }
-      } catch (IOException e) {
-         throw new RuntimeException("unexpected exception", e);
+      } catch (IOException var36) {
+         throw new RuntimeException("unexpected exception", var36);
       }
    }
 }

@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 import org.javatuples.Pair;
+import org.javatuples.Quartet;
 
 class StatusListener implements MessageListener {
    private static final Logger logger = Logger.getLogger(StatusListener.class.getName());
@@ -19,6 +20,8 @@ class StatusListener implements MessageListener {
    // Partition status indices
    private static final int PARTITION_ARMED = 0;
    private static final int PARTITION_STAY = 1;
+   // PARTITION_READY shares index 1: bit1 means "Ready to Arm" when disarmed, "Stay" when armed (ITv2 spec 6.7.4)
+   private static final int PARTITION_READY = 1;
    private static final int PARTITION_AWAY = 2;
    private static final int PARTITION_NIGHT = 3;
    private static final int PARTITION_NODELAY = 4;
@@ -108,6 +111,21 @@ class StatusListener implements MessageListener {
          int armingModeId = (Integer) msg.getParam(Message.ABSOLUTA_ARMING_MODE_LABEL);
          String label = ((String) msg.getValue(Message.ABSOLUTA_ARMING_MODE_LABEL)).trim();
          panelStatus.updateArmingModeLabel(armingModeId, label);
+      } else if (msg.isFor(Message.TROUBLE_DETAIL_NOTIFICATION)) {
+         List<Quartet<Integer, Integer, Integer, Integer>> troubles =
+            (List<Quartet<Integer, Integer, Integer, Integer>>) msg.getValue(Message.TROUBLE_DETAIL_NOTIFICATION);
+
+         for (Quartet<Integer, Integer, Integer, Integer> trouble : troubles) {
+            this.manageTrouble(trouble);
+         }
+      } else if (msg.isFor(Message.TROUBLE_DETAIL)) {
+         Pair<Integer, Integer> param = (Pair<Integer, Integer>) msg.getParam(Message.TROUBLE_DETAIL);
+         List<Integer> deviceNumbers = (List<Integer>) msg.getValue(Message.TROUBLE_DETAIL);
+         int deviceType = param.getValue0();
+         int troubleType = param.getValue1();
+         for (Integer deviceNumber : deviceNumbers) {
+            this.manageTrouble(Quartet.with(deviceType, troubleType, deviceNumber, Trouble.TROUBLE));
+         }
       }
    }
 
@@ -149,11 +167,35 @@ class StatusListener implements MessageListener {
       }
 
       panelStatus.updatePartitionStatus(partitionId, partitionStatus);
+      panelStatus.updatePartitionAlarmInMemory(partitionId, statusMask.get(PARTITION_ALARM_IN_MEMORY));
 
-      // If partition is in alarm, set TRIGGERED
-      if (partitionStatus == PanelStatus.PartitionStatus.ALARMS) {
+      // Override to TRIGGERED only when the alarm is actively sounding, not just in memory.
+      // PARTITION_ALARM_IN_MEMORY stays true after disarming and would otherwise keep the
+      // partition stuck in TRIGGERED until the memory bit is cleared by re-arming.
+      if (statusMask.get(PARTITION_ALARM)) {
          armingMode = PanelStatus.PartitionArming.TRIGGERED;
       }
+
+      // Preserve ARMING/DISARMING until the panel confirms the transition, so intermediate
+      // status packets (still showing old state) don't flash the UI back to the previous state.
+      PanelStatus.PartitionArming currentArming = panelStatus.getPartitionArming(partitionId);
+      if (currentArming == PanelStatus.PartitionArming.ARMING && armingMode == PanelStatus.PartitionArming.DISARMED) {
+         armingMode = PanelStatus.PartitionArming.ARMING;
+      } else if (currentArming == PanelStatus.PartitionArming.DISARMING &&
+                 armingMode != PanelStatus.PartitionArming.DISARMED &&
+                 armingMode != PanelStatus.PartitionArming.TRIGGERED) {
+         armingMode = PanelStatus.PartitionArming.DISARMING;
+      }
+
+      boolean ready;
+      if (armingMode == PanelStatus.PartitionArming.DISARMED) {
+         ready = statusMask.size() > PARTITION_READY && statusMask.get(PARTITION_READY);
+      } else if (armingMode == PanelStatus.PartitionArming.TRIGGERED) {
+         ready = false;
+      } else {
+         ready = true;
+      }
+      panelStatus.updatePartitionReady(partitionId, ready);
 
       panelStatus.updatePartitionArming(partitionId, armingMode);
 
@@ -161,14 +203,20 @@ class StatusListener implements MessageListener {
       boolean anyPartitionDisarmed = false;
       boolean missingData = false;
       boolean anyPartitionTriggered = false;
+      boolean anyPartitionArming = false;
+      boolean anyPartitionDisarming = false;
 
       for (Integer id : panelStatus.getPartitions()) {
          PanelStatus.PartitionArming mode = panelStatus.getPartitionArming(id);
          if (mode == null) {
             missingData = true;
-         } else if (mode == PanelStatus.PartitionArming.TRIGGERED){
+         } else if (mode == PanelStatus.PartitionArming.TRIGGERED) {
             anyPartitionTriggered = true;
-         }else if (mode == PanelStatus.PartitionArming.DISARMED) {
+         } else if (mode == PanelStatus.PartitionArming.ARMING) {
+            anyPartitionArming = true;
+         } else if (mode == PanelStatus.PartitionArming.DISARMING) {
+            anyPartitionDisarming = true;
+         } else if (mode == PanelStatus.PartitionArming.DISARMED) {
             anyPartitionDisarmed = true;
          } else {
             anyPartitionArmed = true;
@@ -180,12 +228,28 @@ class StatusListener implements MessageListener {
          globalArming = null;
       } else if (anyPartitionTriggered) {
          globalArming = PanelStatus.GlobalArming.TRIGGERED;
+      } else if (anyPartitionArming) {
+         globalArming = PanelStatus.GlobalArming.ARMING;
+      } else if (anyPartitionDisarming) {
+         globalArming = PanelStatus.GlobalArming.DISARMING;
       } else if (anyPartitionArmed && anyPartitionDisarmed) {
          globalArming = PanelStatus.GlobalArming.PARTIALLY_ARMED;
       } else if (anyPartitionArmed) {
          globalArming = PanelStatus.GlobalArming.GLOBALLY_ARMED;
       } else {
          globalArming = PanelStatus.GlobalArming.GLOBALLY_DISARMED;
+      }
+
+      // When Commander.arming() sends a system-level arm/disarm, individual partitions are not
+      // set to ARMING/DISARMING. Preserve the global state so intermediate panel status packets
+      // (still showing old state) don't override it before the panel confirms the transition.
+      PanelStatus.GlobalArming currentGlobal = panelStatus.getGlobalArming();
+      if (currentGlobal == PanelStatus.GlobalArming.ARMING && globalArming == PanelStatus.GlobalArming.GLOBALLY_DISARMED) {
+         globalArming = PanelStatus.GlobalArming.ARMING;
+      } else if (currentGlobal == PanelStatus.GlobalArming.DISARMING &&
+                 (globalArming == PanelStatus.GlobalArming.GLOBALLY_ARMED ||
+                  globalArming == PanelStatus.GlobalArming.PARTIALLY_ARMED)) {
+         globalArming = PanelStatus.GlobalArming.DISARMING;
       }
 
       panelStatus.updateGlobalArming(globalArming);
@@ -211,5 +275,32 @@ class StatusListener implements MessageListener {
 
       panelStatus.updateZoneBypass(zoneId, statusMask.get(ZONE_BYPASSED));
       panelStatus.updateZoneStatus(zoneId, zoneStatus);
+   }
+
+   private void manageTrouble(Quartet<Integer, Integer, Integer, Integer> var1) {
+      int var2 = (Integer)var1.getValue0();
+      int var3 = (Integer)var1.getValue1();
+      int var4 = (Integer)var1.getValue2();
+      int var5 = (Integer)var1.getValue3();
+      if (var2 == 1 && !this.panelStatus.getZones().contains(var4)) {
+         logger.fine("discarding trouble 0x" + var3 + " notification for zone " + var4 + " (the zone doesn't belong to the current user)");
+      } else {
+         Trouble var6 = new Trouble(var2, var3, var4, false);
+         Trouble var7 = new Trouble(var2, var3, var4, true);
+         switch (var5) {
+            case 0:
+               this.panelStatus.removeTrouble(var6);
+               this.panelStatus.removeTrouble(var7);
+               break;
+            case 1:
+               this.panelStatus.removeTrouble(var7);
+               this.panelStatus.addTrouble(var6);
+               break;
+            case 2:
+               this.panelStatus.removeTrouble(var6);
+               this.panelStatus.addTrouble(var7);
+         }
+
+      }
    }
 }

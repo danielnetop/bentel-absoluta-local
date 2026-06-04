@@ -148,6 +148,12 @@ class StatusReader implements MessageListener {
          }
       } else if (newValue.isFor(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS)) {
          logger.finer(">>> >>> >>> " + newValue.getValue(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS));
+      } else if (newValue.isFor(Message.SYSTEM_TROUBLE_STATUS)) {
+         List<Pair<Integer, Integer>> troubles =
+            (List<Pair<Integer, Integer>>) newValue.getValue(Message.SYSTEM_TROUBLE_STATUS);
+         for (Pair<Integer, Integer> pair : troubles) {
+            messageHandler.sendMidPriorityReading(Message.TROUBLE_DETAIL, pair);
+         }
       }
    }
 

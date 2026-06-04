@@ -1,5 +1,6 @@
-# Usa una immagine base OpenJDK 24
-FROM openjdk:24-slim
+# Usa una immagine base temurin 21
+FROM eclipse-temurin:21-jdk-jammy
+
 
 # Crea una directory per l'app
 WORKDIR /app
@@ -19,4 +20,4 @@ ENV MQTT_ADDRESS="" \
     ALARM_PORT=""
 
 # Comando di avvio
-ENTRYPOINT ["java", "-cp", "/app/app.jar:/app/lib/*", "Application"]
+ENTRYPOINT exec java -Duser.timezone=${TZ:-UTC} -cp /app/app.jar:/app/lib/* Application

@@ -21,47 +21,28 @@ jobs:
 
       - name: Build absoluta.jar, protocol.jar
         run: |
-          mkdir -p build
-
-          # Compila e crea protocol.jar
-          find src/protocol -name "*.java" > protocol_sources.txt
-          javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @protocol_sources.txt
-          jar cf secured/protocol.jar -C build/protocol .
-          rm protocol_sources.txt
-
-          # Compila e crea absoluta.jar
-          find src/absoluta -name "*.java" > absoluta_sources.txt
-          javac --release 19 -cp "lib/jars/*:secured/*:build" -d build @absoluta_sources.txt
-          jar cf secured/absoluta.jar -C build/absoluta .
-          rm absoluta_sources.txt
+          chmod +x build_secured.sh
+          ./build_secured.sh
 
       - name: Build app.jar
         run: |
-          mkdir -p build
-          find src -name "*.java" > sources.txt
-          javac --release 19 -cp "lib/jars/*:secured/*" -d build @sources.txt
-          rm sources.txt
-
-          echo "Main-Class: Application" > build/MANIFEST.MF
-          echo "Class-Path: lib/*" >> build/MANIFEST.MF
-
-          jar cfm build/app.jar build/MANIFEST.MF -C build .
+          chmod +x build.sh
+          ./build.sh
 
       - name: Clone Repo Addon
         run: |
-          git clone https://x-access-token:${{ secrets.ADDONTOKEN }}@github.com/AlessandroTischer/absoluta-local-addon.git
+          git clone https://x-access-token:${{ secrets.ADDONTOKEN }}@github.com/AlessandroTischer/ha-absoluta-local-bridge.git
 
       - name: Copy JARs to Repo Addon
         run: |
-          cp secured/*.jar absoluta-local-addon/absoluta_local/secured/
-          cp build/app.jar absoluta-local-addon/absoluta_local/app.jar
+          cp secured/*.jar ha-absoluta-local-bridge/absoluta_local/secured/
+          cp build/app.jar ha-absoluta-local-bridge/absoluta_local/app.jar
 
       - name: Update config.yaml version
         run: |
-          VERSION=$(grep 'VERSION = ' src/Application.java | sed -E 's/.*\"([^"]+)\".*/\1/')
-          CONFIG_FILE="absoluta-local-addon/absoluta_local/config.yaml"
+          VERSION=$(grep 'VERSION = ' src/Application.java | sed -E 's/.*"([^"]+)".*/\1/')
+          CONFIG_FILE="ha-absoluta-local-bridge/absoluta_local/config.yaml"
           if [ -f "$CONFIG_FILE" ]; then
-            # Aggiorna la chiave version nel file YAML
             sed -i "s/^version: .*/version: '$VERSION'/" "$CONFIG_FILE"
           else
             echo "Attenzione: $CONFIG_FILE non trovato!"
@@ -69,7 +50,7 @@ jobs:
 
       - name: Commit and Push to Repo Addon
         run: |
-          cd absoluta-local-addon
+          cd ha-absoluta-local-bridge
           git config user.name "GitHub Action"
           git config user.email "actions@github.com"
           git add .

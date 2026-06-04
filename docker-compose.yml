@@ -3,6 +3,7 @@ services:
   bentel-absoluta:
     image: "axtx2301/bentel-absoluta-local-bridge:latest"
     environment:
+      TZ: "Europe/Rome"
       MQTT_ADDRESS: "<MQTT_ADDRESS>"
       MQTT_PORT: "<MQTT_PORT>"
       MQTT_USERNAME: "<MQTT_USERNAME>"

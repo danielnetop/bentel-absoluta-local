@@ -33,7 +33,6 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
       if (sessionInfo.getClient() == null) {
          throw new IllegalStateException("invalid own info (null client)");
       }
-      // Validazione info sessione tramite tutti gli handshake handler
       for (HandshakeHandler<?> handler : this.handshakeHandlers) {
          if (!handler.validateOwnInfo(sessionInfo)) {
                throw new IllegalStateException(
@@ -46,21 +45,19 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
    @Override
    public void channelActive(ChannelHandlerContext ctx) throws Exception {
       super.channelActive(ctx);
-      logger.fine("Handshake begin");
+      logger.finer("Handshake begin");
       ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_BEGIN_EVENT);
       this.nextStage(ctx);
    }
 
    @Override
    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-      // Rimuove tutti gli handler gestiti dal pipeline
       this.setManagedHandlers(ctx, Collections.emptyList());
       super.handlerRemoved(ctx);
    }
 
    @Override
    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-      // Avanza di stage handshake su evento specifico
       if (evt == SimpleMessage.HANDSHAKE_STAGE_COMPLETED_EVENT) {
          this.nextStage(ctx);
       } else {
@@ -68,28 +65,26 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
       }
    }
 
-   // Gestisce avanzamento handshake o passaggio a modalità normale
    private void nextStage(ChannelHandlerContext ctx) {
       HandshakeHandler<?> handler = this.handshakeHandlers.poll();
       if (handler != null) {
-         logger.fine("Handshake next stage");
+         logger.finer("Handshake next stage");
          this.setManagedHandlers(ctx, Collections.singletonList(handler));
          SessionInfo sessionInfo = SessionInfo.getOwnInfo(ctx.channel());
          if (sessionInfo.isClient()) {
                handler.startHandshakeStage();
          }
       } else {
-         logger.fine("Handshake end");
+         logger.finer("Handshake end");
          this.setManagedHandlers(ctx, this.normalModeHandlers);
          ctx.fireUserEventTriggered(SimpleMessage.HANDSHAKE_END_EVENT);
       }
    }
 
-   // Gestisce dinamicamente gli handler nel pipeline (aggiunta/rimozione)
    private void setManagedHandlers(ChannelHandlerContext ctx, List<ChannelHandler> handlers) {
       ChannelPipeline pipeline = ctx.pipeline();
 
-      // Rimuove tutti gli handler gestiti precedentemente
+      // Remove all managed handlers
       for (String handlerName : this.managedHandlerNames) {
          logger.finer("Removing " + handlerName + " from pipeline");
          pipeline.remove(handlerName);
@@ -98,7 +93,7 @@ public class PipelineHandler extends ChannelInboundHandlerAdapter {
 
       String previousName = ctx.name();
 
-      // Aggiunge i nuovi handler in ordine inverso per mantenere la sequenza
+      // Add new handlers in reverse order
       for (int i = handlers.size() - 1; i >= 0; --i) {
          ChannelHandler handler = handlers.get(i);
          String handlerName = String.format("%s:%s#%d", ctx.name(), handler.getClass().getSimpleName(), i);

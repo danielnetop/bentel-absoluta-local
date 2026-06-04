@@ -5,26 +5,25 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.handler.codec.MessageToMessageEncoder;
-
 import java.util.List;
 
 @Sharable
 public class Aes128ecbPadder extends MessageToMessageEncoder<ByteBuf> {
    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
 
-   protected void encode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-      byte[] key = (byte[]) ctx.channel().attr(Aes128ecbEncrypter.ENCRYPT_KEY).get();
-      // Padding solo se chiave presente e lunghezza non multipla di 16
-      if (key != null && in.readableBytes() % 16 != 0) {
-         int padLen = 16 - in.readableBytes() % 16;
+   protected void encode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws Exception {
+      byte[] var4 = (byte[])var1.channel().attr(Aes128ecbEncrypter.ENCRYPT_KEY).get();
+      if (var4 != null && var2.readableBytes() % 16 != 0) {
+         int var5 = 16 - var2.readableBytes() % 16;
 
-         assert 0 < padLen && padLen < 16;
+         assert 0 < var5 && var5 < 16;
 
-         byte[] bytes = new byte[padLen];
+         byte[] bytes = new byte[var5];
          SECURE_RANDOM.nextBytes(bytes);
-         out.add(Unpooled.wrappedBuffer(new ByteBuf[]{in.retain(), Unpooled.wrappedBuffer(bytes)}));
+         var3.add(Unpooled.wrappedBuffer(new ByteBuf[]{var2.retain(), Unpooled.wrappedBuffer(bytes)}));
       } else {
-         out.add(in.retain());
+         var3.add(var2.retain());
       }
+
    }
 }

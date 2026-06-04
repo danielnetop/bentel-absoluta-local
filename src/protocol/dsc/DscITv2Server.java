@@ -15,9 +15,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DscITv2Server implements DscServer {
    private final int port;
-   private final List<IncomingConnectionListener> incomingConnectionListeners = new CopyOnWriteArrayList<>();
-   private EventLoopGroup bossEventLoopGroup;
-   private EventLoopGroup workerEventLoopGroup;
+   private final List<IncomingConnectionListener> listeners = new CopyOnWriteArrayList<>();
+   private EventLoopGroup bossGroup;
+   private EventLoopGroup workerGroup;
 
    public DscITv2Server(int port) {
       this.port = port;
@@ -25,26 +25,24 @@ public class DscITv2Server implements DscServer {
 
    @SuppressWarnings("deprecation")
    public void start() {
-      // Avvia solo se non già avviato
-      if (this.bossEventLoopGroup == null && this.workerEventLoopGroup == null) {
+      if (this.bossGroup == null && this.workerGroup == null) {
          try {
-               this.bossEventLoopGroup = new NioEventLoopGroup();
-               this.workerEventLoopGroup = new NioEventLoopGroup();
-               ServerBootstrap serverBootstrap = new ServerBootstrap();
-               serverBootstrap.group(this.bossEventLoopGroup, this.workerEventLoopGroup)
+               this.bossGroup = new NioEventLoopGroup();
+               this.workerGroup = new NioEventLoopGroup();
+               ServerBootstrap bootstrap = new ServerBootstrap();
+               bootstrap.group(this.bossGroup, this.workerGroup)
                      .channel(NioServerSocketChannel.class)
                      .childHandler(new DscChannelInitializer() {
                            @Override
                            protected void onInitialized(DscEndpoint endpoint, SocketChannel channel) {
-                              // Notifica tutti i listener della nuova connessione
-                              for (IncomingConnectionListener listener : incomingConnectionListeners) {
+                              for (IncomingConnectionListener listener : listeners) {
                                  listener.deviceConnected(endpoint);
                               }
                            }
                      })
                      .option(ChannelOption.SO_BACKLOG, 128)
                      .childOption(ChannelOption.SO_KEEPALIVE, true);
-               serverBootstrap.bind(this.port);
+               bootstrap.bind(this.port);
          } catch (RuntimeException ex) {
                try {
                   this.stop(false);
@@ -62,33 +60,32 @@ public class DscITv2Server implements DscServer {
       this.stop(true);
    }
 
-   // Gestisce la chiusura dei gruppi di thread, opzionalmente attende la terminazione
    private void stop(boolean wait) throws InterruptedException {
-      Future<?> workerShutdownFuture = null;
-      Future<?> bossShutdownFuture = null;
-      if (this.workerEventLoopGroup != null) {
-         workerShutdownFuture = this.workerEventLoopGroup.shutdownGracefully();
-         this.workerEventLoopGroup = null;
+      Future<?> workerFuture = null;
+      Future<?> bossFuture = null;
+      if (this.workerGroup != null) {
+         workerFuture = this.workerGroup.shutdownGracefully();
+         this.workerGroup = null;
       }
-      if (this.bossEventLoopGroup != null) {
-         bossShutdownFuture = this.bossEventLoopGroup.shutdownGracefully();
-         this.bossEventLoopGroup = null;
+      if (this.bossGroup != null) {
+         bossFuture = this.bossGroup.shutdownGracefully();
+         this.bossGroup = null;
       }
       if (wait) {
-         if (workerShutdownFuture != null) {
-               workerShutdownFuture.sync();
+         if (workerFuture != null) {
+               workerFuture.sync();
          }
-         if (bossShutdownFuture != null) {
-               bossShutdownFuture.sync();
+         if (bossFuture != null) {
+               bossFuture.sync();
          }
       }
    }
 
    public void addIncomingConnectionListener(IncomingConnectionListener listener) {
-      this.incomingConnectionListeners.add(listener);
+      this.listeners.add(listener);
    }
 
    public void removeIncomingConnectionListener(IncomingConnectionListener listener) {
-      this.incomingConnectionListeners.remove(listener);
+      this.listeners.remove(listener);
    }
 }

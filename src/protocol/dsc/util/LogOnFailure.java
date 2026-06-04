@@ -10,11 +10,10 @@ public class LogOnFailure implements ChannelFutureListener {
    private static final Logger logger = Logger.getLogger(LogOnFailure.class.getName());
    public static final LogOnFailure INSTANCE = new LogOnFailure();
 
-   @Override
-   public void operationComplete(ChannelFuture future) throws Exception {
-      Throwable cause = future.cause();
-      if (cause != null) {
-         if (cause instanceof CancellationException) {
+   public void operationComplete(ChannelFuture var1) throws Exception {
+      Throwable var2 = var1.cause();
+      if (var2 != null) {
+         if (var2 instanceof CancellationException) {
             logger.finer("Operation cancelled");
          } else {
             logger.finer("Operation failed");
@@ -22,5 +21,6 @@ public class LogOnFailure implements ChannelFutureListener {
       }
    }
 
-   private LogOnFailure() { }
+   private LogOnFailure() {
+   }
 }

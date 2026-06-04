@@ -8,7 +8,6 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 
 import protocol.dsc.errors.WrongSequenceNumberException;
 
-import java.nio.ByteOrder;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -16,67 +15,42 @@ import java.util.logging.Logger;
 public class TransportLayerDecoder extends MessageToMessageDecoder<ByteBuf> {
    private static final Logger logger = Logger.getLogger(TransportLayerDecoder.class.getName());
 
-   @SuppressWarnings("deprecation")
-   protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
-         throws WrongSequenceNumberException, CorruptedFrameException {
-      // Assicura endianess corretta
-      assert in.order() == ByteOrder.BIG_ENDIAN;
+   protected void decode(ChannelHandlerContext var1, ByteBuf var2, List<Object> var3) throws WrongSequenceNumberException, CorruptedFrameException {
 
-      // Frame valido: 2 byte (ACK) o almeno 4 byte (messaggio normale)
-      if (in.readableBytes() != 2 && in.readableBytes() < 4) {
+      if (var2.readableBytes() != 2 && var2.readableBytes() < 4) {
          throw new CorruptedFrameException("invalid frame lenght");
       } else {
-         // Lettura sequenza locale e remota
-         short remoteSeq = in.readUnsignedByte();
-         short localSeq = in.readUnsignedByte();
-
-         // Verifica se è un ACK basso
-         boolean isLowAck = SequenceHandlersHelper.isLowACK(in);
-
-         // Ottiene i contatori di sequenza associati al canale
-         SequenceHandlersHelper.Counters counters = SequenceHandlersHelper.getCounters(ctx);
-
-         // Per error reporting
-         int errorSeq = isLowAck ? 0 : in.getUnsignedShort(in.readerIndex());
+         short var4 = var2.readUnsignedByte();
+         short var5 = var2.readUnsignedByte();
+         boolean var6 = SequenceHandlersHelper.isLowACK(var2);
+         SequenceHandlersHelper.Counters var7 = SequenceHandlersHelper.getCounters(var1);
+         int var8 = var6 ? 0 : var2.getUnsignedShort(var2.readerIndex());
 
          try {
-               if (!isLowAck) {
-                  // Se reset, solo il primo messaggio può avere seq 0
-                  if (remoteSeq == 0) {
-                     if (!counters.isFirstMessage()) {
-                           throw new WrongSequenceNumberException(errorSeq, "reset request");
-                     }
-                  } else {
-                     // Se seq ripetuta, ignora il messaggio
-                     if (remoteSeq == counters.remoteSequenceNumber()) {
-                           logger.fine("Repeated sequence number " + remoteSeq + ": ignoring message");
-                           return;
-                     }
-                     // Se seq inattesa, errore
-                     if (remoteSeq != SequenceHandlersHelper.next(counters.remoteSequenceNumber())) {
-                           throw new WrongSequenceNumberException(
-                              errorSeq,
-                              String.format("unexpected sequence number: %d instead of %d",
-                                 remoteSeq, SequenceHandlersHelper.next(counters.remoteSequenceNumber()))
-                           );
-                     }
+            if (!var6) {
+               if (var4 == 0) {
+                  if (!var7.isFirstMessage()) {
+                     throw new WrongSequenceNumberException(var8, "reset request");
+                  }
+               } else {
+                  if (var4 == var7.remoteSequenceNumber()) {
+                     logger.fine("Repeated sequence number " + Integer.valueOf(var4) + ": ignoring message");
+                     return;
+                  }
+
+                  if (var4 != SequenceHandlersHelper.next(var7.remoteSequenceNumber())) {
+                     throw new WrongSequenceNumberException(var8, String.format("unexpected sequence number: %d instead of %d", Integer.valueOf(var4), SequenceHandlersHelper.next(var7.remoteSequenceNumber())));
                   }
                }
+            }
 
-               // Il numero di sequenza locale deve essere quello atteso o quello precedente (per ACK)
-               if (localSeq != counters.sequenceNumber() && localSeq != counters.prevSequenceNumber()) {
-                  throw new WrongSequenceNumberException(
-                     errorSeq,
-                     String.format("unexpected remote sequence number: %d instead of %d or %d",
-                           localSeq, counters.sequenceNumber(), counters.prevSequenceNumber())
-                  );
-               } else {
-                  // Passa il payload decodificato agli handler successivi
-                  out.add(in.readSlice(in.readableBytes()).retain());
-               }
+            if (var5 != var7.sequenceNumber() && var5 != var7.prevSequenceNumber()) {
+               throw new WrongSequenceNumberException(var8, String.format("unexpected remote sequence number: %d instead of %d or %d", Integer.valueOf(var5), var7.sequenceNumber(), var7.prevSequenceNumber()));
+            } else {
+               var3.add(var2.readSlice(var2.readableBytes()).retain());
+            }
          } finally {
-               // Aggiorna i contatori di sequenza
-               counters.messageReceived(isLowAck, remoteSeq, localSeq);
+            var7.messageReceived(var6, var4, var5);
          }
       }
    }
