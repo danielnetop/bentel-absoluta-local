@@ -20,4 +20,4 @@ ENV MQTT_ADDRESS="" \
     ALARM_PORT=""
 
 # Comando di avvio
-ENTRYPOINT ["java", "-cp", "/app/app.jar:/app/lib/*", "Application"]
+ENTRYPOINT exec java -Duser.timezone=${TZ:-UTC} -cp /app/app.jar:/app/lib/* Application

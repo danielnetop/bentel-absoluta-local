@@ -1,26 +1,20 @@
 #!/bin/bash
-# Script per compilare e creare il JAR eseguibile su Linux
+set -e
 
-# 1. Crea la cartella build se non esiste
 mkdir -p build
 
-# 2. Compila tutti i file .java (output in build/)
 find src -name "*.java" > sources.txt
 javac --release 19 -cp "lib/jars/*:secured/*" -d build @sources.txt
 rm sources.txt
 
-# 3. Copia i file .properties nel build mantenendo la struttura dei package
 find src -name "*.properties" | while read f; do
     dest="build/${f#src/}"
     mkdir -p "$(dirname "$dest")"
     cp "$f" "$dest"
 done
 
-# 4. Crea il file MANIFEST.MF per specificare la Main-Class
-echo "Main-Class: Application" > build/MANIFEST.MF
-echo "Class-Path: lib/*" >> build/MANIFEST.MF
+printf "Main-Class: Application\nClass-Path: lib/*\n" > MANIFEST.MF
+jar cfm build/app.jar MANIFEST.MF -C build .
+rm MANIFEST.MF
 
-# 5. Crea il JAR eseguibile
-jar cfm build/app.jar build/MANIFEST.MF -C build .
-
-echo "Compilazione e creazione JAR completata. Il file build/app.jar è pronto."
+echo "Build completed: build/app.jar"

@@ -1,6 +1,7 @@
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.TimeZone;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -19,7 +20,7 @@ public class Application {
    // Major: Cambiamenti significativi, API breaking
    // Minor: Nuove funzionalità, compatibilità con le versioni precedenti
    // Patch: Correzioni di bug, miglioramenti minori
-   private static final String VERSION = "1.3.0-alpha";
+   private static final String VERSION = "1.3.1";
 
    // Restituisce il valore della variabile d'ambiente o, se vuota/nulla, dal file di configurazione
    private static String getConfigValue(Properties props, String key) {
@@ -34,6 +35,11 @@ public class Application {
    }
 
    public static void main(String[] var0) {
+
+      String tz = System.getenv("TZ");
+      if (tz != null && !tz.isEmpty()) {
+         TimeZone.setDefault(TimeZone.getTimeZone(tz));
+      }
 
       boolean configFromFile = true;
       Properties props = new Properties();
