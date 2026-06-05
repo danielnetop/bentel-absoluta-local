@@ -18,7 +18,7 @@ The bridge listens on `homeassistant/status` and re-publishes discovery payloads
 
 ## Dashboard
 
-Below are ready-to-use card templates. A complete single-file template is also available in [dashboard_template](../dashboard_template).
+A single-file starting point is also available in [Dashboard Template](../dashboard_template.yaml).
 
 Entity IDs follow the pattern `centrale_absoluta_<name>` where `<name>` comes from your panel's zone and partition configuration. You can find the exact IDs in **Settings → Devices & Services → MQTT → your device**, or in **Developer Tools → States** filtered by `centrale_absoluta`.
 
@@ -50,16 +50,18 @@ Shown only when there is an active fault or alarm in memory. Includes a button t
       - type: markdown
         title: Allarmi Antifurto
         content: >-
-          {% set guasti =
-          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          {% set faults = state_attr('sensor.centrale_absoluta_guasti_della_centrale',
           'guasti') | default([], true) %}
-          {% set allarmi =
-          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          {% set alarms = state_attr('sensor.centrale_absoluta_guasti_della_centrale',
           'allarmi_in_memoria') | default([], true) %}
-          {% for g in guasti %} - **{{ g.Time }}** — {{ g.Message }}
+          {% set ns = namespace(lines=[]) %}
+          {% for fault in faults %}
+            {% set ns.lines = ns.lines + ['- **' + fault.Time + '** — ' + fault.Message] %}
           {% endfor %}
-          {% for a in allarmi %} - **{{ a.Time }}** — {{ a.Message }} *(memoria)*
+          {% for alarm in alarms %}
+            {% set ns.lines = ns.lines + ['- **' + alarm.Time + '** — ' + alarm.Message + ' *(memoria)*'] %}
           {% endfor %}
+          {{ ns.lines | join('\n') }}
         card_mod:
           style: |
             ha-card {
@@ -119,11 +121,13 @@ Shown only when the bridge has raised an alert (e.g. connection loss). Includes 
       - type: markdown
         title: Avvisi Antifurto
         content: >-
-          {% set avvisi =
-          state_attr('sensor.centrale_absoluta_avvisi_bridge', 'avvisi') |
-          default([], true) %}
-          {% for avviso in avvisi | reverse %} - **{{ avviso.Time }}** — {{ avviso.Message }}
+          {% set alerts = state_attr('sensor.centrale_absoluta_avvisi_bridge',
+          'avvisi') | default([], true) %}
+          {% set ns = namespace(lines=[]) %}
+          {% for alert in alerts | reverse %}
+            {% set ns.lines = ns.lines + ['- **' + alert.Time + '** — ' + alert.Message] %}
           {% endfor %}
+          {{ ns.lines | join('\n') }}
         card_mod:
           style: |
             ha-card {

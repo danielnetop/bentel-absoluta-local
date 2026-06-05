@@ -27,16 +27,18 @@
       - type: markdown
         title: Allarmi Antifurto
         content: >-
-          {% set guasti =
-          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          {% set faults = state_attr('sensor.centrale_absoluta_guasti_della_centrale',
           'guasti') | default([], true) %}
-          {% set allarmi =
-          state_attr('sensor.centrale_absoluta_guasti_della_centrale',
+          {% set alarms = state_attr('sensor.centrale_absoluta_guasti_della_centrale',
           'allarmi_in_memoria') | default([], true) %}
-          {% for g in guasti %} - **{{ g.Time }}** — {{ g.Message }}
+          {% set ns = namespace(lines=[]) %}
+          {% for fault in faults %}
+            {% set ns.lines = ns.lines + ['- **' + fault.Time + '** — ' + fault.Message] %}
           {% endfor %}
-          {% for a in allarmi %} - **{{ a.Time }}** — {{ a.Message }} *(memoria)*
+          {% for alarm in alarms %}
+            {% set ns.lines = ns.lines + ['- **' + alarm.Time + '** — ' + alarm.Message + ' *(memoria)*'] %}
           {% endfor %}
+          {{ ns.lines | join('\n') }}
         card_mod:
           style: |
             ha-card {
@@ -89,11 +91,13 @@
       - type: markdown
         title: Avvisi Antifurto
         content: >-
-          {% set avvisi =
-          state_attr('sensor.centrale_absoluta_avvisi_bridge', 'avvisi') |
-          default([], true) %}
-          {% for avviso in avvisi | reverse %} - **{{ avviso.Time }}** — {{ avviso.Message }}
+          {% set alerts = state_attr('sensor.centrale_absoluta_avvisi_bridge',
+          'avvisi') | default([], true) %}
+          {% set ns = namespace(lines=[]) %}
+          {% for alert in alerts | reverse %}
+            {% set ns.lines = ns.lines + ['- **' + alert.Time + '** — ' + alert.Message] %}
           {% endfor %}
+          {{ ns.lines | join('\n') }}
         card_mod:
           style: |
             ha-card {

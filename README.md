@@ -42,6 +42,7 @@ services:
       ALARM_ADDRESS: "192.168.1.20"
       ALARM_PIN: "123456"
       ALARM_PORT: "3064"
+      TZ: "Europe/Rome"
 ```
 
 2. Start the container:
@@ -54,9 +55,9 @@ docker compose up -d
 
 ## Documentation
 
-- [Configuration](docs/configuration.md) — all environment variables, security notes, full docker-compose example
+- **[Home Assistant Integration & Dashboard](docs/home-assistant.md) — MQTT Discovery setup and dashboard card templates**
+- **[Configuration](docs/configuration.md) — all environment variables, security notes, full docker-compose example**
 - [MQTT Topics](docs/mqtt-topics.md) — published topics and command topics reference
-- [Home Assistant Integration & Dashboard](docs/home-assistant.md) — MQTT Discovery, dashboard card templates
 - [Troubleshooting](docs/troubleshooting.md)
 - [Build From Source](docs/build.md)
 
