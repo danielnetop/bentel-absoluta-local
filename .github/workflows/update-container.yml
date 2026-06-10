@@ -45,7 +45,11 @@ jobs:
 
       - name: Build Docker image (latest and version)
         run: |
-          docker build -t axtx2301/bentel-absoluta-local-bridge:latest -t axtx2301/bentel-absoluta-local-bridge:${{ steps.get_version.outputs.version }} . --no-cache
+          docker build -t axtx2301/bentel-absoluta-local-bridge:test -t axtx2301/bentel-absoluta-local-bridge:latest -t axtx2301/bentel-absoluta-local-bridge:${{ steps.get_version.outputs.version }} . --no-cache
+
+      - name: Push Docker image (test)
+        run: |
+          docker push axtx2301/bentel-absoluta-local-bridge:test
 
       - name: Push Docker image (latest)
         run: |

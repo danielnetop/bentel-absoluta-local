@@ -7,6 +7,7 @@ import protocol.dsc.Message;
 import protocol.dsc.MessageListener;
 import protocol.dsc.NewValue;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +28,7 @@ class StatusReader implements MessageListener {
    private final MessageHandler messageHandler;
    private final ScheduledExecutorService executor;
    private List<Integer> userPartitions;
-   private Pair<Integer, Integer> firstZoneAndZoneCount;
+   private List<Pair<Integer, Integer>> zoneRuns;
    private Long notificationWaitStartTime;
    private boolean partitionStatusesReceived;
    private ScheduledFuture<?> notificationTimeoutFuture;
@@ -74,7 +75,7 @@ class StatusReader implements MessageListener {
          messageHandler.sendHighPriorityReading(Message.PARTITION_ASSIGNMENT_CONFIGURATION, null);
       }
 
-      if (firstZoneAndZoneCount == null) {
+      if (zoneRuns == null) {
          messageHandler.sendHighPriorityReading(Message.PARTITION_ZONES, 0);
       }
 
@@ -82,8 +83,10 @@ class StatusReader implements MessageListener {
          messageHandler.sendHighPriorityReading(Message.PARTITION_STATUSES, userPartitions);
       }
 
-      if (firstZoneAndZoneCount != null) {
-         messageHandler.sendHighPriorityReading(Message.ZONE_STATUSES, firstZoneAndZoneCount);
+      if (zoneRuns != null) {
+         for (Pair<Integer, Integer> run : zoneRuns) {
+            messageHandler.sendHighPriorityReading(Message.ZONE_STATUSES, run);
+         }
       }
 
       messageHandler.sendHighPriorityReading(Message.ABSOLUTA_ENABLED_OUTPUTS_AND_REMOTE_COMMANDS, null);
@@ -96,8 +99,10 @@ class StatusReader implements MessageListener {
          if (userPartitions != null) {
             messageHandler.sendMidPriorityReading(Message.PARTITION_STATUSES, userPartitions);
          }
-         if (firstZoneAndZoneCount != null && firstZoneAndZoneCount.getValue1() > 0) {
-            messageHandler.sendMidPriorityReading(Message.ZONE_STATUSES, firstZoneAndZoneCount);
+         if (zoneRuns != null) {
+            for (Pair<Integer, Integer> run : zoneRuns) {
+               messageHandler.sendMidPriorityReading(Message.ZONE_STATUSES, run);
+            }
          }
       }, POLL_INTERVAL_MS, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
    }
@@ -122,13 +127,10 @@ class StatusReader implements MessageListener {
       } else if (newValue.isFor(Message.PARTITION_ZONES) && newValue.getParam(Message.PARTITION_ZONES) == null) {
          List<Integer> userZones = (List<Integer>) newValue.getValue(Message.PARTITION_ZONES);
          logger.fine("User zones: " + JOINER.join(userZones));
-         if (!userZones.isEmpty()) {
-            int minZone = Collections.min(userZones);
-            int maxZone = Collections.max(userZones);
-            firstZoneAndZoneCount = Pair.with(minZone, maxZone - minZone + 1);
-            messageHandler.sendMidPriorityReading(Message.ZONE_STATUSES, firstZoneAndZoneCount);
-         } else {
-            firstZoneAndZoneCount = Pair.with(0, 0);
+         zoneRuns = toContiguousRuns(userZones);
+         logger.fine("Zone status request runs: " + JOINER.join(zoneRuns));
+         for (Pair<Integer, Integer> run : zoneRuns) {
+            messageHandler.sendMidPriorityReading(Message.ZONE_STATUSES, run);
          }
          for (Integer zone : userZones) {
             messageHandler.sendMidPriorityReading(Message.ABSOLUTA_ZONE_LABEL, zone);
@@ -160,5 +162,39 @@ class StatusReader implements MessageListener {
    @Override
    public void error(DscError error) {
       // Handle error if needed
+   }
+
+   /**
+    * Splits a sparse list of enabled/assigned zones into the minimal set of contiguous
+    * (firstZone, count) runs. The DSC {@code ZoneStatus} command can only request a
+    * contiguous block, so collapsing the whole list to a single min..max range would also
+    * poll disabled zones. Splitting into runs requests statuses for enabled zones only.
+    */
+   private static List<Pair<Integer, Integer>> toContiguousRuns(List<Integer> zones) {
+      List<Pair<Integer, Integer>> runs = new ArrayList<>();
+      if (zones.isEmpty()) {
+         return runs;
+      }
+
+      List<Integer> sorted = new ArrayList<>(zones);
+      Collections.sort(sorted);
+
+      int runStart = sorted.get(0);
+      int prev = runStart;
+      for (int i = 1; i < sorted.size(); i++) {
+         int zone = sorted.get(i);
+         if (zone == prev) {
+            continue;
+         }
+         if (zone == prev + 1) {
+            prev = zone;
+         } else {
+            runs.add(Pair.with(runStart, prev - runStart + 1));
+            runStart = zone;
+            prev = zone;
+         }
+      }
+      runs.add(Pair.with(runStart, prev - runStart + 1));
+      return runs;
    }
 }
